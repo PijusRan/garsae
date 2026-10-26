@@ -100,6 +100,16 @@ Sounds that might aid focus. No claims are made in v1.
 - Audio engine: **raw Web Audio API**, no audio library. It is a plain TypeScript module with no React inside; the UI only sends commands (e.g. `setInstrumentVolume`). An AudioWorklet can be added later for individual experimental instruments that need it.
 - The engine needs: a look-ahead scheduler, envelope helpers, reverb and noise generators.
 
+### Engine rules
+- **Scheduler clock in a Web Worker.** Only the timer tick runs in the Worker; scheduling stays on the main thread. This avoids background-tab timer throttling and is groundwork for later background playback.
+- **Large look-ahead (~0.5-1 s).** Nothing needs fast reaction, so a deep buffer makes playback resilient to hiccups. Toggling a tile fades it in or out with gain instead of cancelling notes already scheduled.
+- **Master limiter.** A `DynamicsCompressorNode` set up as a limiter sits on the output, and each tile keeps some headroom, so layered tiles never clip or jump in loudness.
+- **No direct `.value` writes.** Every parameter change (volume, filter, Evolution) goes through `setTargetAtTime` or ramps via one helper, to avoid clicks.
+- **iOS from day one:**
+  - set `navigator.audioSession.type = "playback"` (Safari 16.4+) so the ringer switch doesn't mute audio
+  - resume the `AudioContext` from a user tap
+  - audio stops when the screen locks; accepted for v1 (see Playback)
+
 ## "Brain function" angle
 - **v1: just good focus music.** No science claims.
 - **Later:** adopt a proven focus method. The engine should expose noise colour, tempo, modulation rate and stereo/oscillator control as parameters, so a "focus profile" can be added as a preset layer without a rewrite.
