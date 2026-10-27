@@ -40,13 +40,18 @@ try {
   const status = await page.$eval('.status', (el) => el.textContent);
   await page.screenshot({ path: 'smoke-output/desktop-playing.png' });
 
-  // Scrolled away from the hero, the compact player appears and works.
+  // Scrolled to the bottom, the player is still reachable.
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await new Promise((r) => setTimeout(r, 700));
-  const barVisible = await page.$eval('.playerbar', (el) => el.classList.contains('show'));
+  // The transport stays on screen while scrolling.
+  const barVisible = await page.$eval('.transport', (el) => {
+    const r = el.getBoundingClientRect();
+    return r.top >= 0 && r.bottom <= window.innerHeight && r.height > 0;
+  });
 
   // After clicking a tile, Space pauses the music and does not toggle the tile.
   const before = await page.$$eval('.tile.on', (els) => els.length);
+  await page.$eval('#tile-lofi', (el) => el.scrollIntoView({ block: 'center' }));
   await page.click('#tile-lofi .tile-toggle');
   await page.keyboard.press('Space');
   await new Promise((r) => setTimeout(r, 400));
@@ -56,37 +61,37 @@ try {
   // Surprise me can be undone.
   await page.evaluate(() => window.scrollTo(0, 0));
   const onBefore = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
-  await page.evaluate(() => [...document.querySelectorAll('.actions .pill')].find((b) => b.textContent === 'Surprise me').click());
+  await page.evaluate(() => [...document.querySelectorAll('.actions .btn')].find((b) => b.textContent === 'Surprise me').click());
   await page.waitForSelector('.toast-undo');
   await page.click('.toast-undo');
   await new Promise((r) => setTimeout(r, 200));
   const onRestored = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
 
   // The mixes dialog closes on Escape and gives focus back.
-  await page.evaluate(() => [...document.querySelectorAll('.actions .pill')].find((b) => b.textContent.startsWith('Mixes')).click());
+  await page.evaluate(() => [...document.querySelectorAll('.actions .btn')].find((b) => b.textContent.startsWith('Mixes')).click());
   await page.waitForSelector('[role=dialog]');
   await page.keyboard.press('Escape');
   await new Promise((r) => setTimeout(r, 200));
   const dialogGone = (await page.$('[role=dialog]')) === null;
 
   // A starter replaces the mix.
-  await page.evaluate(() => [...document.querySelectorAll('.starters .chip')].find((b) => b.textContent === 'Brown noise').click());
+  await page.evaluate(() => [...document.querySelectorAll('.starters .token')].find((b) => b.textContent === 'Brown noise').click());
   await new Promise((r) => setTimeout(r, 200));
   const afterStarter = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
 
   // Saving shows the mix as current, with one fingerprint dot per tile.
-  await page.evaluate(() => [...document.querySelectorAll('.actions .pill')].find((b) => b.textContent.startsWith('Mixes')).click());
+  await page.evaluate(() => [...document.querySelectorAll('.actions .btn')].find((b) => b.textContent.startsWith('Mixes')).click());
   await page.waitForSelector('[role=dialog]');
   await page.click('.save-row button[type=submit]');
   await new Promise((r) => setTimeout(r, 200));
-  const savedRow = await page.$eval('.mix-list .mix-load', (b) => ({ name: b.querySelector('.mix-name').textContent, current: b.classList.contains('current'), dots: b.querySelectorAll('.fp-dot').length }));
+  const savedRow = await page.$eval('.mix-list .mix-load', (b) => ({ name: b.querySelector('.mix-name').textContent, current: b.classList.contains('current'), dots: b.querySelectorAll('.mark').length }));
   await page.keyboard.press('Escape');
 
   // The session timer starts a countdown; master volume is remembered.
   await page.select('.timer select', '25');
   await new Promise((r) => setTimeout(r, 1200));
   const timerText = await page.$eval('.timer-text', (el) => el.textContent);
-  await page.$eval('.volume input', (el) => {
+  await page.$eval('.t-volume input', (el) => {
     const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
     set.call(el, '40');
     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -117,7 +122,7 @@ try {
   await page.goto(`${url}#t=drone.50,dub.40,wind.30&e=60&b=100&k=2`);
   await page.waitForSelector('.tile');
   const fromLink = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent));
-  const bpmShown = await page.$eval('output.value', (el) => el.textContent);
+  const bpmShown = await page.$eval('output.field-value', (el) => el.textContent);
 
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await page.goto(url);
@@ -126,7 +131,7 @@ try {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
 
   console.log({ stillPlayingDuringFade, timerStopped, timerToast, startersShown, afterStarter, savedRow, timerText, storedVolume, barVisible, tileToggledBySpace: tilesAfter !== before + 1, pausedBySpace: !afterSpace, undoRestores: onBefore === onRestored, dialogGone, playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, errors });
-  const phase3Ok = startersShown && afterStarter === 'Brown noise' && savedRow.current && savedRow.dots === 1 && /left/.test(timerText) && storedVolume === '0.4' && stillPlayingDuringFade && timerStopped;
+  const phase3Ok = startersShown && afterStarter === 'Brown noise' && savedRow.current && savedRow.dots === 1 && /\d:\d\d/.test(timerText) && storedVolume === '0.4' && stillPlayingDuringFade && timerStopped;
   if (!phase3Ok || !playing || bellsOn !== 'true' || !barVisible || afterSpace || onBefore !== onRestored || !dialogGone || overflow || errors.length) process.exitCode = 1;
 } finally {
   await browser.close();

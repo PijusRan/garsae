@@ -11,14 +11,14 @@ interface Props {
 export function AboutSheet({ offlineSupported, offline, onToggleOffline, onInstall, onClose }: Props) {
   return (
     <Sheet title="About & offline" onClose={onClose}>
-      <p className="muted about-text">
+      <p className="note about-text">
         Garsae is a background player: every sound is synthesized live and never repeats. Pick a few tiles, set the level, and let it run.
       </p>
       {offlineSupported && (
         <div className="about-row">
           <div>
             <strong>Offline use</strong>
-            <p className="muted">
+            <p className="note">
               {offline === 'on'
                 ? 'Available offline on this device.'
                 : offline === 'busy'
@@ -26,7 +26,7 @@ export function AboutSheet({ offlineSupported, offline, onToggleOffline, onInsta
                   : 'Not saved on this device yet.'}
             </p>
           </div>
-          <button type="button" className="pill" onClick={onToggleOffline} disabled={offline === 'busy'}>
+          <button type="button" className="btn" onClick={onToggleOffline} disabled={offline === 'busy'}>
             {offline === 'on' ? 'Remove offline copy' : 'Make available offline'}
           </button>
         </div>
@@ -35,9 +35,9 @@ export function AboutSheet({ offlineSupported, offline, onToggleOffline, onInsta
         <div className="about-row">
           <div>
             <strong>Install</strong>
-            <p className="muted">Open Garsae in its own window.</p>
+            <p className="note">Open Garsae in its own window.</p>
           </div>
-          <button type="button" className="pill" onClick={onInstall}>
+          <button type="button" className="btn" onClick={onInstall}>
             Install app
           </button>
         </div>

@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { initPwa } from './ui/pwa';
+import '@fontsource-variable/instrument-sans/wght.css';
 import './styles.css';
 
 initPwa();

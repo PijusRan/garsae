@@ -71,13 +71,13 @@ export const TILE_BY_ID: Record<TileId, TileMeta> = Object.fromEntries(
   TILES.map((t) => [t.id, t]),
 ) as Record<TileId, TileMeta>;
 
-export const CATEGORIES: { id: Category; name: string }[] = [
+export const CATEGORIES: { id: Category; name: string; note?: string }[] = [
   { id: 'pads', name: 'Pads' },
   { id: 'bass', name: 'Bass' },
   { id: 'drums', name: 'Drums' },
   { id: 'texture', name: 'Texture' },
-  { id: 'effects', name: 'Effects' },
-  { id: 'experimental', name: 'Experimental' },
+  { id: 'effects', name: 'Effects', note: 'These shape the whole mix rather than add a sound.' },
+  { id: 'experimental', name: 'Experimental', note: 'Unproven focus aids. No health claims.' },
 ];
 
 export const isTileId = (s: string): s is TileId => (TILE_IDS as readonly string[]).includes(s);

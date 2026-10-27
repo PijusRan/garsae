@@ -88,12 +88,41 @@ Sounds that might aid focus. No claims are made in v1.
 - v1: tab open is fine. Background/lock-screen playback is deferred (it needs the Media Session API and throttle-proof timing later).
 
 ## UI
-- **Dark, minimal, glassy.** Soft glows, large rounded tiles.
-- Tiles are **grouped by category**: tap to toggle, drag/slider for volume.
-- Optional BPM and key controls, the Evolution slider, and a "Surprise me" button. On phones, tempo and key sit behind a "Tempo & key" disclosure.
-- A master volume (after the limiter) next to the play button.
-- An "On now" strip lists the active tiles. A compact player bar appears once the main play button scrolls away.
+- Tiles are **grouped by category**: tap to toggle, slider for level.
+- One **transport bar** holds playback: the play button, the chord, key and tempo, a fingerprint of what's on, master volume (after the limiter), the session timer, Mixes, Share and About. It is sticky at the top on wide screens and floats at the bottom, in thumb reach, on phones.
+- Under it, a plain **Sound** section: the Evolution slider, tempo and key (behind a "Tempo and key" disclosure on phones) and "Surprise me". Then an "On now" row of the active tiles.
 - Media keys and OS media overlays work through the Media Session API. Space toggles playback unless a keyboard user is on a button.
+
+## Visual language
+The goal is a calm, hand-tuned instrument, not a template. `src/styles.css` implements these rules; check new UI against them.
+
+**Colour** (OKLCH tokens in `:root`)
+- Warm graphite neutrals at one hue (≈60) with very low chroma. Elevation is a lightness step: `--bg` 0.17, `--surface` 0.205 (tiles), `--surface-raised` 0.235 (on, hover, inputs). Edges are white hairlines at 8% and 14%.
+- Text: `--text` 0.95, `--text-2` 0.76, `--text-3` 0.64. Each is at least 4.5:1 on every surface.
+- **One accent**, amber `oklch(0.80 0.13 70)`, with dark `--accent-ink` for text on it. It marks only: on state (filled tracks), the one primary button, focus rings, the active timer, the current mix, and the playing light.
+- Category colours have the same lightness and low chroma, with only the hue differing. They appear only as 6px marks (fingerprints, "On now"). Tiles are never tinted by category.
+
+**Type**
+- Instrument Sans (variable, self-hosted through `@fontsource-variable`, so it works offline). Scale 12 / 13 / 15 / 17 / 22, weights 400 / 500 / 600. Tabular numerals for anything that counts.
+- Sentence case everywhere. No letter-spaced uppercase labels.
+
+**Surfaces and glass**
+- Glass is only for layers that float over content: the transport bar, sheets and the toast. Content (tiles, settings, rows) sits on solid surfaces. Never glass on glass.
+- Glass recipe: translucent surface (~62%), `blur(20px) saturate(160%) brightness(.9)`, a top specular inset highlight with a darker bottom inset, a hairline border, and a contact plus ambient shadow. Without `backdrop-filter` support it falls back to an opaque surface.
+- The desktop transport uses an extended backdrop (an oversized, masked child), so content blurs before it reaches the bar.
+- The background is flat with static fine grain. The only background effect is a faint warm light from above while music plays: it tells you something.
+
+**Shape and depth**
+- Radii are concentric: 8 (tokens, segments), 10 (buttons, inputs), 14 (tiles), 20 (sheets, transport).
+- No coloured glows, no gradients on controls, no drop shadows on content. Floating layers get the two-part shadow; everything else uses hairlines and lightness.
+
+**Icons and controls**
+- One SVG icon set (`src/ui/icons.tsx`): 20px grid, 1.5px stroke, round caps. No emoji or unicode glyphs as icons, and no pill badges (effect and headphone tiles show a small inline icon instead).
+- One primary button per view (Surprise me). Others are secondary (raised surface plus hairline) or ghost.
+- Sliders: a 4px track filled in amber up to the value, and a plain off-white thumb. 44px tall on touch.
+
+**Motion**
+- `cubic-bezier(.2,.8,.2,1)`. 120ms for press and toggle, 200ms for hover, 320ms for sheets. Frequent actions (toggling a tile) are near-instant. No hover scaling. Everything respects `prefers-reduced-motion`.
 
 ## PWA details
 - **Offline:** user-controlled. An in-app "download for offline use" option caches the app (it's small, since all audio is synthesized). Not forced by default.

@@ -1,3 +1,5 @@
+import { TimerIcon } from './icons';
+
 export const TIMER_CHOICES = [25, 50, 90] as const;
 
 export function formatLeft(ms: number): string {
@@ -17,10 +19,11 @@ interface Props {
 /** Session timer: fades out gently and stops when time is up. */
 export function TimerControl({ left, onSet }: Props) {
   return (
-    <label className={`timer chip${left !== null ? ' active' : ''}`}>
-      <span className="timer-text">{left === null ? 'Timer' : `${formatLeft(left)} left`}</span>
+    <label className={`timer${left !== null ? ' active' : ''}`} title="Session timer">
+      <TimerIcon />
+      <span className="timer-text">{left === null ? 'Timer' : formatLeft(left)}</span>
       <select
-        aria-label="Session timer"
+        aria-label={left === null ? 'Session timer' : `Session timer, ${formatLeft(left)} left`}
         value={left === null ? 'off' : 'on'}
         onChange={(e) => onSet(e.target.value === 'off' ? null : Number(e.target.value))}
       >

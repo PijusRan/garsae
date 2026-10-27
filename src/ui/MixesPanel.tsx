@@ -12,6 +12,8 @@ import {
 } from '../state/mix';
 import { PRESETS, type Preset } from '../state/presets';
 import { TILES } from '../tiles';
+import { Fingerprint } from './Fingerprint';
+import { CloseIcon, EditIcon, ReplaceIcon } from './icons';
 import { Sheet } from './Sheet';
 
 interface Props {
@@ -25,19 +27,6 @@ interface Props {
 }
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
-
-/** One coloured dot per tile that is on, so mixes can be told apart at a glance. */
-function Fingerprint({ encoded }: { encoded: string }) {
-  const m = decodeMix(encoded);
-  const on = m ? TILES.filter((t) => m.tiles[t.id].on) : [];
-  return (
-    <span className="fingerprint" aria-hidden="true">
-      {on.map((t) => (
-        <span key={t.id} className={`fp-dot cat-${t.category}`} title={t.name} />
-      ))}
-    </span>
-  );
-}
 
 function tileNames(encoded: string): string {
   const m = decodeMix(encoded);
@@ -75,14 +64,14 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
           onChange={(e) => setName(e.target.value)}
           aria-label="Name for the current mix"
         />
-        <button type="submit" className="pill primary">
+        <button type="submit" className="btn primary">
           Save
         </button>
       </form>
 
       <h3 className="sheet-sub">Saved</h3>
       {saved.length === 0 ? (
-        <p className="muted small">No saved mixes yet. They are kept in this browser only.</p>
+        <p className="note">No saved mixes yet. They are kept in this browser only.</p>
       ) : (
         <ul className="mix-list">
           {saved.map((m) => {
@@ -120,12 +109,12 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
                       <span className="mix-name">{m.name}</span>
                       <Fingerprint encoded={m.mix} />
                     </span>
-                    <span className="muted small">{isCurrent ? 'Current' : dateFmt.format(m.savedAt)}</span>
+                    <span className="mix-meta">{isCurrent ? 'Current' : dateFmt.format(m.savedAt)}</span>
                   </button>
                 )}
                 <button
                   type="button"
-                  className="icon-btn small-icon"
+                  className="icon-btn"
                   aria-label={`Rename ${m.name}`}
                   title="Rename"
                   onClick={() => {
@@ -133,17 +122,17 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
                     setRenaming(m.id);
                   }}
                 >
-                  ✎
+                  <EditIcon size={18} />
                 </button>
                 {!isCurrent && (
                   <button
                     type="button"
-                    className="icon-btn small-icon"
+                    className="icon-btn"
                     aria-label={`Replace ${m.name} with the current mix`}
                     title="Replace with current mix"
                     onClick={() => onChange(updateMix(m.id, mix), `Updated “${m.name}”`, saved)}
                   >
-                    ↻
+                    <ReplaceIcon size={18} />
                   </button>
                 )}
                 <button
@@ -153,7 +142,7 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
                   title="Delete"
                   onClick={() => onChange(deleteMix(m.id), `Deleted “${m.name}”`, saved)}
                 >
-                  ×
+                  <CloseIcon size={18} />
                 </button>
               </li>
             );
@@ -168,7 +157,7 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
             <button type="button" className={`mix-load${p.mix === current ? ' current' : ''}`} onClick={() => onPreset(p)}>
               <span className="mix-main">
                 <span className="mix-name">{p.name}</span>
-                <span className="muted small">{p.hint}</span>
+                <span className="mix-meta">{p.hint}</span>
               </span>
               <Fingerprint encoded={p.mix} />
             </button>

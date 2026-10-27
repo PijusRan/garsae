@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Engine } from './engine/engine';
 import { NOTE_NAMES } from './engine/theory';
 import {
@@ -24,10 +24,9 @@ import { CATEGORIES, TILES, TILE_IDS, type TileId } from './tiles';
 import { AboutSheet } from './ui/AboutSheet';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
-import { PlayerBar } from './ui/PlayerBar';
-import { PlayIcon } from './ui/PlayIcon';
+import { ChevronIcon, CloseIcon } from './ui/icons';
 import { ShareSheet } from './ui/ShareSheet';
-import { TimerControl } from './ui/TimerControl';
+import { Transport } from './ui/Transport';
 import { TileCard } from './ui/TileCard';
 import { disableOffline, enableOffline, isOfflineEnabled, offlineSupported, useInstallPrompt } from './ui/pwa';
 
@@ -64,15 +63,6 @@ const initialMix = (): MixState => getBoot().mix;
 /** The session timer starts fading this long before it ends. */
 const TIMER_FADE_MS = 30_000;
 
-function SpeakerIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-      <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" />
-      <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function evolutionText(v: number): string {
   if (v < 0.15) return 'completely steady';
   if (v < 0.4) return 'mostly steady';
@@ -102,12 +92,10 @@ export function App() {
   const [invitePlay, setInvitePlay] = useState(() => getBoot().fromLink);
   const [toast, setToast] = useState<Toast | null>(null);
   const [offline, setOffline] = useState<'off' | 'busy' | 'on'>(isOfflineEnabled() ? 'on' : 'off');
-  const [heroVisible, setHeroVisible] = useState(true);
   const [showTempoKey, setShowTempoKey] = useState(false);
   const install = useInstallPrompt();
   const engineRef = useRef<Engine | null>(null);
   const appliedRef = useRef<MixState | null>(null);
-  const heroRef = useRef<HTMLElement>(null);
   const pointerFocus = useRef(false);
   const fadingRef = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -162,15 +150,6 @@ export function App() {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, [replaceMix]);
-
-  // Show the compact player once the main play button has scrolled away.
-  useEffect(() => {
-    const el = heroRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver(([entry]) => setHeroVisible(entry.isIntersecting));
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
 
   const togglePlay = useCallback(async () => {
     let engine = engineRef.current;
@@ -370,217 +349,210 @@ export function App() {
     }
   };
 
-  const statusText = `Key of ${NOTE_NAMES[key]} · ${bpm} bpm${playing && chord ? ` · ${chord}` : ''}`;
+  const fill = (pct: number) => ({ '--fill': `${pct}%` }) as CSSProperties;
+  const evoPct = Math.round(mix.evolution * 100);
+  const bpmPct = Math.round(((bpm - BPM_MIN) / (BPM_MAX - BPM_MIN)) * 100);
 
   return (
-    <div className="app">
-      <div className="aura" aria-hidden="true" />
-      <header className="hero" ref={heroRef}>
-        <h1 className="wordmark">Garsae</h1>
-        <button
-          type="button"
-          className={`play${playing ? ' playing' : ''}${invitePlay ? ' invite' : ''}`}
-          onClick={() => void togglePlay()}
-          aria-label={playing ? 'Pause' : 'Play'}
-          aria-busy={starting}
-        >
-          <PlayIcon playing={playing} />
-        </button>
-        <p className="status" title={`${NOTE_NAMES[key]} Dorian`}>
-          <span>Key of {NOTE_NAMES[key]}</span>
-          <span aria-hidden="true">·</span>
-          <span>{bpm} bpm</span>
-          {playing && chord && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="chord">{chord}</span>
-            </>
-          )}
-        </p>
-        {!playing && activeCount > 0 && <p className="hint">Press play, or tap any tile to start.</p>}
-        <div className="hero-row">
-          <div className="volume">
-            <SpeakerIcon />
+    <div className={`app${playing ? ' is-playing' : ''}`}>
+      <div className="room-light" aria-hidden="true" />
+      <Transport
+        playing={playing}
+        starting={starting}
+        invite={invitePlay}
+        chord={chord}
+        detail={`Key of ${NOTE_NAMES[key]} · ${bpm} bpm`}
+        mix={mix}
+        activeCount={activeCount}
+        volume={volume}
+        timerLeft={timerLeft}
+        onToggle={() => void togglePlay()}
+        onVolume={setVolume}
+        onTimer={setTimer}
+        onMixes={() => setSheet('mixes')}
+        onShare={() => void share()}
+        onMore={() => setSheet('about')}
+      />
+
+      <div className="page">
+        <h1 className="page-title">Garsae</h1>
+        <section className="sound" aria-label="Sound">
+          <div className="field evolution">
+            <div className="field-head">
+              <label htmlFor="evolution">Evolution</label>
+              <span className="field-value">{evolutionText(mix.evolution)}</span>
+            </div>
             <input
+              id="evolution"
               type="range"
               min={0}
               max={100}
-              value={Math.round(volume * 100)}
-              aria-label="Master volume"
-              aria-valuetext={`${Math.round(volume * 100)}%`}
-              onChange={(e) => setVolume(Number(e.target.value) / 100)}
+              value={evoPct}
+              style={fill(evoPct)}
+              aria-valuetext={`${evoPct}%, ${evolutionText(mix.evolution)}`}
+              onChange={(e) => setMix((m) => ({ ...m, evolution: Number(e.target.value) / 100 }))}
             />
-          </div>
-          <TimerControl left={timerLeft} onSet={setTimer} />
-        </div>
-      </header>
-
-      <section className="controls glass" aria-label="Global controls">
-        <div className="control evolution">
-          <label htmlFor="evolution">Evolution</label>
-          <input
-            id="evolution"
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round(mix.evolution * 100)}
-            aria-valuetext={`${Math.round(mix.evolution * 100)}%, ${evolutionText(mix.evolution)}`}
-            onChange={(e) => setMix((m) => ({ ...m, evolution: Number(e.target.value) / 100 }))}
-          />
-          <div className="scale-labels">
-            <span>Static</span>
-            <span className="muted">{evolutionText(mix.evolution)}</span>
-            <span>Shifting</span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="tk-toggle chip"
-          aria-expanded={showTempoKey}
-          onClick={() => setShowTempoKey((v) => !v)}
-        >
-          Tempo & key {showTempoKey ? '▴' : '▾'}
-        </button>
-
-        <div className={`tk${showTempoKey ? ' open' : ''}`}>
-          <div className="control">
-            <label htmlFor="bpm">Tempo</label>
-            <div className="inline">
-              <button
-                type="button"
-                className={`chip${mix.bpm === null ? ' active' : ''}`}
-                onClick={() => setMix((m) => ({ ...m, bpm: null }))}
-                aria-pressed={mix.bpm === null}
-              >
-                Auto
-              </button>
-              <input
-                id="bpm"
-                type="range"
-                min={BPM_MIN}
-                max={BPM_MAX}
-                value={bpm}
-                onChange={(e) => setMix((m) => ({ ...m, bpm: Number(e.target.value) }))}
-              />
-              <output htmlFor="bpm" className="value">
-                {bpm}
-              </output>
+            <div className="scale-labels" aria-hidden="true">
+              <span>Static</span>
+              <span>Shifting</span>
             </div>
           </div>
 
-          <div className="control">
-            <label htmlFor="key">Key</label>
-            <select
-              id="key"
-              value={mix.key === null ? 'auto' : String(mix.key)}
-              onChange={(e) => setMix((m) => ({ ...m, key: e.target.value === 'auto' ? null : Number(e.target.value) }))}
-            >
-              <option value="auto">Auto ({NOTE_NAMES[rolled.key]})</option>
-              {NOTE_NAMES.map((n, i) => (
-                <option key={n} value={i}>
-                  {n}
-                </option>
-              ))}
-            </select>
+          <button
+            type="button"
+            className="tk-toggle btn ghost"
+            aria-expanded={showTempoKey}
+            onClick={() => setShowTempoKey((v) => !v)}
+          >
+            Tempo and key
+            <ChevronIcon size={16} className={showTempoKey ? 'flip' : undefined} />
+          </button>
+
+          <div className={`tk${showTempoKey ? ' open' : ''}`}>
+            <div className="field">
+              <div className="field-head">
+                <label htmlFor="bpm">Tempo</label>
+                <output htmlFor="bpm" className="field-value">
+                  {bpm} bpm
+                </output>
+              </div>
+              <div className="inline">
+                <div className="segmented" role="group" aria-label="Tempo mode">
+                  <button
+                    type="button"
+                    aria-pressed={mix.bpm === null}
+                    onClick={() => setMix((m) => ({ ...m, bpm: null }))}
+                  >
+                    Auto
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={mix.bpm !== null}
+                    onClick={() => setMix((m) => ({ ...m, bpm }))}
+                  >
+                    Set
+                  </button>
+                </div>
+                <input
+                  id="bpm"
+                  type="range"
+                  min={BPM_MIN}
+                  max={BPM_MAX}
+                  value={bpm}
+                  style={fill(bpmPct)}
+                  onChange={(e) => setMix((m) => ({ ...m, bpm: Number(e.target.value) }))}
+                />
+              </div>
+            </div>
+
+            <div className="field">
+              <div className="field-head">
+                <label htmlFor="key">Key</label>
+              </div>
+              <div className="select">
+                <select
+                  id="key"
+                  value={mix.key === null ? 'auto' : String(mix.key)}
+                  onChange={(e) => setMix((m) => ({ ...m, key: e.target.value === 'auto' ? null : Number(e.target.value) }))}
+                >
+                  <option value="auto">Auto ({NOTE_NAMES[rolled.key]})</option>
+                  {NOTE_NAMES.map((n, i) => (
+                    <option key={n} value={i}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+                <ChevronIcon size={16} />
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="actions">
-          <button type="button" className="pill primary" onClick={surprise}>
-            Surprise me
-          </button>
-          <button type="button" className="pill" onClick={() => setSheet('mixes')}>
-            Mixes{saved.length ? ` (${saved.length})` : ''}
-          </button>
-          <button type="button" className="pill" onClick={() => void share()} disabled={activeCount === 0}>
-            Share link
-          </button>
-        </div>
+          <div className="actions">
+            <button type="button" className="btn primary" onClick={surprise}>
+              Surprise me
+            </button>
+            <button type="button" className="btn" onClick={() => setSheet('mixes')}>
+              Mixes{saved.length ? ` (${saved.length})` : ''}
+            </button>
+            <button type="button" className="btn" onClick={() => void share()} disabled={activeCount === 0}>
+              Share link
+            </button>
+          </div>
+        </section>
 
-        <div className="nowplaying">
-          <span className="np-label">On now</span>
+        <section className="row nowplaying" aria-label="On now">
+          <span className="row-label">On now</span>
           {activeCount === 0 ? (
-            <span className="muted">Nothing yet. Tap a tile below.</span>
+            <span className="note">Nothing yet. Tap a tile below{playing ? '' : ' and it starts playing'}.</span>
           ) : (
             <>
-              <ul className="np-list">
+              <ul className="token-list">
                 {activeIds.map((id) => {
                   const t = TILES.find((x) => x.id === id)!;
                   return (
                     <li key={id}>
-                      <button type="button" className={`np-chip cat-${t.category}`} onClick={() => jumpToTile(id)}>
-                        <span className="np-dot" aria-hidden="true" />
+                      <button type="button" className="token" onClick={() => jumpToTile(id)}>
+                        <span className={`mark cat-${t.category}`} aria-hidden="true" />
                         {t.name}
                       </button>
                     </li>
                   );
                 })}
               </ul>
-              <button type="button" className="chip" onClick={clearAll}>
+              <button type="button" className="btn ghost small" onClick={clearAll}>
                 Clear
               </button>
             </>
           )}
-        </div>
-      </section>
-
-      {showStarters && (
-        <section className="starters" aria-label="Starter mixes">
-          <span className="np-label">Try a starter</span>
-          <ul className="np-list">
-            {PRESETS.map((p) => (
-              <li key={p.id}>
-                <button type="button" className="chip" title={p.hint} onClick={() => loadPreset(p)}>
-                  {p.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <button type="button" className="icon-btn" aria-label="Hide starters" onClick={() => setShowStarters(false)}>
-            ×
-          </button>
         </section>
-      )}
 
-      <main>
-        {CATEGORIES.map((cat) => (
-          <section key={cat.id} className="category" aria-labelledby={`cat-${cat.id}`}>
-            <h2 id={`cat-${cat.id}`}>{cat.name}</h2>
-            <div className="tiles">
-              {TILES.filter((t) => t.category === cat.id).map((t) => (
-                <TileCard
-                  key={t.id}
-                  meta={t}
-                  setting={mix.tiles[t.id]}
-                  onToggle={() => toggleTile(t.id)}
-                  onVolume={(v) => setTile(t.id, { volume: v })}
-                />
+        {showStarters && (
+          <section className="row starters" aria-label="Starter mixes">
+            <span className="row-label">Try a starter</span>
+            <ul className="token-list">
+              {PRESETS.map((p) => (
+                <li key={p.id}>
+                  <button type="button" className="token" title={p.hint} onClick={() => loadPreset(p)}>
+                    {p.name}
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
+            <button type="button" className="icon-btn" aria-label="Hide starters" onClick={() => setShowStarters(false)}>
+              <CloseIcon size={18} />
+            </button>
           </section>
-        ))}
-      </main>
+        )}
 
-      <footer className="footer">
-        <button type="button" className="linklike" onClick={() => setSheet('about')}>
-          About & offline
-        </button>
-      </footer>
+        <main>
+          {CATEGORIES.map((cat) => (
+            <section key={cat.id} className="category" aria-labelledby={`cat-${cat.id}`}>
+              <div className="category-head">
+                <h2 id={`cat-${cat.id}`}>{cat.name}</h2>
+                {cat.note && <p className="note">{cat.note}</p>}
+              </div>
+              <div className="tiles">
+                {TILES.filter((t) => t.category === cat.id).map((t) => (
+                  <TileCard
+                    key={t.id}
+                    meta={t}
+                    setting={mix.tiles[t.id]}
+                    onToggle={() => toggleTile(t.id)}
+                    onVolume={(v) => setTile(t.id, { volume: v })}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </main>
 
-      <PlayerBar
-        visible={!heroVisible}
-        playing={playing}
-        starting={starting}
-        status={statusText}
-        activeCount={activeCount}
-        timerLeft={timerLeft}
-        volume={volume}
-        onVolume={setVolume}
-        onToggle={() => void togglePlay()}
-        onMixes={() => setSheet('mixes')}
-        onShare={() => void share()}
-      />
+        <footer className="footer">
+          <span>Every sound is synthesized live and never repeats.</span>
+          <button type="button" className="linklike" onClick={() => setSheet('about')}>
+            About and offline use
+          </button>
+        </footer>
+      </div>
 
       {sheet === 'mixes' && (
         <MixesPanel
@@ -588,10 +560,15 @@ export function App() {
           saved={saved}
           onChange={(list, message, undo) => {
             setSaved(list);
-            say(message, undo ? () => {
-              setSaved(restoreMixes(undo));
-              say('Restored');
-            } : undefined);
+            say(
+              message,
+              undo
+                ? () => {
+                    setSaved(restoreMixes(undo));
+                    say('Restored');
+                  }
+                : undefined,
+            );
           }}
           onLoad={(m) => {
             const decoded = decodeMix(m.mix);
@@ -616,16 +593,10 @@ export function App() {
         />
       )}
 
-      <div className={`toast${toast ? ' show' : ''}`} role="status" aria-live="polite">
+      <div className={`toast glass${toast ? ' show' : ''}`} role="status" aria-live="polite">
         <span>{toast?.msg}</span>
         {toast?.undo && (
-          <button
-            type="button"
-            className="toast-undo"
-            onClick={() => {
-              toast.undo?.();
-            }}
-          >
+          <button type="button" className="toast-undo" onClick={() => toast.undo?.()}>
             Undo
           </button>
         )}

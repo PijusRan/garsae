@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { CloseIcon } from './icons';
 
 interface Props {
   title: string;
@@ -66,7 +67,7 @@ export function Sheet({ title, onClose, children }: Props) {
         <header className="sheet-head">
           <h2 id={titleId}>{title}</h2>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
-            ×
+            <CloseIcon />
           </button>
         </header>
         {children}
