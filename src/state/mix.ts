@@ -192,7 +192,8 @@ const pickOne = <T,>(xs: readonly T[]): T => xs[Math.floor(Math.random() * xs.le
 
 /**
  * A random but balanced, calm mix. Guardrails:
- * - always one harmonic bed (warm pad or drone), at most 6 tiles in total
+ * - always one harmonic bed, at most 6 tiles in total. The bed is warm pad, drone, or a soft arpeggio or
+ *   glass bells over a bass (the bass gives it a floor), each a third of the time, so no tile dominates
  * - at most one extra melodic layer and at most one bass
  * - at most one drum genre; busy genres (breakbeat, techno) are rarer and kept quiet
  * - at most one atmosphere and at most one noise colour, both low in the mix
@@ -201,13 +202,19 @@ const pickOne = <T,>(xs: readonly T[]): T => xs[Math.floor(Math.random() * xs.le
  */
 export function surpriseMix(): MixState {
   const on: Partial<Record<TileId, number>> = {};
-  const bed = pickOne<TileId>(['pad', 'pad', 'drone']);
-  on[bed] = between(0.5, 0.75);
-  if (bed === 'drone' || Math.random() < 0.6) {
-    const melodic = pickOne<TileId>(['bells', 'arp', 'grains', bed === 'drone' ? 'pad' : 'bells']);
-    on[melodic] = melodic === 'pad' ? between(0.45, 0.6) : between(0.3, 0.55);
+  const basses: TileId[] = ['sub', 'walk', 'pulse'];
+  const bed = pickOne(['pad', 'drone', 'tune'] as const);
+  if (bed === 'tune') {
+    on[pickOne<TileId>(['arp', 'bells'])] = between(0.4, 0.6);
+    on[pickOne(basses)] = between(0.35, 0.55);
+  } else {
+    on[bed] = between(0.5, 0.75);
   }
-  if (Math.random() < 0.55) on[pickOne<TileId>(['sub', 'walk', 'pulse'])] = between(0.35, 0.55);
+  if (bed === 'drone' || Math.random() < 0.6) {
+    const melodic = pickOne((['bells', 'arp', 'grains'] as TileId[]).filter((id) => on[id] === undefined));
+    on[melodic] = between(0.3, 0.55);
+  }
+  if (bed !== 'tune' && Math.random() < 0.55) on[pickOne(basses)] = between(0.35, 0.55);
   if (Math.random() < 0.75) {
     const drum = pickOne<TileId>(['lofi', 'lofi', 'dub', 'ambient', 'ambient', 'techno', 'breaks']);
     on[drum] = drum === 'breaks' ? between(0.3, 0.42) : drum === 'techno' ? between(0.3, 0.42) : between(0.35, 0.55);

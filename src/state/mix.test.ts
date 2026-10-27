@@ -37,12 +37,17 @@ describe('share links', () => {
 
 describe('surprise me', () => {
   it('stays balanced and calm', () => {
+    let pads = 0;
     for (let i = 0; i < 2000; i++) {
       const m = surpriseMix();
       const on = Object.entries(m.tiles).filter(([, s]) => s.on).map(([id]) => id);
+      const has = (...ids: string[]) => on.some((id) => ids.includes(id));
+      if (m.tiles.pad.on) pads++;
       expect(on.length).toBeGreaterThanOrEqual(1);
       expect(on.length).toBeLessThanOrEqual(6);
-      expect(on.some((id) => id === 'pad' || id === 'drone')).toBe(true);
+      // A harmonic bed: pad or drone, or an arpeggio or bells over a bass.
+      expect(has('pad', 'drone') || (has('arp', 'bells') && has('sub', 'walk', 'pulse'))).toBe(true);
+      expect(on.filter((id) => TILE_BY_ID[id as keyof typeof TILE_BY_ID].category === 'bass').length).toBeLessThanOrEqual(1);
       expect(on.filter((id) => TILE_BY_ID[id as keyof typeof TILE_BY_ID].category === 'drums').length).toBeLessThanOrEqual(1);
       expect(on).not.toContain('am');
       expect(on).not.toContain('binaural');
@@ -50,6 +55,9 @@ describe('surprise me', () => {
       expect(m.evolution).toBeLessThanOrEqual(0.5);
       expect(m.bpm).toBeNull();
     }
+    // Warm pad is one of three beds, not the default: about a third of mixes.
+    expect(pads / 2000).toBeGreaterThan(0.25);
+    expect(pads / 2000).toBeLessThan(0.42);
   });
 });
 
