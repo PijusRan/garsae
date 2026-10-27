@@ -66,3 +66,21 @@ describe('regrouped tiles and undo helpers', () => {
     expect(restoreMixes(list)).toEqual(list);
   });
 });
+
+describe('presets and naming', () => {
+  it('every preset decodes to a mix with at least one tile on', async () => {
+    const { PRESETS, presetMix } = await import('./presets');
+    for (const p of PRESETS) {
+      const m = presetMix(p);
+      expect(Object.values(m.tiles).some((t) => t.on), p.id).toBe(true);
+    }
+  });
+
+  it('suggests a name from the loudest tiles', async () => {
+    const { suggestName } = await import('./mix');
+    const m = defaultMix();
+    expect(suggestName(m)).toBe('Warm pad + Lo-fi hip hop');
+    for (const t of Object.values(m.tiles)) t.on = false;
+    expect(suggestName(m)).toBe('Untitled mix');
+  });
+});

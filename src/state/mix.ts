@@ -103,6 +103,7 @@ export interface SavedMix {
 
 const MIXES_KEY = 'garsae.mixes';
 const LAST_KEY = 'garsae.last';
+const VOLUME_KEY = 'garsae.volume';
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -142,11 +143,40 @@ export function deleteMix(id: string): SavedMix[] {
   return next;
 }
 
-/** Puts a previous list back, for undoing a delete. */
+export function renameMix(id: string, name: string): SavedMix[] {
+  const next = loadSavedMixes().map((m) => (m.id === id ? { ...m, name: name.trim() || m.name } : m));
+  write(MIXES_KEY, next);
+  return next;
+}
+
+/** Overwrites a saved mix with the current settings, keeping its name. */
+export function updateMix(id: string, mix: MixState): SavedMix[] {
+  const next = loadSavedMixes().map((m) => (m.id === id ? { ...m, mix: encodeMix(mix), savedAt: Date.now() } : m));
+  write(MIXES_KEY, next);
+  return next;
+}
+
+/** A default name from the loudest two tiles, e.g. "Warm pad + Lo-fi hip hop". */
+export function suggestName(mix: MixState): string {
+  const on = TILES.filter((t) => mix.tiles[t.id].on).sort((a, b) => mix.tiles[b.id].volume - mix.tiles[a.id].volume);
+  if (on.length === 0) return 'Untitled mix';
+  return on
+    .slice(0, 2)
+    .map((t) => t.name)
+    .join(' + ');
+}
+
+/** Puts a previous list back, for undoing a delete or an overwrite. */
 export function restoreMixes(list: SavedMix[]): SavedMix[] {
   write(MIXES_KEY, list);
   return list;
 }
+
+export const loadVolume = (): number => {
+  const v = read<number>(VOLUME_KEY, 0.8);
+  return typeof v === 'number' && Number.isFinite(v) ? clamp01(v) : 0.8;
+};
+export const saveVolume = (v: number): void => write(VOLUME_KEY, round2(v));
 
 export const rememberLast = (mix: MixState): void => write(LAST_KEY, encodeMix(mix));
 

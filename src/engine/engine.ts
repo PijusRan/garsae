@@ -108,6 +108,21 @@ export class Engine {
     }, 2000);
   }
 
+  /** Slowly fades the whole app out over about `seconds`, without stopping. Used by the session timer. */
+  fadeOut(seconds: number): void {
+    // setTargetAtTime reaches ~99% after 5 time constants.
+    this.master.setOutput(0, seconds / 5);
+  }
+
+  /** Brings the sound back after fadeOut, e.g. when the timer is cancelled mid-fade. */
+  fadeIn(): void {
+    if (this.playing) this.master.setOutput(1, 0.6);
+  }
+
+  setMasterVolume(v: number): void {
+    this.master.setVolume(v);
+  }
+
   private tile(id: TileId): Tile {
     let t = this.tiles.get(id);
     if (!t) {

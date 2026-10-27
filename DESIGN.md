@@ -32,8 +32,9 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 | Pads | warm chord pad, glass bells / sparse notes, soft arpeggio, drone |
 | Bass | sub bass, warm walking bass, pulse bass |
 | Drums | one tile per genre (see Drums) |
-| Atmosphere | vinyl crackle, wind / air, room hum / machine (rain dropped for v1) |
-| Experimental | binaural / isochronic tones, noise colours, amplitude modulation, generative textures |
+| Texture | vinyl crackle, wind / air, room hum / machine, brown / pink / green noise (rain dropped for v1) |
+| Effects | amplitude modulation, tape wobble (they shape the whole mix and make no sound alone) |
+| Experimental | binaural / isochronic tones, granular cloud |
 
 ### Pads / melodies
 - **Each instrument defines its own generator**; there is no single global method. For example, the chord pad drifts between chords, the bells play sparse notes, and the arpeggio arpeggiates.
@@ -79,7 +80,9 @@ Sounds that might aid focus. No claims are made in v1.
   - Evolution setting
   - Focus preset (once that feature exists)
   - BPM and key, **only if the user set them**. If they were left random, they stay random when the link is opened.
-- Not in v1: timer with fade-out.
+- **Starter mixes**: five curated presets, offered on the first visit and in the Mixes sheet.
+- **Session timer**: 25 / 50 / 90 min. It fades out over the last 30 s, then stops. Pausing cancels it.
+- **Undo** instead of confirmations: Surprise me, loading a mix or link, Clear, and deleting or overwriting a saved mix all show an Undo toast.
 
 ## Playback
 - v1: tab open is fine. Background/lock-screen playback is deferred (it needs the Media Session API and throttle-proof timing later).
@@ -87,7 +90,10 @@ Sounds that might aid focus. No claims are made in v1.
 ## UI
 - **Dark, minimal, glassy.** Soft glows, large rounded tiles.
 - Tiles are **grouped by category**: tap to toggle, drag/slider for volume.
-- Optional BPM and key controls, the Evolution slider, and a "Surprise me" button.
+- Optional BPM and key controls, the Evolution slider, and a "Surprise me" button. On phones, tempo and key sit behind a "Tempo & key" disclosure.
+- A master volume (after the limiter) next to the play button.
+- An "On now" strip lists the active tiles. A compact player bar appears once the main play button scrolls away.
+- Media keys and OS media overlays work through the Media Session API. Space toggles playback unless a keyboard user is on a button.
 
 ## PWA details
 - **Offline:** user-controlled. An in-app "download for offline use" option caches the app (it's small, since all audio is synthesized). Not forced by default.

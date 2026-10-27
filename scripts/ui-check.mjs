@@ -24,6 +24,8 @@ try {
   await page.goto(url);
   await page.waitForSelector('.tile');
   await page.screenshot({ path: 'smoke-output/desktop.png', fullPage: true });
+  // A fresh browser counts as a first visit, so starter mixes are offered.
+  const startersShown = (await page.$('.starters')) !== null;
 
   // Play, then check the audio clock is running.
   await page.click('.play');
@@ -67,6 +69,50 @@ try {
   await new Promise((r) => setTimeout(r, 200));
   const dialogGone = (await page.$('[role=dialog]')) === null;
 
+  // A starter replaces the mix.
+  await page.evaluate(() => [...document.querySelectorAll('.starters .chip')].find((b) => b.textContent === 'Brown noise').click());
+  await new Promise((r) => setTimeout(r, 200));
+  const afterStarter = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
+
+  // Saving shows the mix as current, with one fingerprint dot per tile.
+  await page.evaluate(() => [...document.querySelectorAll('.actions .pill')].find((b) => b.textContent.startsWith('Mixes')).click());
+  await page.waitForSelector('[role=dialog]');
+  await page.click('.save-row button[type=submit]');
+  await new Promise((r) => setTimeout(r, 200));
+  const savedRow = await page.$eval('.mix-list .mix-load', (b) => ({ name: b.querySelector('.mix-name').textContent, current: b.classList.contains('current'), dots: b.querySelectorAll('.fp-dot').length }));
+  await page.keyboard.press('Escape');
+
+  // The session timer starts a countdown; master volume is remembered.
+  await page.select('.timer select', '25');
+  await new Promise((r) => setTimeout(r, 1200));
+  const timerText = await page.$eval('.timer-text', (el) => el.textContent);
+  await page.$eval('.volume input', (el) => {
+    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    set.call(el, '40');
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await new Promise((r) => setTimeout(r, 200));
+  const storedVolume = await page.evaluate(() => localStorage.getItem('garsae.volume'));
+  await page.screenshot({ path: 'smoke-output/desktop-phase3.png' });
+
+  // Jump the page clock to the end of the session: the timer fades, then stops playback.
+  await page.evaluate(() => {
+    const real = Date.now;
+    Date.now = () => real() + 24.8 * 60_000;
+  });
+  await new Promise((r) => setTimeout(r, 1300));
+  const stillPlayingDuringFade = await page.$eval('.play', (b) => b.classList.contains('playing'));
+  await page.evaluate(() => {
+    const real = Date.now;
+    Date.now = () => real() + 60_000;
+  });
+  await new Promise((r) => setTimeout(r, 1300));
+  const timerStopped = await page.$eval('.play', (b) => !b.classList.contains('playing'));
+  const timerToast = await page.$eval('.toast', (el) => el.textContent);
+  // Start again for the checks below.
+  await page.click('.play');
+  await new Promise((r) => setTimeout(r, 500));
+
   // A share link round-trips through the URL hash.
   await page.goto(`${url}#t=drone.50,dub.40,wind.30&e=60&b=100&k=2`);
   await page.waitForSelector('.tile');
@@ -79,8 +125,9 @@ try {
   await page.screenshot({ path: 'smoke-output/phone.png', fullPage: true });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
 
-  console.log({ barVisible, tileToggledBySpace: tilesAfter !== before + 1, pausedBySpace: !afterSpace, undoRestores: onBefore === onRestored, dialogGone, playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, errors });
-  if (!playing || bellsOn !== 'true' || !barVisible || afterSpace || onBefore !== onRestored || !dialogGone || overflow || errors.length) process.exitCode = 1;
+  console.log({ stillPlayingDuringFade, timerStopped, timerToast, startersShown, afterStarter, savedRow, timerText, storedVolume, barVisible, tileToggledBySpace: tilesAfter !== before + 1, pausedBySpace: !afterSpace, undoRestores: onBefore === onRestored, dialogGone, playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, errors });
+  const phase3Ok = startersShown && afterStarter === 'Brown noise' && savedRow.current && savedRow.dots === 1 && /left/.test(timerText) && storedVolume === '0.4' && stillPlayingDuringFade && timerStopped;
+  if (!phase3Ok || !playing || bellsOn !== 'true' || !barVisible || afterSpace || onBefore !== onRestored || !dialogGone || overflow || errors.length) process.exitCode = 1;
 } finally {
   await browser.close();
   server.httpServer.close();

@@ -94,6 +94,7 @@ select:focus-visible {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 
@@ -160,6 +161,90 @@ select:focus-visible {
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
+
+.hero-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  width: 200px;
+}
+
+.timer {
+  display: inline-flex;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The native select sits invisibly over the chip, so it stays accessible and uses the system picker. */
+.timer select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.timer:has(select:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.play.invite {
+  animation: invite 2.4s ease-in-out infinite;
+}
+
+@keyframes invite {
+  50% {
+    box-shadow:
+      0 0 0 6px hsl(258 85% 72% / 0.18),
+      0 10px 40px rgba(0, 0, 0, 0.45);
+  }
+}
+
+.starters {
+  display: flex;
+  align-items: center;
+  gap: 10px 12px;
+  flex-wrap: wrap;
+  margin: -12px 4px 24px;
+  font-size: 13px;
+}
+
+.starters .icon-btn {
+  margin-left: auto;
+}
+
+.fingerprint {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.fp-dot {
+  --hue: var(--pads);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: hsl(var(--hue));
+}
+
+.fp-dot.cat-bass { --hue: var(--bass); }
+.fp-dot.cat-drums { --hue: var(--drums); }
+.fp-dot.cat-texture { --hue: var(--texture); }
+.fp-dot.cat-effects { --hue: var(--effects); }
+.fp-dot.cat-experimental { --hue: var(--experimental); }
 
 .hint {
   margin: -6px 0 0;
@@ -740,6 +825,54 @@ input[type='range']::-moz-range-thumb {
   background: var(--glass-strong);
 }
 
+.mix-load.current {
+  border-color: hsl(258 80% 75% / 0.45);
+}
+
+.mix-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mix-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mix-load {
+  align-items: center;
+  min-width: 0;
+}
+
+.sheet-sub {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 20px 0 10px;
+}
+
+.small {
+  font-size: 13px;
+}
+
+.icon-btn.small-icon {
+  font-size: 16px;
+}
+
+.rename-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--glass-strong);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
 .toast {
   position: fixed;
   left: 50%;
@@ -826,6 +959,11 @@ input[type='range']::-moz-range-thumb {
   font-variant-numeric: tabular-nums;
 }
 
+.bar-volume {
+  flex: 0 0 90px;
+  width: 90px;
+}
+
 .bar-status {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -881,7 +1019,16 @@ input[type='range']::-moz-range-thumb {
   }
 }
 
+@media (max-width: 560px) {
+  .bar-volume {
+    display: none;
+  }
+}
+
 @media (max-width: 480px) {
+  .volume {
+    width: 160px;
+  }
   .controls {
     grid-template-columns: 1fr;
     padding: 18px;

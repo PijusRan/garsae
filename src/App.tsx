@@ -9,20 +9,25 @@ import {
   encodeMix,
   loadLast,
   loadSavedMixes,
+  loadVolume,
   rememberLast,
   restoreMixes,
   rollBpm,
   rollKey,
+  saveVolume,
   surpriseMix,
   type MixState,
   type SavedMix,
 } from './state/mix';
+import { PRESETS, presetMix, type Preset } from './state/presets';
 import { CATEGORIES, TILES, TILE_IDS, type TileId } from './tiles';
 import { AboutSheet } from './ui/AboutSheet';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
 import { PlayerBar } from './ui/PlayerBar';
 import { PlayIcon } from './ui/PlayIcon';
+import { ShareSheet } from './ui/ShareSheet';
+import { TimerControl } from './ui/TimerControl';
 import { TileCard } from './ui/TileCard';
 import { disableOffline, enableOffline, isOfflineEnabled, offlineSupported, useInstallPrompt } from './ui/pwa';
 
@@ -38,13 +43,34 @@ function applyMix(engine: Engine, mix: MixState, prev: MixState | null, bpm: num
   }
 }
 
-function initialMix(): MixState {
+/** How the app opened. Worked out once, because reading a share link also clears it from the URL. */
+let boot: { mix: MixState; fromLink: boolean; firstVisit: boolean } | null = null;
+
+function getBoot() {
+  if (boot) return boot;
   const fromLink = decodeMix(window.location.hash);
   if (fromLink) {
     history.replaceState(null, '', window.location.pathname + window.location.search);
-    return fromLink;
+    boot = { mix: fromLink, fromLink: true, firstVisit: false };
+  } else {
+    const last = loadLast();
+    boot = { mix: last ?? defaultMix(), fromLink: false, firstVisit: last === null };
   }
-  return loadLast() ?? defaultMix();
+  return boot;
+}
+
+const initialMix = (): MixState => getBoot().mix;
+
+/** The session timer starts fading this long before it ends. */
+const TIMER_FADE_MS = 30_000;
+
+function SpeakerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" />
+      <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 function evolutionText(v: number): string {
@@ -67,7 +93,13 @@ export function App() {
   const [starting, setStarting] = useState(false);
   const [chord, setChord] = useState('');
   const [saved, setSaved] = useState<SavedMix[]>(loadSavedMixes);
-  const [sheet, setSheet] = useState<'mixes' | 'about' | null>(null);
+  const [sheet, setSheet] = useState<'mixes' | 'about' | 'share' | null>(null);
+  const [shareUrl, setShareUrl] = useState('');
+  const [volume, setVolume] = useState(loadVolume);
+  const [timerEnd, setTimerEnd] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const [showStarters, setShowStarters] = useState(() => getBoot().firstVisit);
+  const [invitePlay, setInvitePlay] = useState(() => getBoot().fromLink);
   const [toast, setToast] = useState<Toast | null>(null);
   const [offline, setOffline] = useState<'off' | 'busy' | 'on'>(isOfflineEnabled() ? 'on' : 'off');
   const [heroVisible, setHeroVisible] = useState(true);
@@ -77,6 +109,7 @@ export function App() {
   const appliedRef = useRef<MixState | null>(null);
   const heroRef = useRef<HTMLElement>(null);
   const pointerFocus = useRef(false);
+  const fadingRef = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const bpm = mix.bpm ?? rolled.bpm;
@@ -100,6 +133,15 @@ export function App() {
     },
     [mix, say],
   );
+
+  useEffect(() => {
+    if (getBoot().fromLink) say('Shared mix loaded. Press play to listen.');
+  }, [say]);
+
+  useEffect(() => {
+    saveVolume(volume);
+    engineRef.current?.setMasterVolume(volume);
+  }, [volume]);
 
   useEffect(() => {
     rememberLast(mix);
@@ -136,6 +178,7 @@ export function App() {
       // Created inside the tap so iOS lets the AudioContext start.
       engine = new Engine();
       engine.onChord = setChord;
+      engine.setMasterVolume(volume);
       applyMix(engine, mix, null, bpm, key);
       appliedRef.current = mix;
       engineRef.current = engine;
@@ -143,8 +186,12 @@ export function App() {
     if (engine.playing) {
       engine.stop();
       setPlaying(false);
+      // A session timer only runs while music plays.
+      setTimerEnd(null);
+      fadingRef.current = false;
       return;
     }
+    setInvitePlay(false);
     setStarting(true);
     try {
       await engine.start();
@@ -155,7 +202,7 @@ export function App() {
     } finally {
       setStarting(false);
     }
-  }, [mix, bpm, key, say]);
+  }, [mix, bpm, key, say, volume]);
 
   const play = useCallback(() => {
     if (!engineRef.current?.playing) void togglePlay();
@@ -163,6 +210,49 @@ export function App() {
   const pause = useCallback(() => {
     if (engineRef.current?.playing) void togglePlay();
   }, [togglePlay]);
+
+  // Session timer: tick once a second, fade out over the last 30 s, then stop.
+  useEffect(() => {
+    if (timerEnd === null) return;
+    const tick = () => {
+      const t = Date.now();
+      setNow(t);
+      const engine = engineRef.current;
+      if (!engine) return;
+      const left = timerEnd - t;
+      if (left <= 0) {
+        fadingRef.current = false;
+        engine.stop();
+        setPlaying(false);
+        setTimerEnd(null);
+        say('Session finished');
+      } else if (left <= TIMER_FADE_MS && !fadingRef.current) {
+        fadingRef.current = true;
+        engine.fadeOut(left / 1000);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [timerEnd, say]);
+
+  const setTimer = (minutes: number | null) => {
+    if (fadingRef.current) {
+      fadingRef.current = false;
+      engineRef.current?.fadeIn();
+    }
+    if (minutes === null) {
+      setTimerEnd(null);
+      say('Timer off');
+      return;
+    }
+    setTimerEnd(Date.now() + minutes * 60_000);
+    setNow(Date.now());
+    if (!engineRef.current?.playing) void togglePlay();
+    say(`Fading out in ${minutes} min`);
+  };
+
+  const timerLeft = timerEnd === null ? null : Math.max(0, timerEnd - now);
 
   const activeIds = TILE_IDS.filter((id) => mix.tiles[id].on);
   const activeCount = activeIds.length;
@@ -222,6 +312,11 @@ export function App() {
     setRolled({ bpm: rollBpm(), key: rollKey() });
   };
 
+  const loadPreset = (p: Preset) => {
+    replaceMix(presetMix(p), `Loaded “${p.name}”`);
+    setShowStarters(false);
+  };
+
   const clearAll = () => {
     const tiles = { ...mix.tiles };
     for (const id of TILE_IDS) tiles[id] = { ...tiles[id], on: false };
@@ -251,7 +346,8 @@ export function App() {
       await navigator.clipboard.writeText(url);
       say('Link copied');
     } catch {
-      window.prompt('Copy this link', url);
+      setShareUrl(url);
+      setSheet('share');
     }
   };
 
@@ -283,7 +379,7 @@ export function App() {
         <h1 className="wordmark">Garsae</h1>
         <button
           type="button"
-          className={`play${playing ? ' playing' : ''}`}
+          className={`play${playing ? ' playing' : ''}${invitePlay ? ' invite' : ''}`}
           onClick={() => void togglePlay()}
           aria-label={playing ? 'Pause' : 'Play'}
           aria-busy={starting}
@@ -302,6 +398,21 @@ export function App() {
           )}
         </p>
         {!playing && activeCount > 0 && <p className="hint">Press play, or tap any tile to start.</p>}
+        <div className="hero-row">
+          <div className="volume">
+            <SpeakerIcon />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(volume * 100)}
+              aria-label="Master volume"
+              aria-valuetext={`${Math.round(volume * 100)}%`}
+              onChange={(e) => setVolume(Number(e.target.value) / 100)}
+            />
+          </div>
+          <TimerControl left={timerLeft} onSet={setTimer} />
+        </div>
       </header>
 
       <section className="controls glass" aria-label="Global controls">
@@ -414,6 +525,24 @@ export function App() {
         </div>
       </section>
 
+      {showStarters && (
+        <section className="starters" aria-label="Starter mixes">
+          <span className="np-label">Try a starter</span>
+          <ul className="np-list">
+            {PRESETS.map((p) => (
+              <li key={p.id}>
+                <button type="button" className="chip" title={p.hint} onClick={() => loadPreset(p)}>
+                  {p.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button type="button" className="icon-btn" aria-label="Hide starters" onClick={() => setShowStarters(false)}>
+            ×
+          </button>
+        </section>
+      )}
+
       <main>
         {CATEGORIES.map((cat) => (
           <section key={cat.id} className="category" aria-labelledby={`cat-${cat.id}`}>
@@ -445,6 +574,9 @@ export function App() {
         starting={starting}
         status={statusText}
         activeCount={activeCount}
+        timerLeft={timerLeft}
+        volume={volume}
+        onVolume={setVolume}
         onToggle={() => void togglePlay()}
         onMixes={() => setSheet('mixes')}
         onShare={() => void share()}
@@ -466,9 +598,14 @@ export function App() {
             if (decoded) replaceMix(decoded, `Loaded “${m.name}”`);
             setSheet(null);
           }}
+          onPreset={(p) => {
+            loadPreset(p);
+            setSheet(null);
+          }}
           onClose={() => setSheet(null)}
         />
       )}
+      {sheet === 'share' && <ShareSheet url={shareUrl} onClose={() => setSheet(null)} />}
       {sheet === 'about' && (
         <AboutSheet
           offlineSupported={offlineSupported()}

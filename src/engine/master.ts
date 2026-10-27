@@ -1,9 +1,9 @@
 // Master chain:
-//   tile buses -> mix -> wobble (modulated delay) -> amplitude modulation -> output fade -> limiter -> speakers
+//   tile buses -> mix -> wobble (modulated delay) -> amplitude modulation -> output fade -> limiter -> volume -> speakers
 //   reverb sends -> convolver -> mix
 // Wobble and amplitude modulation are parameters, so a later "focus profile"
 // can drive them as a preset layer without a rewrite.
-import { glide } from './params';
+import { glide, volumeToGain } from './params';
 import { createImpulse } from './reverb';
 
 export interface ModulationSettings {
@@ -18,6 +18,8 @@ export class Master {
   readonly reverbIn: GainNode;
   readonly output: GainNode;
   readonly limiter: DynamicsCompressorNode;
+  /** The listener's master volume. After the limiter, so it never changes how the mix is limited. */
+  readonly volume: GainNode;
 
   private amGain: GainNode;
   private amLfo: OscillatorNode;
@@ -60,7 +62,8 @@ export class Master {
     });
 
     this.mix.connect(this.wobble).connect(this.amGain).connect(this.output).connect(this.limiter);
-    this.limiter.connect(ctx.destination);
+    this.volume = new GainNode(ctx, { gain: 1 });
+    this.limiter.connect(this.volume).connect(ctx.destination);
 
     this.sources = [wow, flutter, this.amLfo];
     for (const s of this.sources) s.start();
@@ -69,6 +72,11 @@ export class Master {
   /** Fades the whole app in or out. */
   setOutput(level: number, timeConstant = 0.4): void {
     glide(this.ctx, this.output.gain, level, timeConstant);
+  }
+
+  /** Master volume, 0-1 slider position. */
+  setVolume(v: number): void {
+    glide(this.ctx, this.volume.gain, volumeToGain(Math.min(1, Math.max(0, v))), 0.08);
   }
 
   /** Amplitude modulation applied to the mix (the AM tile, and later the Focus feature). */
