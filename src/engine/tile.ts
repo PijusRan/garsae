@@ -6,6 +6,8 @@ import type { Core, Instrument, StepInfo } from './types';
 const FADE_IN = 0.9;
 const FADE_OUT = 0.7;
 const VOLUME_MOVE = 0.15;
+/** While paused nothing is heard, so changes land at once; Play's master fade brings them in. */
+const AT_ONCE = 0.001;
 /** After this long a faded-out tile stops scheduling and releases its sources. */
 const SILENT_AFTER = 5;
 
@@ -40,7 +42,8 @@ export class Tile {
     instrument.setTempo?.(core.bpm);
   }
 
-  setOn(on: boolean): void {
+  /** `atOnce` skips the fade: used while paused, when the audio clock is stopped and a fade would wait for Play. */
+  setOn(on: boolean, atOnce = false): void {
     if (on === this.on) return;
     this.on = on;
     if (on && !this.active) {
@@ -48,12 +51,12 @@ export class Tile {
       this.instrument.activate?.(this.core.ctx.currentTime);
     }
     if (!on) this.offAt = this.core.ctx.currentTime + SILENT_AFTER;
-    this.apply(on ? FADE_IN : FADE_OUT);
+    this.apply(atOnce ? AT_ONCE : on ? FADE_IN : FADE_OUT);
   }
 
-  setVolume(v: number): void {
+  setVolume(v: number, atOnce = false): void {
     this.volume = v;
-    this.apply(VOLUME_MOVE);
+    this.apply(atOnce ? AT_ONCE : VOLUME_MOVE);
   }
 
   private apply(timeConstant: number): void {
@@ -67,9 +70,13 @@ export class Tile {
 
   step(s: StepInfo): void {
     if (!this.active) return;
-    if (!this.on && this.core.ctx.currentTime > this.offAt) {
-      this.active = false;
-      this.instrument.deactivate?.();
+    if (!this.on) {
+      // A tile that is off starts no new notes: the ones already sounding fade with the bus. Otherwise an
+      // old drum kit and bass keep hitting under the new mix (a doubled downbeat) until they are released.
+      if (this.core.ctx.currentTime > this.offAt) {
+        this.active = false;
+        this.instrument.deactivate?.();
+      }
       return;
     }
     this.instrument.step?.(s);

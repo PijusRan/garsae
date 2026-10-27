@@ -135,12 +135,12 @@ export class Engine {
   setTile(id: TileId, on: boolean, volume?: number): void {
     if (!on && !this.tiles.has(id)) return;
     const t = this.tile(id);
-    if (volume !== undefined) t.setVolume(volume);
-    t.setOn(on);
+    if (volume !== undefined) t.setVolume(volume, !this.playing);
+    t.setOn(on, !this.playing);
   }
 
   setTileVolume(id: TileId, volume: number): void {
-    this.tile(id).setVolume(volume);
+    this.tile(id).setVolume(volume, !this.playing);
   }
 
   setEvolution(e: number): void {
