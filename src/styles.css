@@ -565,20 +565,42 @@ output,
   opacity: 1;
 }
 
+/* At rest a tile's name sits centred in the space the name and description share. On hover (or keyboard
+   focus) it rises to make room and the description slides in beneath it; both move back on leave. Only
+   transforms move, so tiles never change size. */
 @media (hover: hover) {
-  .tile-hint-text {
-    opacity: 0;
-    transition: opacity var(--t-hover) var(--ease-out);
+  .tile-name,
+  .tile-hint {
+    transition:
+      transform 280ms var(--ease-out),
+      opacity 180ms var(--ease-out);
   }
 
-  .tile:hover .tile-hint-text,
-  .tile:has(.tile-toggle:focus-visible) .tile-hint-text {
+  .tile-name {
+    transform: translateY(var(--hint-shift));
+  }
+
+  .tile-hint {
+    opacity: 0;
+    transform: translateY(calc(var(--hint-shift) * 0.6));
+  }
+
+  .tile:hover .tile-name,
+  .tile:has(.tile-toggle:focus-visible) .tile-name {
+    transform: none;
+  }
+
+  .tile:hover .tile-hint,
+  .tile:has(.tile-toggle:focus-visible) .tile-hint {
     opacity: 1;
+    transform: none;
+    /* The name starts moving first, then the description follows it in. */
+    transition-delay: 70ms;
   }
 }
 
 @media (hover: none) {
-  .tile-hint-text,
+  .tile-hint,
   .category-note {
     display: none;
   }
@@ -654,6 +676,8 @@ output,
 }
 
 .tile-toggle {
+  /* Half the description line plus the gap: how far the name drops to sit centred at rest. */
+  --hint-shift: 10px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -669,6 +693,9 @@ output,
 }
 
 .tile-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 15px;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -680,17 +707,15 @@ output,
   color: var(--text);
 }
 
-.tile-hint {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 5px;
-  font-size: 12.5px;
+.tile-name svg {
+  flex: none;
   color: var(--text-3);
 }
 
-.tile-hint svg {
-  flex: none;
-  margin-top: 2px;
+.tile-hint {
+  font-size: 12.5px;
+  line-height: 18px;
+  color: var(--text-3);
 }
 
 .tile-volume {

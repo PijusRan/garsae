@@ -118,7 +118,8 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 - Buttons, the segmented control, selects, the save field and the toast are pills. Surfaces are small-radius rectangles: 6 (icon buttons), 8 (tiles, transport), 12 (panel, sheets).
 - **Primary** (`.btn.black` / `.btn.primary`): black pill, faint white hairline, a 4px glass halo, and a warm glow on hover. **Secondary**: a dark vertical gradient pill with a hairline. Ghost for the rest. Press scales to 0.97. Nothing lifts on hover.
 - On tiles: a peach rim, light rising from the bottom edge (a radial coral glow plus a 1px cream line), and a soft coral shadow beneath.
-- Sliders: a 2px track lit cream to peach to coral up to the value, and a cream thumb with a black ring that glows on hover. 44px tall on touch.
+- Sliders: a 2px track lit cream into the background's two brightest colours up to the value, and a cream thumb with a black ring that glows on hover. 44px tall on touch.
+- Tiles show only their name, centred. On hover or keyboard focus the name rises and the description slides in beneath it (transforms only, so tiles never resize); touch screens, which cannot hover, show names only. The headphones and effect marks sit beside the name.
 
 **Icons and controls**
 - One SVG icon set (`src/ui/icons.tsx`): 20px grid, 1.5px stroke, round caps. The mark (`MarkIcon`) is the eclipse setting over the horizon; the app icon matches it. No emoji or unicode glyphs as icons.

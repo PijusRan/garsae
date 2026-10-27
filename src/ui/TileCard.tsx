@@ -17,12 +17,12 @@ export function TileCard({ meta, setting, onToggle, onVolume }: Props) {
   return (
     <div id={`tile-${meta.id}`} className={`tile${setting.on ? ' on' : ''}`}>
       <button type="button" className="tile-toggle" aria-pressed={setting.on} onClick={onToggle}>
-        <span className="tile-name">{meta.name}</span>
-        <span className="tile-hint">
+        <span className="tile-name">
+          {meta.name}
           {meta.effect && <EffectIcon size={14} aria-label="Effect" />}
           {meta.needsHeadphones && <HeadphonesIcon size={14} />}
-          <span className="tile-hint-text">{meta.needsHeadphones ? `Headphones · ${meta.hint}` : meta.hint}</span>
         </span>
+        <span className="tile-hint">{meta.needsHeadphones ? `Headphones · ${meta.hint}` : meta.hint}</span>
       </button>
       <input
         className="tile-volume"
