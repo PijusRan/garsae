@@ -14,6 +14,7 @@ export function AboutSheet({ offlineSupported, offline, onToggleOffline, onInsta
       <p className="note about-text">
         Garsæ is a background player: every sound is synthesized live and never repeats. Pick a few tiles, set the level, and let it run.
       </p>
+      <p className="note about-text">The Experimental tiles are unproven focus aids. No health claims.</p>
       {offlineSupported && (
         <div className="about-row">
           <div>

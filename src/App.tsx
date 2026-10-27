@@ -398,10 +398,6 @@ export function App() {
               aria-valuetext={`${evoPct}%, ${evolutionText(mix.evolution)}`}
               onChange={(e) => setMix((m) => ({ ...m, evolution: Number(e.target.value) / 100 }))}
             />
-            <div className="scale-labels" aria-hidden="true">
-              <span>Static</span>
-              <span>Shifting</span>
-            </div>
           </div>
 
           <button
@@ -528,15 +524,24 @@ export function App() {
 
         <main>
           {CATEGORIES.map((cat) => (
-            <section key={cat.id} className="category" aria-labelledby={`cat-${cat.id}`}>
+            <section
+              key={cat.id}
+              className="category"
+              aria-labelledby={`cat-${cat.id}`}
+              aria-describedby={cat.note ? `note-${cat.id}` : undefined}
+            >
               <div className="category-head">
                 <h2 id={`cat-${cat.id}`} className="micro bracket">
                   {cat.name}
                 </h2>
+                {cat.note && (
+                  <span id={`note-${cat.id}`} className="category-note">
+                    {cat.note}
+                  </span>
+                )}
                 <span className="rule" aria-hidden="true" />
                 <span className="micro count">{onIn(cat.id) ? `${onIn(cat.id)} on` : ''}</span>
               </div>
-              {cat.note && <p className="note category-note">{cat.note}</p>}
               <div className="tiles">
                 {TILES.filter((t) => t.category === cat.id).map((t) => (
                   <TileCard
@@ -557,7 +562,6 @@ export function App() {
             <MarkIcon size={18} />
             Garsæ
           </span>
-          <span className="micro">Every sound is synthesized live</span>
           <button type="button" className="micro-link" onClick={() => setSheet('about')}>
             About and offline use
           </button>

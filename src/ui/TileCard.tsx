@@ -21,7 +21,7 @@ export function TileCard({ meta, setting, onToggle, onVolume }: Props) {
         <span className="tile-hint">
           {meta.effect && <EffectIcon size={14} aria-label="Effect" />}
           {meta.needsHeadphones && <HeadphonesIcon size={14} />}
-          {meta.needsHeadphones ? `Headphones · ${meta.hint}` : meta.hint}
+          <span className="tile-hint-text">{meta.needsHeadphones ? `Headphones · ${meta.hint}` : meta.hint}</span>
         </span>
       </button>
       <input
