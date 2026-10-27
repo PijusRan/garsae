@@ -22,9 +22,10 @@ import {
 import { PRESETS, presetMix, type Preset } from './state/presets';
 import { CATEGORIES, TILES, TILE_IDS, type TileId } from './tiles';
 import { AboutSheet } from './ui/AboutSheet';
+import { Background, levelReader, type AudioLevels } from './ui/Background';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
-import { ChevronIcon, CloseIcon } from './ui/icons';
+import { ChevronIcon, CloseIcon, MarkIcon } from './ui/icons';
 import { ShareSheet } from './ui/ShareSheet';
 import { Transport } from './ui/Transport';
 import { TileCard } from './ui/TileCard';
@@ -99,6 +100,8 @@ export function App() {
   const pointerFocus = useRef(false);
   const fadingRef = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const levelsRef = useRef<(() => AudioLevels) | null>(null);
+  const getLevels = useCallback(() => levelsRef.current?.() ?? null, []);
 
   const bpm = mix.bpm ?? rolled.bpm;
   const key = mix.key ?? rolled.key;
@@ -161,6 +164,7 @@ export function App() {
       applyMix(engine, mix, null, bpm, key);
       appliedRef.current = mix;
       engineRef.current = engine;
+      levelsRef.current = levelReader(engine.master.analyser);
     }
     if (engine.playing) {
       engine.stop();
@@ -235,6 +239,7 @@ export function App() {
 
   const activeIds = TILE_IDS.filter((id) => mix.tiles[id].on);
   const activeCount = activeIds.length;
+  const onIn = (cat: string) => activeIds.filter((id) => TILES.find((t) => t.id === id)!.category === cat).length;
 
   useMediaSession({
     playing,
@@ -315,7 +320,7 @@ export function App() {
     const url = `${window.location.origin}${window.location.pathname}#${encodeMix(mix)}`;
     if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
       try {
-        await navigator.share({ title: 'Garsae mix', url });
+        await navigator.share({ title: 'Garsæ mix', url });
         return;
       } catch (e) {
         if ((e as Error).name === 'AbortError') return;
@@ -353,16 +358,17 @@ export function App() {
   const evoPct = Math.round(mix.evolution * 100);
   const bpmPct = Math.round(((bpm - BPM_MIN) / (BPM_MAX - BPM_MIN)) * 100);
 
+  const detail = `Key of ${NOTE_NAMES[key]} · ${bpm} bpm`;
+
   return (
     <div className={`app${playing ? ' is-playing' : ''}`}>
-      <div className="room-light" aria-hidden="true" />
+      <Background playing={playing} getLevels={getLevels} musicKey={key} bpm={bpm} evolution={mix.evolution} />
       <Transport
         playing={playing}
         starting={starting}
         invite={invitePlay}
         chord={chord}
-        detail={`Key of ${NOTE_NAMES[key]} · ${bpm} bpm`}
-        mix={mix}
+        detail={detail}
         activeCount={activeCount}
         volume={volume}
         timerLeft={timerLeft}
@@ -374,9 +380,9 @@ export function App() {
         onMore={() => setSheet('about')}
       />
 
-      <div className="page">
-        <h1 className="page-title">Garsae</h1>
-        <section className="sound" aria-label="Sound">
+      <div className="page" id="top">
+        <h1 className="sr-only">Garsæ</h1>
+        <section className="sound panel" aria-label="Sound">
           <div className="field evolution">
             <div className="field-head">
               <label htmlFor="evolution">Evolution</label>
@@ -468,7 +474,7 @@ export function App() {
           </div>
 
           <div className="actions">
-            <button type="button" className="btn primary" onClick={surprise}>
+            <button type="button" className="btn black" onClick={surprise}>
               Surprise me
             </button>
             <button type="button" className="btn" onClick={() => setSheet('mixes')}>
@@ -478,59 +484,59 @@ export function App() {
               Share link
             </button>
           </div>
-        </section>
 
-        <section className="row nowplaying" aria-label="On now">
-          <span className="row-label">On now</span>
-          {activeCount === 0 ? (
-            <span className="note">Nothing yet. Tap a tile below{playing ? '' : ' and it starts playing'}.</span>
-          ) : (
-            <>
-              <ul className="token-list">
+          {activeCount > 0 && (
+            <div className="panel-row" role="group" aria-label="On now">
+              <h2 className="micro bracket">On now</h2>
+              <ul className="name-list">
                 {activeIds.map((id) => {
                   const t = TILES.find((x) => x.id === id)!;
                   return (
                     <li key={id}>
-                      <button type="button" className="token" onClick={() => jumpToTile(id)}>
-                        <span className={`mark cat-${t.category}`} aria-hidden="true" />
+                      <button type="button" className="name" onClick={() => jumpToTile(id)}>
                         {t.name}
                       </button>
                     </li>
                   );
                 })}
               </ul>
-              <button type="button" className="btn ghost small" onClick={clearAll}>
+              <button type="button" className="micro-link" onClick={clearAll}>
                 Clear
               </button>
-            </>
+            </div>
+          )}
+          {(showStarters || activeCount === 0) && (
+            <div className="panel-row" role="group" aria-label="Starter mixes">
+              <h2 className="micro bracket">Starters</h2>
+              <ul className="name-list">
+                {PRESETS.map((p) => (
+                  <li key={p.id}>
+                    <button type="button" className="name" title={p.hint} onClick={() => loadPreset(p)}>
+                      {p.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {showStarters && activeCount > 0 && (
+                <button type="button" className="icon-btn small" aria-label="Hide starters" onClick={() => setShowStarters(false)}>
+                  <CloseIcon size={16} />
+                </button>
+              )}
+            </div>
           )}
         </section>
-
-        {showStarters && (
-          <section className="row starters" aria-label="Starter mixes">
-            <span className="row-label">Try a starter</span>
-            <ul className="token-list">
-              {PRESETS.map((p) => (
-                <li key={p.id}>
-                  <button type="button" className="token" title={p.hint} onClick={() => loadPreset(p)}>
-                    {p.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <button type="button" className="icon-btn" aria-label="Hide starters" onClick={() => setShowStarters(false)}>
-              <CloseIcon size={18} />
-            </button>
-          </section>
-        )}
 
         <main>
           {CATEGORIES.map((cat) => (
             <section key={cat.id} className="category" aria-labelledby={`cat-${cat.id}`}>
               <div className="category-head">
-                <h2 id={`cat-${cat.id}`}>{cat.name}</h2>
-                {cat.note && <p className="note">{cat.note}</p>}
+                <h2 id={`cat-${cat.id}`} className="micro bracket">
+                  {cat.name}
+                </h2>
+                <span className="rule" aria-hidden="true" />
+                <span className="micro count">{onIn(cat.id) ? `${onIn(cat.id)} on` : ''}</span>
               </div>
+              {cat.note && <p className="note category-note">{cat.note}</p>}
               <div className="tiles">
                 {TILES.filter((t) => t.category === cat.id).map((t) => (
                   <TileCard
@@ -547,8 +553,12 @@ export function App() {
         </main>
 
         <footer className="footer">
-          <span>Every sound is synthesized live and never repeats.</span>
-          <button type="button" className="linklike" onClick={() => setSheet('about')}>
+          <span className="footer-brand">
+            <MarkIcon size={18} />
+            Garsæ
+          </span>
+          <span className="micro">Every sound is synthesized live</span>
+          <button type="button" className="micro-link" onClick={() => setSheet('about')}>
             About and offline use
           </button>
         </footer>

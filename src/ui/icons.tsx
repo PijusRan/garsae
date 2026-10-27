@@ -112,3 +112,11 @@ export const EffectIcon = (p: IconProps) => (
     <path d="M17.25 6.5v7" />
   </Icon>
 );
+
+/** The Garsae mark: an eclipse ring setting behind a horizon. */
+export const MarkIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4.88 13.5A6.5 6.5 0 1 1 15.12 13.5" />
+    <path d="M1.75 13.5h16.5" />
+  </Icon>
+);

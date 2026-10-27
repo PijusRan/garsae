@@ -88,41 +88,43 @@ Sounds that might aid focus. No claims are made in v1.
 - v1: tab open is fine. Background/lock-screen playback is deferred (it needs the Media Session API and throttle-proof timing later).
 
 ## UI
-- Tiles are **grouped by category**: tap to toggle, slider for level.
-- One **transport bar** holds playback: the play button, the chord, key and tempo, a fingerprint of what's on, master volume (after the limiter), the session timer, Mixes, Share and About. It is sticky at the top on wide screens and floats at the bottom, in thumb reach, on phones.
-- Under it, a plain **Sound** section: the Evolution slider, tempo and key (behind a "Tempo and key" disclosure on phones) and "Surprise me". Then an "On now" row of the active tiles.
+One compact screen of controls, then the tiles. No hero: the page opens straight onto the instrument.
+- One **transport** holds playback: the mark and wordmark, play, chord with key and tempo, master volume (after the limiter), the session timer, Mixes, Share and About. On wide screens it is a glass bar as wide as the page, stuck to the top; on phones it floats at the bottom, in thumb reach.
+- Under it, the **Sound** panel. On wide screens one row holds the Evolution slider, tempo, key, and Surprise me / Mixes / Share link (the buttons drop to their own row below 1100px; tempo and key go behind a "Tempo and key" disclosure on phones). Below that, compact rows inside the same panel: **On now** (active tile names; tap to jump to the tile, plus Clear) and **Starters** (on a first visit, or when nothing is on).
+- Tiles are **grouped by category** under bracketed micro labels (`[ PADS ]`) with a hairline rule and an "N on" count: tap to toggle, slider for level. The page is up to 1240px wide, so most categories fit on one row.
 - Media keys and OS media overlays work through the Media Session API. Space toggles playback unless a keyboard user is on a button.
 
 ## Visual language
-The goal is a calm, hand-tuned instrument, not a template. `src/styles.css` implements these rules; check new UI against them.
+The goal is a calm, cinematic instrument: black ground, warm light, very little chrome. The look follows a cinematic landing page, compressed into a dense app layout. `src/styles.css` implements these rules; check new UI against them.
 
-**Colour** (OKLCH tokens in `:root`)
-- Warm graphite neutrals at one hue (≈60) with very low chroma. Elevation is a lightness step: `--bg` 0.17, `--surface` 0.205 (tiles), `--surface-raised` 0.235 (on, hover, inputs). Edges are white hairlines at 8% and 14%.
-- Text: `--text` 0.95, `--text-2` 0.76, `--text-3` 0.64. Each is at least 4.5:1 on every surface.
-- **One accent**, amber `oklch(0.80 0.13 70)`, with dark `--accent-ink` for text on it. It marks only: on state (filled tracks), the one primary button, focus rings, the active timer, the current mix, and the playing light.
-- Category colours have the same lightness and low chroma, with only the hue differing. They appear only as 6px marks (fingerprints, "On now"). Tiles are never tinted by category.
+**Colour**
+- Ground is pure black (`--bg`). Surfaces are white at low alpha (2.5-10%) over near-black, so the background light shows through them. Edges are white hairlines at 8% and 14%.
+- Text is warm cream `--text` `#f9f7e9`, then `--text-2` `#c4c1b5` and grey `--text-3` `#8e8e8e`.
+- **Light is the accent**: peach `--accent` `#ffc5a8`, coral `--coral` `#fa7641` for glows, ember `--ember` for the deepest note. It marks only: on state (the light rising in on tiles, "N on" counts), focus rings, the active timer, the current mix, and the play button while playing. No other hues, except the category marks and the sliders, which follow the background.
+- Category marks keep one lightness and chroma, varying hue only. They appear only as 6px dots (mix fingerprints in the Mixes sheet).
 
 **Type**
-- Instrument Sans (variable, self-hosted through `@fontsource-variable`, so it works offline). Scale 12 / 13 / 15 / 17 / 22, weights 400 / 500 / 600. Tabular numerals for anything that counts.
-- Sentence case everywhere. No letter-spaced uppercase labels.
+- Inter (variable with the optical-size axis, self-hosted through `@fontsource-variable/inter/opsz.css`, so it works offline). Large sizes automatically get Inter Display shapes.
+- Display text is weight 500 with tight tracking: sheet titles and the wordmark -0.03em, tile and mix names -0.02em. Body 13-15px.
+- **Micro labels** are the only uppercase: 11px, +0.06em tracking, grey, optionally in brackets (`.micro`, `.bracket`). Used for section labels, scale ends, footer text and links, and Undo.
+- Tabular numerals for anything that counts.
 
 **Surfaces and glass**
-- Glass is only for layers that float over content: the transport bar, sheets and the toast. Content (tiles, settings, rows) sits on solid surfaces. Never glass on glass.
-- Glass recipe: translucent surface (~62%), `blur(20px) saturate(160%) brightness(.9)`, a top specular inset highlight with a darker bottom inset, a hairline border, and a contact plus ambient shadow. Without `backdrop-filter` support it falls back to an opaque surface.
-- The desktop transport uses an extended backdrop (an oversized, masked child), so content blurs before it reaches the bar.
-- The background is flat with static fine grain. The only background effect is a faint warm light from above while music plays: it tells you something.
+- Glass is only for layers that float: the transport, sheets and the toast. Never glass on glass.
+- The background is **Grainient** from React Bits (`src/ui/Grainient.tsx`, vendored with its MIT + Commons Clause notice; wrapped by `src/ui/Background.tsx`): a slow, domain-warped grainy gradient whose colours come from the mix (`src/ui/palette.ts`), always near-black at the bottom and lit towards the top. **Key sets the hue**, walked around the circle of fifths so related keys get neighbouring hues (C is cobalt, G violet, A crimson, A♭ green); **tempo sets the vividness** (slow mixes deeper and muted, fast ones more saturated and a little brighter); **evolution sets the hue spread** across the gradient (a static mix is one hue, a shifting one sweeps across its neighbours). Colours are built in OKLCH and fitted into sRGB by lowering chroma, so no key clips. A new mix glides to its colours over a few seconds (instantly under reduced motion). Sliders take the same colours (`--slider-mid`, `--slider-end`, cream into the two brightest stops, registered with `@property` so they glide too) rather than the peach accent. Paused, it is dimmer (75% opacity) and barely flows; while music plays it brightens over a couple of seconds and flows faster with the mix's loudness (read from an analyser after the limiter, so the volume knob doesn't change it). Pointer stirring and click swirls are off, and its grain is static: the background never reacts to the pointer. It renders at 1x pixel ratio (the gradient field at half of that), fades in on load, creates a fresh canvas on every mount (a lost WebGL context never comes back, and StrictMode mounts twice in development), and stands still under reduced motion.
+- Film grain (an SVG noise overlay) sits over everything.
 
 **Shape and depth**
-- Radii are concentric: 8 (tokens, segments), 10 (buttons, inputs), 14 (tiles), 20 (sheets, transport).
-- No coloured glows, no gradients on controls, no drop shadows on content. Floating layers get the two-part shadow; everything else uses hairlines and lightness.
+- Buttons, the segmented control, selects, the save field and the toast are pills. Surfaces are small-radius rectangles: 6 (icon buttons), 8 (tiles, transport), 12 (panel, sheets).
+- **Primary** (`.btn.black` / `.btn.primary`): black pill, faint white hairline, a 4px glass halo, and a warm glow on hover. **Secondary**: a dark vertical gradient pill with a hairline. Ghost for the rest. Press scales to 0.97. Nothing lifts on hover.
+- On tiles: a peach rim, light rising from the bottom edge (a radial coral glow plus a 1px cream line), and a soft coral shadow beneath.
+- Sliders: a 2px track lit cream to peach to coral up to the value, and a cream thumb with a black ring that glows on hover. 44px tall on touch.
 
 **Icons and controls**
-- One SVG icon set (`src/ui/icons.tsx`): 20px grid, 1.5px stroke, round caps. No emoji or unicode glyphs as icons, and no pill badges (effect and headphone tiles show a small inline icon instead).
-- One primary button per view (Surprise me). Others are secondary (raised surface plus hairline) or ghost.
-- Sliders: a 4px track filled in amber up to the value, and a plain off-white thumb. 44px tall on touch.
+- One SVG icon set (`src/ui/icons.tsx`): 20px grid, 1.5px stroke, round caps. The mark (`MarkIcon`) is the eclipse setting over the horizon; the app icon matches it. No emoji or unicode glyphs as icons.
 
 **Motion**
-- `cubic-bezier(.2,.8,.2,1)`. 120ms for press and toggle, 200ms for hover, 320ms for sheets. Frequent actions (toggling a tile) are near-instant. No hover scaling. Everything respects `prefers-reduced-motion`.
+- `cubic-bezier(.2,.8,.2,1)`. 120ms for press and toggle, 200ms for hover, 320ms for sheets and the tile light. Everything respects `prefers-reduced-motion`.
 
 ## PWA details
 - **Offline:** user-controlled. An in-app "download for offline use" option caches the app (it's small, since all audio is synthesized). Not forced by default.

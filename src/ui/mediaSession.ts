@@ -14,14 +14,14 @@ export function useMediaSession({ playing, subtitle, play, pause }: Options): vo
   fns.current = { play, pause };
 
   useEffect(() => {
-    document.title = playing ? '▶ Garsae' : 'Garsae';
+    document.title = playing ? '▶ Garsæ' : 'Garsæ';
   }, [playing]);
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
     const ms = navigator.mediaSession;
     ms.metadata = new MediaMetadata({
-      title: 'Garsae',
+      title: 'Garsæ',
       artist: subtitle || 'Generative focus music',
       artwork: [
         { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },

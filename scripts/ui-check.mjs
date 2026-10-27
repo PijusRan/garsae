@@ -25,7 +25,7 @@ try {
   await page.waitForSelector('.tile');
   await page.screenshot({ path: 'smoke-output/desktop.png', fullPage: true });
   // A fresh browser counts as a first visit, so starter mixes are offered.
-  const startersShown = (await page.$('.starters')) !== null;
+  const startersShown = (await page.$('[aria-label="Starter mixes"]')) !== null;
 
   // Play, then check the audio clock is running.
   await page.click('.play');
@@ -75,7 +75,7 @@ try {
   const dialogGone = (await page.$('[role=dialog]')) === null;
 
   // A starter replaces the mix.
-  await page.evaluate(() => [...document.querySelectorAll('.starters .token')].find((b) => b.textContent === 'Brown noise').click());
+  await page.evaluate(() => [...document.querySelectorAll('[aria-label="Starter mixes"] .name')].find((b) => b.textContent === 'Brown noise').click());
   await new Promise((r) => setTimeout(r, 200));
   const afterStarter = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
 

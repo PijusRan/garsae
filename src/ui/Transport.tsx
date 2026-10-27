@@ -1,7 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { MixState } from '../state/mix';
-import { Fingerprint } from './Fingerprint';
-import { MixesIcon, MoreIcon, PauseIcon, PlayIcon, ShareIcon, VolumeIcon } from './icons';
+import { MarkIcon, MixesIcon, MoreIcon, PauseIcon, PlayIcon, ShareIcon, VolumeIcon } from './icons';
 import { TimerControl } from './TimerControl';
 
 interface Props {
@@ -10,7 +8,6 @@ interface Props {
   invite: boolean;
   chord: string;
   detail: string;
-  mix: MixState;
   activeCount: number;
   volume: number;
   timerLeft: number | null;
@@ -23,18 +20,18 @@ interface Props {
 }
 
 /**
- * The one persistent control surface: sticky at the top on wide screens, at the
- * bottom (within thumb reach) on phones. The only glass layer that is always on screen.
+ * The one persistent control surface: a bar stuck to the top of the page on wide screens,
+ * at the bottom (within thumb reach) on phones. The only glass layer that is always on screen.
  */
 export function Transport(props: Props) {
-  const { playing, starting, invite, chord, detail, mix, activeCount, volume, timerLeft } = props;
+  const { playing, starting, invite, chord, detail, activeCount, volume, timerLeft } = props;
   const pct = Math.round(volume * 100);
   return (
-    <header className="transport" aria-label="Player">
-      <div className="backdrop" aria-hidden="true" />
-      <span className="wordmark" aria-hidden="true">
-        Garsae
-      </span>
+    <header className="transport glass" aria-label="Player">
+      <a className="mark-link" href="#top" aria-label="Garsæ, back to top">
+        <MarkIcon size={20} />
+        <span className="wordmark">Garsæ</span>
+      </a>
       <button
         type="button"
         className={`play${playing ? ' playing' : ''}${invite ? ' invite' : ''}`}
@@ -42,18 +39,15 @@ export function Transport(props: Props) {
         aria-label={playing ? 'Pause' : 'Play'}
         aria-busy={starting}
       >
-        {playing ? <PauseIcon /> : <PlayIcon />}
+        {playing ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
       </button>
       <div className="status" aria-live="off">
         <span className="status-main">{playing && chord ? chord : playing ? 'Starting' : 'Paused'}</span>
         <span className="status-detail">{detail}</span>
       </div>
-      <div className="t-mix" title={`${activeCount} tile${activeCount === 1 ? '' : 's'} on`}>
-        <Fingerprint mix={mix} />
-        <span className="t-count">{activeCount} on</span>
-      </div>
+      <span className="t-sep" aria-hidden="true" />
       <label className="t-volume">
-        <VolumeIcon />
+        <VolumeIcon size={18} />
         <input
           type="range"
           min={0}
@@ -68,7 +62,7 @@ export function Transport(props: Props) {
       <TimerControl left={timerLeft} onSet={props.onTimer} />
       <div className="t-actions">
         <button type="button" className="icon-btn" onClick={props.onMixes} aria-label="Mixes" title="Mixes">
-          <MixesIcon />
+          <MixesIcon size={18} />
         </button>
         <button
           type="button"
@@ -78,10 +72,10 @@ export function Transport(props: Props) {
           aria-label="Share link"
           title="Share link"
         >
-          <ShareIcon />
+          <ShareIcon size={18} />
         </button>
         <button type="button" className="icon-btn" onClick={props.onMore} aria-label="About & offline" title="About & offline">
-          <MoreIcon />
+          <MoreIcon size={18} />
         </button>
       </div>
     </header>
