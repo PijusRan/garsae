@@ -12,7 +12,12 @@ export function glide(
   at?: number,
 ): void {
   const t = Math.max(at ?? ctx.currentTime, ctx.currentTime);
+  const from = param.value;
   param.cancelScheduledValues(t);
+  // Pin where the param is now. When a setTargetAtTime replaces a cancelled one, Firefox starts it from the
+  // param's default (1 for gains) instead: a tile switched on burst in at full volume and faded down.
+  // `from` is the current value, so this is exact for glides that start now (every caller does).
+  param.setValueAtTime(from, t);
   param.setTargetAtTime(value, t, Math.max(0.001, timeConstant));
 }
 
