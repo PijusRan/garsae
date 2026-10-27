@@ -142,6 +142,12 @@ export function deleteMix(id: string): SavedMix[] {
   return next;
 }
 
+/** Puts a previous list back, for undoing a delete. */
+export function restoreMixes(list: SavedMix[]): SavedMix[] {
+  write(MIXES_KEY, list);
+  return list;
+}
+
 export const rememberLast = (mix: MixState): void => write(LAST_KEY, encodeMix(mix));
 
 export function loadLast(): MixState | null {

@@ -38,6 +38,35 @@ try {
   const status = await page.$eval('.status', (el) => el.textContent);
   await page.screenshot({ path: 'smoke-output/desktop-playing.png' });
 
+  // Scrolled away from the hero, the compact player appears and works.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await new Promise((r) => setTimeout(r, 700));
+  const barVisible = await page.$eval('.playerbar', (el) => el.classList.contains('show'));
+
+  // After clicking a tile, Space pauses the music and does not toggle the tile.
+  const before = await page.$$eval('.tile.on', (els) => els.length);
+  await page.click('#tile-lofi .tile-toggle');
+  await page.keyboard.press('Space');
+  await new Promise((r) => setTimeout(r, 400));
+  const afterSpace = await page.$eval('.play', (b) => b.classList.contains('playing'));
+  const tilesAfter = await page.$$eval('.tile.on', (els) => els.length);
+
+  // Surprise me can be undone.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const onBefore = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
+  await page.evaluate(() => [...document.querySelectorAll('.actions .pill')].find((b) => b.textContent === 'Surprise me').click());
+  await page.waitForSelector('.toast-undo');
+  await page.click('.toast-undo');
+  await new Promise((r) => setTimeout(r, 200));
+  const onRestored = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
+
+  // The mixes dialog closes on Escape and gives focus back.
+  await page.evaluate(() => [...document.querySelectorAll('.actions .pill')].find((b) => b.textContent.startsWith('Mixes')).click());
+  await page.waitForSelector('[role=dialog]');
+  await page.keyboard.press('Escape');
+  await new Promise((r) => setTimeout(r, 200));
+  const dialogGone = (await page.$('[role=dialog]')) === null;
+
   // A share link round-trips through the URL hash.
   await page.goto(`${url}#t=drone.50,dub.40,wind.30&e=60&b=100&k=2`);
   await page.waitForSelector('.tile');
@@ -50,8 +79,8 @@ try {
   await page.screenshot({ path: 'smoke-output/phone.png', fullPage: true });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
 
-  console.log({ playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, errors });
-  if (!playing || bellsOn !== 'true' || overflow || errors.length) process.exitCode = 1;
+  console.log({ barVisible, tileToggledBySpace: tilesAfter !== before + 1, pausedBySpace: !afterSpace, undoRestores: onBefore === onRestored, dialogGone, playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, errors });
+  if (!playing || bellsOn !== 'true' || !barVisible || afterSpace || onBefore !== onRestored || !dialogGone || overflow || errors.length) process.exitCode = 1;
 } finally {
   await browser.close();
   server.httpServer.close();

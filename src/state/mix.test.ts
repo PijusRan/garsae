@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TILE_BY_ID } from '../tiles';
-import { decodeMix, defaultMix, encodeMix, surpriseMix } from './mix';
+import { decodeMix, defaultMix, encodeMix, restoreMixes, surpriseMix, type SavedMix } from './mix';
 
 describe('share links', () => {
   it('round-trips a mix', () => {
@@ -50,5 +50,19 @@ describe('surprise me', () => {
       expect(m.evolution).toBeLessThanOrEqual(0.5);
       expect(m.bpm).toBeNull();
     }
+  });
+});
+
+describe('regrouped tiles and undo helpers', () => {
+  it('still reads share links that name tiles whose category changed', () => {
+    const m = decodeMix('t=brown.35,am.40,crackle.20&e=30');
+    expect(m?.tiles.brown.on).toBe(true);
+    expect(m?.tiles.am.on).toBe(true);
+    expect(m?.tiles.crackle.volume).toBeCloseTo(0.2);
+  });
+
+  it('restoreMixes hands back the list it was given', () => {
+    const list: SavedMix[] = [{ id: 'a', name: 'A', savedAt: 1, mix: 't=pad.65' }];
+    expect(restoreMixes(list)).toEqual(list);
   });
 });

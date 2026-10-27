@@ -1,6 +1,6 @@
 // The tile catalogue, shared by the engine and the UI. No React or audio here.
 
-export type Category = 'pads' | 'bass' | 'drums' | 'atmosphere' | 'experimental';
+export type Category = 'pads' | 'bass' | 'drums' | 'texture' | 'effects' | 'experimental';
 
 export const TILE_IDS = [
   // pads / melodies
@@ -9,10 +9,13 @@ export const TILE_IDS = [
   'sub', 'walk', 'pulse',
   // drums (one tile per genre)
   'lofi', 'techno', 'dub', 'ambient', 'breaks',
-  // atmosphere
+  // texture (room sounds and noise colours)
   'crackle', 'wind', 'hum',
+  'brown', 'pink', 'green',
+  // effects (shape the whole mix)
+  'am', 'wobble',
   // experimental
-  'brown', 'pink', 'green', 'am', 'binaural', 'iso', 'grains', 'wobble',
+  'binaural', 'iso', 'grains',
 ] as const;
 
 export type TileId = (typeof TILE_IDS)[number];
@@ -30,6 +33,8 @@ export interface TileMeta {
   reverb: number;
   /** Effect tiles change the whole mix instead of adding a sound. */
   effect?: boolean;
+  /** Only works as intended on headphones. */
+  needsHeadphones?: boolean;
 }
 
 export const TILES: TileMeta[] = [
@@ -48,18 +53,18 @@ export const TILES: TileMeta[] = [
   { id: 'ambient', category: 'drums', name: 'Ambient pulse', hint: 'A soft heartbeat', defaultVolume: 0.5, level: 0.62, reverb: 0.35 },
   { id: 'breaks', category: 'drums', name: 'Breakbeat', hint: 'Busy, kept low', defaultVolume: 0.4, level: 0.6, reverb: 0.06 },
 
-  { id: 'crackle', category: 'atmosphere', name: 'Vinyl crackle', hint: 'Dust and pops', defaultVolume: 0.4, level: 1.4, reverb: 0 },
-  { id: 'wind', category: 'atmosphere', name: 'Wind', hint: 'Moving air', defaultVolume: 0.4, level: 0.6, reverb: 0.1 },
-  { id: 'hum', category: 'atmosphere', name: 'Room hum', hint: 'Distant machine', defaultVolume: 0.35, level: 0.24, reverb: 0 },
+  { id: 'crackle', category: 'texture', name: 'Vinyl crackle', hint: 'Dust and pops', defaultVolume: 0.4, level: 1.4, reverb: 0 },
+  { id: 'wind', category: 'texture', name: 'Wind', hint: 'Moving air', defaultVolume: 0.4, level: 0.6, reverb: 0.1 },
+  { id: 'hum', category: 'texture', name: 'Room hum', hint: 'Distant machine', defaultVolume: 0.35, level: 0.24, reverb: 0 },
 
-  { id: 'brown', category: 'experimental', name: 'Brown noise', hint: 'Deep rumble', defaultVolume: 0.35, level: 0.27, reverb: 0 },
-  { id: 'pink', category: 'experimental', name: 'Pink noise', hint: 'Even, soft hiss', defaultVolume: 0.3, level: 0.22, reverb: 0 },
-  { id: 'green', category: 'experimental', name: 'Green noise', hint: 'Mid-range, natural', defaultVolume: 0.3, level: 0.24, reverb: 0 },
-  { id: 'am', category: 'experimental', name: 'Amplitude mod', hint: 'Gentle 16 Hz pulsing of the mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true },
-  { id: 'binaural', category: 'experimental', name: 'Binaural', hint: '14 Hz beat, headphones', defaultVolume: 0.3, level: 0.06, reverb: 0 },
+  { id: 'brown', category: 'texture', name: 'Brown noise', hint: 'Deep rumble', defaultVolume: 0.35, level: 0.27, reverb: 0 },
+  { id: 'pink', category: 'texture', name: 'Pink noise', hint: 'Even, soft hiss', defaultVolume: 0.3, level: 0.22, reverb: 0 },
+  { id: 'green', category: 'texture', name: 'Green noise', hint: 'Mid-range, natural', defaultVolume: 0.3, level: 0.24, reverb: 0 },
+  { id: 'am', category: 'effects', name: 'Amplitude mod', hint: 'Gentle pulsing of the whole mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true },
+  { id: 'binaural', category: 'experimental', name: 'Binaural', hint: '14 Hz beat', defaultVolume: 0.3, level: 0.06, reverb: 0, needsHeadphones: true },
   { id: 'iso', category: 'experimental', name: 'Isochronic', hint: '14 Hz pulses', defaultVolume: 0.25, level: 0.09, reverb: 0.1 },
   { id: 'grains', category: 'experimental', name: 'Granular cloud', hint: 'Shimmering texture', defaultVolume: 0.45, level: 1.75, reverb: 0.6 },
-  { id: 'wobble', category: 'experimental', name: 'Tape wobble', hint: 'Warped, worn tape', defaultVolume: 0.4, level: 1, reverb: 0, effect: true },
+  { id: 'wobble', category: 'effects', name: 'Tape wobble', hint: 'Warps the whole mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true },
 ];
 
 export const TILE_BY_ID: Record<TileId, TileMeta> = Object.fromEntries(
@@ -70,7 +75,8 @@ export const CATEGORIES: { id: Category; name: string }[] = [
   { id: 'pads', name: 'Pads' },
   { id: 'bass', name: 'Bass' },
   { id: 'drums', name: 'Drums' },
-  { id: 'atmosphere', name: 'Atmosphere' },
+  { id: 'texture', name: 'Texture' },
+  { id: 'effects', name: 'Effects' },
   { id: 'experimental', name: 'Experimental' },
 ];
 
