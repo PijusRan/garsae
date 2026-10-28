@@ -125,7 +125,8 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 - One SVG icon set (`src/ui/icons.tsx`): 20px grid, 1.5px stroke, round caps. The mark (`MarkIcon`) is the eclipse setting over the horizon; the app icon matches it. No emoji or unicode glyphs as icons.
 
 **Motion**
-- `cubic-bezier(.2,.8,.2,1)`. 120ms for press and toggle, 200ms for hover, 320ms for sheets and the tile light. Everything respects `prefers-reduced-motion`.
+- `cubic-bezier(.2,.8,.2,1)`. 120ms for press and toggle, 200ms for hover, 320ms for sheets. Everything respects `prefers-reduced-motion`.
+- **Tile on/off:** turning a tile on, the coral glow swells up from below its bottom edge and the cream line opens out from the centre (520ms), then the slider fades up into place just behind it. Turning off runs the light back down and the line closes to the centre, quicker (280ms). A pressed tile dips to 98.5%. These are transitions, not keyframes, so tiles already on when the page loads don't animate.
 
 ## PWA details
 - **Offline:** user-controlled. An in-app "download for offline use" option caches the app (it's small, since all audio is synthesized). Not forced by default.
