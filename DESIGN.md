@@ -104,7 +104,7 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 - Category marks keep one lightness and chroma, varying hue only. They appear only as 6px dots (mix fingerprints in the Mixes sheet).
 
 **Type**
-- Inter (variable with the optical-size axis, self-hosted through `@fontsource-variable/inter/opsz.css`, so it works offline). Large sizes automatically get Inter Display shapes.
+- Bricolage Grotesque (variable with the optical-size axis, self-hosted through `@fontsource-variable/bricolage-grotesque/opsz.css`, so it works offline). Chosen over Inter, which felt generic; it keeps the same optical-size setup, so small text stays plain and large text gets its more characterful display shapes.
 - Display text is weight 500 with tight tracking: sheet titles and the wordmark -0.03em, tile and mix names -0.02em. Body 13-15px.
 - **Micro labels** are the only uppercase: 11px, +0.06em tracking, grey, optionally in brackets (`.micro`, `.bracket`). Used for section labels, scale ends, footer text and links, and Undo.
 - Tabular numerals for anything that counts.
