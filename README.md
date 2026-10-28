@@ -2,6 +2,8 @@
 
 Endless, generative focus music in the browser. Toggle instrument tiles, mix their levels, and let it run in the background. Every sound is synthesized live with the Web Audio API, so nothing repeats. See [DESIGN.md](DESIGN.md) for the full design.
 
+> **Disclaimer:** all of the code in this repository was written by AI (Claude, through Claude Code). The design decisions and direction are human; the implementation is not.
+
 ## Run
 
 ```bash
