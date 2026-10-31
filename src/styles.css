@@ -851,6 +851,11 @@ output,
     transform var(--t-press) var(--ease-out);
 }
 
+a.btn {
+  color: var(--text);
+  text-decoration: none;
+}
+
 .btn:hover:not(:disabled) {
   border-color: var(--hairline-strong);
   background: linear-gradient(oklch(0.31 0.004 60), oklch(0.18 0.003 60));

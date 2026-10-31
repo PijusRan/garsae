@@ -42,6 +42,15 @@ export function AboutSheet({ offlineSupported, offline, onToggleOffline, onInsta
           </button>
         </div>
       )}
+      <div className="about-row">
+        <div>
+          <strong>Source code</strong>
+          <p className="note">See how Garsæ is built.</p>
+        </div>
+        <a className="btn" href="https://github.com/PijusRan/garsae" target="_blank" rel="noreferrer">
+          View on GitHub
+        </a>
+      </div>
       <p className="fineprint left">
         Mixes and settings are stored in this browser only.
       </p>
