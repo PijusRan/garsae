@@ -113,15 +113,16 @@ export class Master {
     // A broad, shallow tone: a little less low-mid mud, a little more air.
     const mud = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 320, Q: 0.8, gain: -1 });
     const air = new BiquadFilterNode(ctx, { type: 'highshelf', frequency: 9000, gain: 1.2 });
-    // Glue: slow and gentle, it lifts sparse mixes and holds dense ones together without pumping.
-    const glue = new DynamicsCompressorNode(ctx, { threshold: -26, knee: 14, ratio: 2.2, attack: 0.04, release: 0.35 });
-    const makeup = new GainNode(ctx, { gain: 1.3 });
+    // Glue: so slow and shallow that a kick drum can't move it. Fast compression here makes pads duck on every beat.
+    const glue = new DynamicsCompressorNode(ctx, { threshold: -22, knee: 20, ratio: 1.5, attack: 0.08, release: 0.8 });
+    const makeup = new GainNode(ctx, { gain: 1.6 });
+    // Only for the odd peak. If this works on every kick, the mix is wrong, not the limiter.
     this.limiter = new DynamicsCompressorNode(ctx, {
-      threshold: -4,
-      knee: 3,
+      threshold: -2,
+      knee: 2,
       ratio: 20,
-      attack: 0.002,
-      release: 0.12,
+      attack: 0.001,
+      release: 0.09,
     });
     const clipIn = new GainNode(ctx, { gain: 0.5 });
     const clip = new WaveShaperNode(ctx, { curve: softClipCurve(), oversample: '4x' });

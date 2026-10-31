@@ -46,7 +46,8 @@ function kick(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   osc.frequency.exponentialRampToValueAtTime(44 * tone, t + decay);
   const g = new GainNode(ctx, { gain: 0 });
   const drive = new WaveShaperNode(ctx, { curve: saturationCurve(2) });
-  const level = new GainNode(ctx, { gain: 0.8 });
+  // Well below the rest of the kit. A kick this low in pitch carries far more energy than it sounds like.
+  const level = new GainNode(ctx, { gain: 0.34 });
   osc.connect(g).connect(drive).connect(level).connect(dest);
   const end = percussive(g.gain, t, 0.95 * vel, 0.002, decay);
   osc.start(t);
@@ -58,7 +59,7 @@ function kick(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const bp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 3200 * tone, Q: 0.8 });
   const ng = new GainNode(ctx, { gain: 0 });
   n.connect(bp).connect(ng).connect(dest);
-  percussive(ng.gain, t, 0.22 * vel, 0.0005, 0.012);
+  percussive(ng.gain, t, 0.3 * vel, 0.0005, 0.014);
   release(n, [bp, ng]);
 }
 
