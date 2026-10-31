@@ -73,6 +73,13 @@ const WELCOME_LEAVE_MS = 500;
 /** The session timer starts fading this long before it ends. */
 const TIMER_FADE_MS = 30_000;
 
+/** How a category's tiles fall into columns: ten make two even rows, fewer sit on one. The CSS reads these. */
+function categoryGrid(category: Category): CSSProperties {
+  const count = TILES.filter((tile) => tile.category === category).length;
+  const cols = count > 6 ? 5 : 6;
+  return { '--cols': cols, '--tab-cols': count > 6 ? 5 : 3, '--rows': Math.ceil(count / cols) } as CSSProperties;
+}
+
 function evolutionText(v: number, t: Strings): string {
   if (v < 0.15) return t.evolutionSteady;
   if (v < 0.4) return t.evolutionMostlySteady;
@@ -593,6 +600,7 @@ export function App() {
             <section
               key={cat.id}
               className={`category${tab === cat.id ? ' active' : ''}`}
+              style={categoryGrid(cat.id)}
               aria-labelledby={`cat-${cat.id}`}
             >
               <div className="category-head">
