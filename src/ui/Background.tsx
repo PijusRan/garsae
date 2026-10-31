@@ -123,8 +123,8 @@ export function levelReader(analyser: AnalyserNode): () => AudioLevels {
     let low = 0;
     for (let i = 1; i <= bassBins; i++) low += spectrum[i];
     return {
-      // A quiet focus mix sits around 0.05-0.15 RMS; stretch that into a useful range.
-      level: Math.min(1, rms * 5),
+      // A typical mastered mix sits around 0.1-0.3 RMS; stretch that into a useful range.
+      level: Math.min(1, rms * 2.2),
       bass: Math.min(1, low / bassBins / 200),
     };
   };

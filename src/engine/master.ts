@@ -1,10 +1,65 @@
 // Master chain:
-//   tile buses -> mix -> wobble (modulated delay) -> amplitude modulation -> output fade -> limiter -> volume -> speakers
+//   tile buses -> mix -> wobble (modulated delay) -> amplitude modulation -> output fade
+//     -> subsonic filter -> mono bass -> tone -> glue -> makeup -> limiter -> soft clip -> volume -> speakers
 //   reverb sends -> convolver -> mix
+// Aims for about -17 LUFS on a typical mix with peaks under -1 dBTP, however much is switched on (see `npm run smoke`).
 // Wobble and amplitude modulation are parameters, so a later "focus profile"
 // can drive them as a preset layer without a rewrite.
 import { glide, volumeToGain } from './params';
 import { createImpulse } from './reverb';
+
+/** The loudest a sample may be: -1 dBFS. Streaming masters use the same ceiling, to leave room between samples. */
+const CEILING = 10 ** (-1 / 20);
+/** Below this the soft clip leaves the signal alone. */
+const CLIP_KNEE = 0.72;
+
+/**
+ * Transparent up to the knee, then rounding off into the ceiling. Nothing passes it, whatever comes in.
+ * The curve covers inputs up to 2, so it is driven at half level and made up afterwards.
+ */
+function softClipCurve(): Float32Array<ArrayBuffer> {
+  const n = 4097;
+  const curve = new Float32Array(n);
+  const range = CEILING - CLIP_KNEE;
+  for (let i = 0; i < n; i++) {
+    const x = ((i / (n - 1)) * 2 - 1) * 2;
+    const a = Math.abs(x);
+    const y = a <= CLIP_KNEE ? a : CLIP_KNEE + range * Math.tanh((a - CLIP_KNEE) / range);
+    curve[i] = (Math.sign(x) * y) / 2;
+  }
+  return curve;
+}
+
+/**
+ * Keeps everything below `freq` in the middle, so bass stays solid on mono speakers and headphones alike
+ * and the limiter isn't pushed by low end that only exists on one side. Mid/side: the side signal is high-passed.
+ */
+function monoBass(ctx: BaseAudioContext, freq: number): { input: AudioNode; output: AudioNode } {
+  const input = new GainNode(ctx, { channelCount: 2, channelCountMode: 'explicit', channelInterpretation: 'speakers' });
+  const split = new ChannelSplitterNode(ctx, { numberOfOutputs: 2 });
+  const merge = new ChannelMergerNode(ctx, { numberOfInputs: 2 });
+  input.connect(split);
+  const mid = new GainNode(ctx, { gain: 0.5 });
+  const sideIn = new GainNode(ctx, { gain: 0.5 });
+  const invertR = new GainNode(ctx, { gain: -1 });
+  split.connect(mid, 0);
+  split.connect(mid, 1);
+  split.connect(sideIn, 0);
+  split.connect(invertR, 1).connect(sideIn);
+  // Two stages make a 24 dB slope, so the change is well clear of the mids.
+  const hp1 = new BiquadFilterNode(ctx, { type: 'highpass', frequency: freq, Q: 0.54 });
+  const hp2 = new BiquadFilterNode(ctx, { type: 'highpass', frequency: freq, Q: 1.31 });
+  const side = new GainNode(ctx);
+  const sideInverted = new GainNode(ctx, { gain: -1 });
+  sideIn.connect(hp1).connect(hp2).connect(side);
+  side.connect(sideInverted);
+  // left = mid + side, right = mid - side
+  mid.connect(merge, 0, 0);
+  side.connect(merge, 0, 0);
+  mid.connect(merge, 0, 1);
+  sideInverted.connect(merge, 0, 1);
+  return { input, output: merge };
+}
 
 export interface ModulationSettings {
   /** Modulation rate in Hz (beta range is ~12-20). */
@@ -55,20 +110,34 @@ export class Master {
     this.amLfo.connect(this.amDepth).connect(this.amGain.gain);
 
     this.output = new GainNode(ctx, { gain: 0 });
+    // Rumble nobody hears only uses up headroom.
+    const subsonic = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 24, Q: 0.7 });
+    const mono = monoBass(ctx, 120);
+    // A broad, shallow tone: a little less low-mid mud, a little more air.
+    const mud = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 320, Q: 0.8, gain: -1 });
+    const air = new BiquadFilterNode(ctx, { type: 'highshelf', frequency: 9000, gain: 1.2 });
+    // Glue: slow and gentle, it lifts sparse mixes and holds dense ones together without pumping.
+    const glue = new DynamicsCompressorNode(ctx, { threshold: -26, knee: 14, ratio: 2.2, attack: 0.04, release: 0.35 });
+    const makeup = new GainNode(ctx, { gain: 1.5 });
     this.limiter = new DynamicsCompressorNode(ctx, {
-      threshold: -6,
-      knee: 0,
+      threshold: -4,
+      knee: 3,
       ratio: 20,
-      attack: 0.003,
-      release: 0.25,
+      attack: 0.002,
+      release: 0.12,
     });
+    const clipIn = new GainNode(ctx, { gain: 0.5 });
+    const clip = new WaveShaperNode(ctx, { curve: softClipCurve(), oversample: '4x' });
+    const clipOut = new GainNode(ctx, { gain: 2 });
 
-    this.mix.connect(this.wobble).connect(this.amGain).connect(this.output).connect(this.limiter);
+    this.mix.connect(this.wobble).connect(this.amGain).connect(this.output).connect(subsonic).connect(mono.input);
+    mono.output.connect(mud).connect(air).connect(glue).connect(makeup).connect(this.limiter);
+    this.limiter.connect(clipIn).connect(clip).connect(clipOut);
     this.volume = new GainNode(ctx, { gain: 1 });
-    this.limiter.connect(this.volume).connect(ctx.destination);
+    clipOut.connect(this.volume).connect(ctx.destination);
     // Taps the mix before the volume knob, so the background follows the music, not the slider.
     this.analyser = new AnalyserNode(ctx, { fftSize: 1024, smoothingTimeConstant: 0.85 });
-    this.limiter.connect(this.analyser);
+    clipOut.connect(this.analyser);
 
     this.sources = [wow, flutter, this.amLfo];
     for (const s of this.sources) s.start();
