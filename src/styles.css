@@ -284,12 +284,16 @@ output,
 .play {
   position: relative;
   flex: none;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+  width: 92px;
+  height: 40px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--hairline-strong);
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
   background: var(--text);
   color: #000;
   transition:
@@ -299,7 +303,13 @@ output,
 }
 
 .play:active {
-  transform: scale(0.94);
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .play:not(.playing):hover {
+    box-shadow: 0 0 22px -2px var(--accent-glow);
+  }
 }
 
 /* Playing: the button turns to light and a slow halo breathes around it. */
@@ -312,7 +322,7 @@ output,
   content: '';
   position: absolute;
   inset: -4px;
-  border-radius: 50%;
+  border-radius: var(--r-pill);
   border: 1px solid var(--accent);
   opacity: 0;
   pointer-events: none;
@@ -557,6 +567,15 @@ output,
   letter-spacing: -0.02em;
   color: var(--text-3);
   transition: color var(--t-hover) var(--ease-out);
+}
+
+/* Starters are actions, so they read as small pills rather than body text. */
+.btn.starter {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  color: var(--text-2);
 }
 
 .name:hover {
@@ -1410,6 +1429,12 @@ input[type='range']:focus-visible {
   .btn.small {
     height: 36px;
   }
+  .btn.starter {
+    height: 44px;
+  }
+  .play {
+    height: 44px;
+  }
   .tile-volume {
     margin-bottom: 2px;
   }
@@ -1470,6 +1495,13 @@ input[type='range']:focus-visible {
   .play {
     width: 44px;
     height: 44px;
+    border-radius: 50%;
+  }
+  .play-label {
+    display: none;
+  }
+  .play.playing::after {
+    border-radius: 50%;
   }
   .status {
     flex: 1;
@@ -1546,5 +1578,9 @@ input[type='range']:focus-visible {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+  /* The invite ring is a still ring instead of a pulse. */
+  .invite {
+    box-shadow: 0 0 0 5px var(--accent-glow);
   }
 }

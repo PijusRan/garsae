@@ -90,7 +90,7 @@ export function App() {
   const [timerEnd, setTimerEnd] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [showStarters, setShowStarters] = useState(() => getBoot().firstVisit);
-  const [invitePlay, setInvitePlay] = useState(() => getBoot().fromLink);
+  const [invitePlay, setInvitePlay] = useState(() => getBoot().fromLink || getBoot().firstVisit);
   const [toast, setToast] = useState<Toast | null>(null);
   const [offline, setOffline] = useState<'off' | 'busy' | 'on'>(isOfflineEnabled() ? 'on' : 'off');
   const [showTempoKey, setShowTempoKey] = useState(false);
@@ -246,6 +246,15 @@ export function App() {
 
   const activeIds = TILE_IDS.filter((id) => mix.tiles[id].on);
   const activeCount = activeIds.length;
+
+  /** Play button and Space: starting an empty mix would only play silence. */
+  const pressPlay = useCallback(() => {
+    if (!engineRef.current?.playing && activeCount === 0) {
+      say('Pick a sound first');
+      return;
+    }
+    void togglePlay();
+  }, [activeCount, say, togglePlay]);
   const onIn = (cat: string) => activeIds.filter((id) => TILES.find((t) => t.id === id)!.category === cat).length;
 
   useMediaSession({
@@ -272,7 +281,7 @@ export function App() {
       if (e.code !== 'Space') pointerFocus.current = false;
       if (ownsSpace(e)) return;
       e.preventDefault();
-      if (!e.repeat) void togglePlay();
+      if (!e.repeat) pressPlay();
     };
     // Firefox activates a focused button on keyup, so block that too.
     const onUp = (e: KeyboardEvent) => {
@@ -286,7 +295,7 @@ export function App() {
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
     };
-  }, [togglePlay]);
+  }, [pressPlay]);
 
   const setTile = (id: TileId, patch: Partial<MixState['tiles'][TileId]>) =>
     setMix((m) => ({ ...m, tiles: { ...m.tiles, [id]: { ...m.tiles[id], ...patch } } }));
@@ -399,7 +408,7 @@ export function App() {
       <ul className="name-list">
         {PRESETS.map((p) => (
           <li key={p.id}>
-            <button type="button" className="name" title={p.hint} onClick={() => loadPreset(p)}>
+            <button type="button" className="name btn starter" title={p.hint} onClick={() => loadPreset(p)}>
               {p.name}
             </button>
           </li>
@@ -425,7 +434,7 @@ export function App() {
         activeCount={activeCount}
         volume={volume}
         timerLeft={timerLeft}
-        onToggle={() => void togglePlay()}
+        onToggle={pressPlay}
         onVolume={setVolume}
         onTimer={setTimer}
         onMixes={() => setSheet('mixes')}

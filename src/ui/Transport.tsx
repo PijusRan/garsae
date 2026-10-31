@@ -40,9 +40,10 @@ export function Transport(props: Props) {
         aria-busy={starting}
       >
         {playing ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
+        <span className="play-label">{playing ? 'Pause' : 'Play'}</span>
       </button>
       <div className="status" aria-live="off">
-        <span className="status-main">{playing && chord ? chord : playing ? 'Starting' : 'Paused'}</span>
+        <span className="status-main">{playing && chord ? chord : playing ? 'Starting' : activeCount === 0 ? 'Pick a sound' : invite ? 'Press play' : 'Paused'}</span>
         <span className="status-detail">{detail}</span>
       </div>
       <span className="t-sep" aria-hidden="true" />
