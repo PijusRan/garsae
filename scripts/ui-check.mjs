@@ -23,11 +23,12 @@ try {
   await page.setViewport({ width: 1280, height: 900 });
   await page.goto(url);
   await page.waitForSelector('.tile');
-  // A fresh browser counts as a first visit, so the welcome sheet opens. Escape leaves it.
+  // A fresh browser counts as a first visit, so the welcome screen opens. Escape leaves it.
   const welcomed = (await page.$('[role=dialog]')) !== null;
+  await new Promise((r) => setTimeout(r, 3000));
   await page.screenshot({ path: 'smoke-output/welcome.png' });
   await page.keyboard.press('Escape');
-  await new Promise((r) => setTimeout(r, 200));
+  await new Promise((r) => setTimeout(r, 1500));
   await page.screenshot({ path: 'smoke-output/desktop.png', fullPage: true });
   // Starter mixes are offered on a first visit too.
   const startersShown = (await page.$('[aria-label="Starter mixes"]')) !== null;

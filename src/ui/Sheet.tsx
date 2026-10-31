@@ -9,10 +9,8 @@ interface Props {
 
 const FOCUSABLE = 'button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])';
 
-/** A modal dialog: Escape closes, focus is trapped, and focus returns to where it was. */
-export function Sheet({ title, onClose, children }: Props) {
-  const ref = useRef<HTMLElement>(null);
-  const titleId = useId();
+/** What every modal shares: Escape closes, focus is trapped and returns afterwards, and the page stops scrolling. */
+export function useModal(ref: { current: HTMLElement | null }, onClose: () => void) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
 
@@ -52,7 +50,14 @@ export function Sheet({ title, onClose, children }: Props) {
       document.body.style.paddingRight = prevPadding;
       opener?.focus?.();
     };
-  }, []);
+  }, [ref]);
+}
+
+/** A modal dialog sheet. */
+export function Sheet({ title, onClose, children }: Props) {
+  const ref = useRef<HTMLElement>(null);
+  const titleId = useId();
+  useModal(ref, onClose);
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>

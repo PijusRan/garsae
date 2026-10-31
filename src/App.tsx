@@ -22,7 +22,7 @@ import {
 import { PRESETS, presetMix, type Preset } from './state/presets';
 import { CATEGORIES, TILES, TILE_IDS, type TileId } from './tiles';
 import { AboutSheet } from './ui/AboutSheet';
-import { WelcomeSheet } from './ui/WelcomeSheet';
+import { Welcome } from './ui/Welcome';
 import { Background, levelReader, type AudioLevels } from './ui/Background';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
@@ -62,6 +62,9 @@ function getBoot() {
 
 const initialMix = (): MixState => getBoot().mix;
 
+/** Matches the .welcome transition in styles.css. */
+const WELCOME_LEAVE_MS = 500;
+
 /** The session timer starts fading this long before it ends. */
 const TIMER_FADE_MS = 30_000;
 
@@ -85,7 +88,9 @@ export function App() {
   const [starting, setStarting] = useState(false);
   const [chord, setChord] = useState('');
   const [saved, setSaved] = useState<SavedMix[]>(loadSavedMixes);
-  const [sheet, setSheet] = useState<'mixes' | 'about' | 'share' | 'welcome' | null>(() => (getBoot().firstVisit ? 'welcome' : null));
+  const [sheet, setSheet] = useState<'mixes' | 'about' | 'share' | null>(null);
+  const [welcome, setWelcome] = useState<'open' | 'leaving' | null>(() => (getBoot().firstVisit ? 'open' : null));
+  const [previewKey, setPreviewKey] = useState<number | null>(() => (getBoot().firstVisit ? PRESETS[0].welcomeKey : null));
   const [shareUrl, setShareUrl] = useState('');
   const [volume, setVolume] = useState(loadVolume);
   const [timerEnd, setTimerEnd] = useState<number | null>(null);
@@ -323,6 +328,30 @@ export function App() {
     startWith(next);
   };
 
+  const pickWelcome = (p: Preset) => {
+    const next = presetMix(p);
+    const nextRolled = { ...rolled, key: p.welcomeKey };
+    setRolled(nextRolled);
+    replaceMix(next, `Loaded “${p.name}”`);
+    setShowStarters(false);
+    startWith(next, nextRolled);
+    setWelcome('leaving');
+  };
+
+  const leaveWelcome = () => setWelcome((w) => (w ? 'leaving' : w));
+
+  // The welcome screen fades out over the instrument, then goes. The background keeps a picked key,
+  // and glides back to the mix's own colours otherwise.
+  useEffect(() => {
+    if (welcome !== 'leaving') return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const id = setTimeout(() => {
+      setWelcome(null);
+      setPreviewKey(null);
+    }, reduced ? 0 : WELCOME_LEAVE_MS);
+    return () => clearTimeout(id);
+  }, [welcome]);
+
   const clearAll = () => {
     const tiles = { ...mix.tiles };
     for (const id of TILE_IDS) tiles[id] = { ...tiles[id], on: false };
@@ -424,8 +453,8 @@ export function App() {
   );
 
   return (
-    <div className={`app${playing ? ' is-playing' : ''}`}>
-      <Background playing={playing} getLevels={getLevels} musicKey={key} bpm={bpm} evolution={mix.evolution} />
+    <div className={`app${playing ? ' is-playing' : ''}${welcome === 'open' ? ' welcoming' : ''}`}>
+      <Background playing={playing} getLevels={getLevels} musicKey={previewKey ?? key} bpm={bpm} evolution={mix.evolution} />
       <Transport
         playing={playing}
         starting={starting}
@@ -630,15 +659,7 @@ export function App() {
         />
       )}
       {sheet === 'share' && <ShareSheet url={shareUrl} onClose={() => setSheet(null)} />}
-      {sheet === 'welcome' && (
-        <WelcomeSheet
-          onStart={() => {
-            loadPreset(PRESETS[0]);
-            setSheet(null);
-          }}
-          onClose={() => setSheet(null)}
-        />
-      )}
+      {welcome && <Welcome leaving={welcome === 'leaving'} onPreview={(p) => setPreviewKey(p.welcomeKey)} onPick={pickWelcome} onBuild={leaveWelcome} />}
       {sheet === 'about' && (
         <AboutSheet
           offlineSupported={offlineSupported()}

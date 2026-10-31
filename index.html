@@ -10,7 +10,16 @@
         background: #000;
         color-scheme: dark;
       }
+      /* A first visit opens on the welcome screen, so the player frame stays out of it. */
+      html.first .shell {
+        display: none;
+      }
     </style>
+    <script>
+      try {
+        if (!localStorage.getItem('garsae.last') && !location.hash) document.documentElement.classList.add('first');
+      } catch {}
+    </script>
     <meta name="description" content="Endless generative focus music. Pick instruments, mix them, and work." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -22,7 +31,7 @@
   <body>
     <div id="root">
       <!-- Static first paint, replaced as soon as the app mounts. -->
-      <div class="app">
+      <div class="app shell">
         <div class="transport glass" aria-hidden="true">
           <span class="mark-link">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
