@@ -1,8 +1,50 @@
-# Garsae
+<p align="center">
+  <img src="docs/images/banner.png" alt="Garsæ: endless generative focus music, synthesized live in your browser. All code written by AI." width="100%">
+</p>
+
+<p align="center">
+  <a href="#ai-disclosure"><img src="https://img.shields.io/badge/code-100%25%20AI--written-d73a49?style=for-the-badge" alt="Code: 100% AI-written"></a>
+  <a href="https://pijusran.github.io/garsae/"><img src="https://img.shields.io/badge/open-the%20app-fa7641?style=for-the-badge" alt="Open the app"></a>
+  <a href="https://github.com/PijusRan/garsae/actions/workflows/deploy.yml"><img src="https://img.shields.io/github/actions/workflow/status/PijusRan/garsae/deploy.yml?branch=main&style=for-the-badge&label=deploy" alt="Deploy status"></a>
+</p>
+
+<a id="ai-disclosure"></a>
+
+> [!CAUTION]
+> **All of the code in this repository was written by AI** (Claude, through Claude Code). The design decisions and direction are human; the implementation is not.
 
 Endless, generative focus music in the browser. Toggle instrument tiles, mix their levels, and let it run in the background. Every sound is synthesized live with the Web Audio API, so nothing repeats. See [DESIGN.md](DESIGN.md) for the full design.
 
-> **Disclaimer:** all of the code in this repository was written by AI (Claude, through Claude Code). The design decisions and direction are human; the implementation is not.
+<p align="center">
+  <img src="docs/images/desktop.png" alt="Garsæ on desktop, playing a lo-fi mix with five tiles on" width="76%">
+  &nbsp;
+  <img src="docs/images/phone.png" alt="Garsæ on a phone, with the player floating at the bottom" width="20%">
+</p>
+
+## Features
+
+| | |
+| --- | --- |
+| **Tiles** | 26 instruments you switch on and mix, each with its own level |
+| **Surprise me** | Builds a new mix that always has a harmonic bed under it |
+| **Evolution** | One slider for how far the music drifts, from fixed to restless |
+| **Tempo and key** | Set them yourself; every tile follows |
+| **Mixes** | Save mixes on your device, or start from a starter mix |
+| **Share links** | The whole mix lives in the link, so there is nothing to sign up for |
+| **Session timer** | Fades the music out and stops when your time is up |
+| **Offline** | Installable, and it can download itself to run with no connection |
+
+## Instruments
+
+No samples and no recordings: all of it is plain Web Audio nodes.
+
+| Category | Tiles |
+| --- | --- |
+| **Pads** | Warm pad, Glass bells, Soft arpeggio, Drone, Electric piano, Choir |
+| **Bass** | Sub bass, Walking bass, Pulse bass, Glide bass, FM bass, Rolling bass |
+| **Drums** | Lo-fi hip hop, Minimal techno, Dub, Ambient pulse, Breakbeat, Brushes |
+| **Texture** | Vinyl crackle, Wind, Room hum, Brown noise, Pink noise, Green noise |
+| **Effects** | Amplitude mod, Tape wobble |
 
 ## Run
 
@@ -46,7 +88,10 @@ src/
 public/sw.js               service worker, only used after "Download for offline"
 ```
 
-## Decisions on the open questions
+## Design notes
+
+<details>
+<summary><strong>Decisions on the open questions</strong></summary>
 
 - **Mutation timing.** Drums consider a mutation every 8 bars at low Evolution and every 2 bars at full Evolution. The chance rises from 30% to 100%, and one mutation makes 1 to 3 small edits. At Evolution 0 nothing mutates and chords never change. A soft track that drifts far from its base pattern is pulled back over time. A fill can replace the last beat of each 4-bar phrase.
 - **Chord swaps.** After each pass of the 4-chord loop, one chord may be swapped. The chance goes from 10% to 100% across the slider. Distance is measured by shared notes, so low Evolution only picks chords that share 3 of 4 notes. The home chord in slot 1 moves rarely, and the diminished vi chord is never used.
@@ -60,3 +105,5 @@ public/sw.js               service worker, only used after "Download for offline
 - **Sound design.** Plain oscillators sound like an old game, so every voice borrows a standard studio-synth recipe. The electric piano is DX7-style FM (algorithm 5: a body pair and a 14:1 tine pair that fades fast) with a suitcase tremolo, and the choir sings detuned saws with delayed vibrato and breath through vowel formants. The glide bass runs through two cascaded lowpasses (24 dB, Moog-like), and the FM bass is the DX7 electric-bass recipe: a sine with a 1:1 modulator whose index drops quickly after each note. Brushes are swept and slapped filtered noise. The warm pad stacks three detuned, drifting saws per note through a filter that opens with the swell and a Juno-style ensemble chorus. Glass bells are additive struck bars (partials at 1, 2.76 and 5.40 times the fundamental, with a slowly beating twin and a mallet tick). The arpeggio is a felt-mallet marimba (partials at 1, 4 and 9.8 times the fundamental, low notes ringing longer, a soft wooden knock), and the drone also drifts and runs through the chorus. The walking bass is an upright-style pluck with a pitch settle and finger thump, and the pulse bass is two detuned saws, gently saturated. The kick has a beater click and soft drive, the snare has two shell modes plus wires, and the hats use the TR-808's six square-wave metal cluster. All of it is plain Web Audio nodes, with no AudioWorklet or samples.
 - **Volume curve.** Sliders map to gain as volume squared. Each tile also has a loudness level, calibrated with `npm run smoke` so that tiles sound roughly equally loud at the same slider position.
 - **Last mix.** The current mix is remembered in browser storage and restored on the next visit. A share link takes priority over it.
+
+</details>
