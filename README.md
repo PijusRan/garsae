@@ -13,7 +13,7 @@ npm run build      # static site in dist/
 npm run preview    # serve the build locally
 ```
 
-Deploy `dist/` to any static host (Vercel, Netlify, Cloudflare Pages). There is no backend. The build uses relative paths, so it also works from a sub-folder.
+Pushes to `main` deploy to GitHub Pages through `.github/workflows/deploy.yml`, once Settings → Pages → Source is set to GitHub Actions. `dist/` also works on any other static host (Vercel, Netlify, Cloudflare Pages). There is no backend. The build uses relative paths, so it also works from a sub-folder.
 
 ## Checks
 
