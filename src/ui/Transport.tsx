@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useT } from '../i18n';
-import { MarkIcon, MixesIcon, MoreIcon, PauseIcon, PlayIcon, ShareIcon, VolumeIcon } from './icons';
+import { MarkIcon, MoreIcon, PauseIcon, PlayIcon, ShareIcon, VolumeIcon } from './icons';
 import { TimerControl } from './TimerControl';
 
 interface Props {
@@ -15,7 +15,6 @@ interface Props {
   onToggle: () => void;
   onVolume: (v: number) => void;
   onTimer: (minutes: number | null) => void;
-  onMixes: () => void;
   onShare: () => void;
   onMore: () => void;
 }
@@ -30,10 +29,10 @@ export function Transport(props: Props) {
   const pct = Math.round(volume * 100);
   return (
     <header className="transport glass" aria-label={t.player}>
-      <a className="mark-link" href="#top" aria-label={t.backToTop}>
+      <span className="mark-link">
         <MarkIcon size={20} />
         <span className="wordmark">Garsæ</span>
-      </a>
+      </span>
       <button
         type="button"
         className={`play${playing ? ' playing' : ''}${invite ? ' invite' : ''}`}
@@ -64,9 +63,6 @@ export function Transport(props: Props) {
       </label>
       <TimerControl left={timerLeft} onSet={props.onTimer} />
       <div className="t-actions">
-        <button type="button" className="icon-btn" onClick={props.onMixes} aria-label={t.mixes} title={t.mixes}>
-          <MixesIcon size={18} />
-        </button>
         <button
           type="button"
           className="icon-btn t-share"

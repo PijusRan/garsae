@@ -23,7 +23,6 @@ export const en = {
   mediaArtist: 'Generative focus music',
 
   player: 'Player',
-  backToTop: 'Garsæ, back to top',
   play: 'Play',
   pause: 'Pause',
   starting: 'Starting',
@@ -45,11 +44,9 @@ export const en = {
   timerChoice: (minutes: number) => `${minutes} min, then fade out`,
 
   mix: 'Mix',
-  onNow: 'On now',
   clear: 'Clear',
   starters: 'Starters',
   starterMixes: 'Starter mixes',
-  hideStarters: 'Hide starters',
   surpriseMe: 'Surprise me',
   countOn: (count: number) => `${count} on`,
 
@@ -63,13 +60,11 @@ export const en = {
   evolutionMostlySteady: 'mostly steady',
   evolutionGentle: 'gently changing',
   evolutionShifting: 'constantly shifting',
-  tempoAndKey: 'Tempo and key',
   tempo: 'Tempo',
   tempoMode: 'Tempo mode',
   auto: 'Auto',
   setManually: 'Set',
   key: 'Key',
-  aboutFooter: 'About and offline use',
 
   undo: 'Undo',
   undone: 'Undone',

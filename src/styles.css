@@ -102,14 +102,14 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Keep focused or scrolled-to elements clear of the transport. */
-html {
-  scroll-padding-top: 84px;
+/* The app is one screen. Anything that doesn't fit scrolls inside it, never the page itself. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
-  min-height: 100vh;
-  overflow-x: hidden;
   /* The page colour lives on html; body stays clear so the background behind it shows. */
   background: transparent;
 }
@@ -251,11 +251,11 @@ output,
 
 /* ---------------------------------------------------------------- transport */
 
-/* A bar as wide as the page, stuck to the top. */
+/* A bar as wide as the page, along the top. */
 .transport {
-  position: sticky;
-  top: 12px;
+  position: relative;
   z-index: 20;
+  flex: none;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -420,10 +420,32 @@ output,
 
 /* ---------------------------------------------------------------- page */
 
+.app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
 .page {
-  max-width: var(--page);
+  flex: 1;
+  min-height: 0;
+  width: min(100%, var(--page));
   margin: 0 auto;
-  padding: 16px var(--gutter) max(32px, env(safe-area-inset-bottom));
+  padding: 8px var(--gutter) 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The tiles take whatever height is left. If that runs out they scroll here. */
+.stage {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
 }
 
 /* ---------------------------------------------------------------- sound settings */
@@ -439,76 +461,69 @@ output,
   box-shadow: var(--tile-edge), 0 16px 40px -24px oklch(0 0 0 / 0.9);
 }
 
-/* One row: what is playing (or the starters) on the left, the two actions on the right. */
-.mix-panel {
-  padding-top: 12px;
-  padding-bottom: 12px;
-}
-
-.mix-head {
+/* One slim row above the tiles: context on the left, what you can do with the mix on the right. */
+.mix-strip {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 20px;
-  min-height: 46px;
+  gap: 8px 16px;
+  min-height: 44px;
 }
 
-.mix-head .panel-row {
-  flex: 1;
-  min-width: 0;
-  padding-top: 0;
-  border-top: none;
-}
-
-.mix-head .actions {
+.mix-strip .actions {
   flex: none;
-  padding-left: 20px;
-  border-left: 1px solid var(--hairline);
+  margin-left: auto;
 }
 
-.mix-panel > .panel-row {
-  margin-top: 12px;
+.mix-strip .micro-link {
+  margin-left: auto;
+}
+
+.mix-strip .micro-link + .actions {
+  margin-left: 0;
 }
 
 .sound {
+  flex: none;
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) minmax(0, 0.6fr);
-  gap: 14px 28px;
-  align-items: start;
-  margin-top: 40px;
-}
-
-.tk {
-  display: contents;
-}
-
-.sound .tk-toggle {
-  display: none;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.35fr) minmax(0, 0.7fr);
+  gap: 24px;
+  align-items: center;
+  padding: 8px 16px;
 }
 
 .field {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 12px;
   min-width: 0;
 }
 
+/* In the bar each field is one line: label, control, value. */
 .field-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  min-height: 20px;
+  display: contents;
 }
 
 .field-head label {
+  flex: none;
   font-size: 13px;
   font-weight: 500;
   color: var(--text);
 }
 
 .field-value {
+  flex: none;
+  order: 1;
   font-size: 13px;
+  white-space: nowrap;
   color: var(--text-3);
+}
+
+.field.evolution input,
+.inline,
+.field .select {
+  flex: 1;
+  min-width: 0;
 }
 
 .inline {
@@ -519,6 +534,7 @@ output,
 
 .inline input[type='range'] {
   flex: 1;
+  min-width: 0;
 }
 
 .actions {
@@ -527,25 +543,17 @@ output,
   gap: 8px;
 }
 
-/* On now and starters: a bracketed label, then names set large and grey, lit on hover. */
+/* Starters appear when nothing is on: a bracketed label, then the pills. */
 .panel-row {
-  grid-column: 1 / -1;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 4px 16px;
-  min-height: 36px;
-  padding-top: 12px;
-  border-top: 1px solid var(--hairline);
 }
 
 .panel-row .micro {
   flex: none;
-  width: 92px;
-}
-
-.panel-row .micro-link,
-.panel-row .icon-btn {
-  margin-left: auto;
 }
 
 .name-list {
@@ -555,18 +563,12 @@ output,
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px 20px;
+  gap: 6px 8px;
 }
 
 .name {
-  padding: 2px 0;
   border: none;
   background: none;
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  color: var(--text-3);
-  transition: color var(--t-hover) var(--ease-out);
 }
 
 /* Starters are actions, so they read as small pills rather than body text. */
@@ -578,51 +580,43 @@ output,
   color: var(--text-2);
 }
 
-.name:hover {
-  color: var(--text);
-}
-
 /* ---------------------------------------------------------------- tiles */
 
+/* Categories are rows sharing the height: the label on the left, the tiles on the right. Adding a category
+   adds a row, and a seventh tile in a row wraps; .stage scrolls if that ever outgrows the screen. */
 .category {
-  margin-top: 28px;
+  flex: 1 1 0;
+  min-height: 56px;
+  max-height: 110px;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 8px;
 }
 
 .category-head {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: 0 0 10px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
 }
 
-.category-head .rule {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(to right, var(--hairline-strong), transparent);
+.category-head .micro {
+  white-space: nowrap;
 }
 
 .category-head .count {
-  min-width: 3em;
-  text-align: right;
   color: var(--accent);
 }
 
-/* Category notes and tile descriptions are secondary: they show on hover or keyboard focus, so the page
-   reads as names. Touch screens have no hover, so they drop the tile descriptions (About covers the rest). */
 .category-note {
-  font-size: 12.5px;
+  grid-column: 3 / -1;
+  align-self: center;
+  margin: 0;
+  padding-left: 8px;
+  font-size: 13px;
   color: var(--text-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  opacity: 0;
-  transition: opacity var(--t-hover) var(--ease-out);
-}
-
-.category:hover .category-note,
-.category:focus-within .category-note {
-  opacity: 1;
 }
 
 /* At rest a tile's name sits centred in the space the name and description share. On hover (or keyboard
@@ -660,8 +654,7 @@ output,
 }
 
 @media (hover: none) {
-  .tile-hint,
-  .category-note {
+  .tile-hint {
     display: none;
   }
   /* Without the description line, the name needs less room above the slider. */
@@ -672,13 +665,19 @@ output,
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(164px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
   gap: 8px;
+  min-width: 0;
+  min-height: 0;
 }
 
 .tile {
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   border-radius: var(--r-md);
   /* Frosted glass: the background shows through, blurred, under a sheen that
      catches the light at the top left and a bright upper edge. */
@@ -767,16 +766,6 @@ output,
   outline: none;
 }
 
-.tile.flash {
-  animation: flash 1.2s var(--ease-out);
-}
-
-@keyframes flash {
-  25% {
-    box-shadow: var(--tile-edge), 0 0 0 1.5px var(--accent), 0 0 30px -4px var(--accent-glow);
-  }
-}
-
 .tile-toggle {
   /* Half the description line plus the gap: how far the name drops to sit centred at rest. */
   --hint-shift: 10px;
@@ -785,9 +774,10 @@ output,
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
+  flex: 1;
   width: 100%;
-  min-height: 58px;
-  padding: 12px 14px 4px;
+  min-height: 0;
+  padding: 10px 14px 2px;
   background: none;
   border: none;
   border-radius: inherit;
@@ -823,8 +813,9 @@ output,
 .tile-volume {
   position: relative;
   display: block;
+  flex: none;
   width: calc(100% - 28px);
-  margin: 0 14px 6px;
+  margin: 0 14px 4px;
   opacity: 0;
   transform: translateY(4px);
   transition:
@@ -1150,24 +1141,10 @@ input[type='range']:focus-visible {
   border-radius: 4px;
 }
 
-/* ---------------------------------------------------------------- footer */
+/* ---------------------------------------------------------------- tabs (narrow screens) */
 
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-top: 48px;
-  padding-top: 16px;
-  border-top: 1px solid var(--hairline);
-}
-
-.footer-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 500;
+.tab-strip {
+  display: none;
 }
 
 /* ---------------------------------------------------------------- sheets */
@@ -1371,7 +1348,7 @@ input[type='range']:focus-visible {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: max(24px, env(safe-area-inset-bottom));
+  bottom: 84px;
   z-index: 30;
   display: flex;
   align-items: center;
@@ -1771,42 +1748,152 @@ input[type='range']:focus-visible {
   }
 }
 
-@media (max-width: 860px) {
-  .sound {
-    grid-template-columns: 1fr 1fr;
+@media (min-width: 1600px) {
+  :root {
+    --page: 1480px;
   }
-  .sound .evolution {
+}
+
+/* Tighter tiles, so Lithuanian names mostly stay on one line. */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .category {
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 6px;
+  }
+  .tiles {
+    gap: 6px;
+  }
+  .tile-toggle {
+    padding-inline: 10px;
+  }
+  .tile-name {
+    font-size: 14px;
+  }
+  .tile-volume {
+    width: calc(100% - 20px);
+    margin-inline: 10px;
+  }
+}
+
+/* Short windows have no room for a description under the name. */
+@media (min-width: 900px) and (max-height: 800px) {
+  .tile-hint {
+    display: none;
+  }
+  .tile-toggle {
+    --hint-shift: 0px;
+  }
+}
+
+/* Small screens show one category at a time, or the sound settings, chosen from the tabs. */
+@media (max-width: 899px) {
+  .tab-strip {
+    flex: none;
+    display: flex;
+    gap: 2px;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
+    overflow: auto hidden;
+    scrollbar-width: none;
+    /* The edges fade, so a tab running off the side reads as more to scroll to. */
+    mask-image: linear-gradient(to right, transparent, #000 var(--gutter), #000 calc(100% - var(--gutter)), transparent);
+  }
+  .tab-strip button {
+    flex: 1 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: var(--r-pill);
+    background: none;
+    font-size: 13px;
+    color: var(--text-2);
+    white-space: nowrap;
+  }
+  .tab-strip button[aria-pressed='true'] {
+    background: oklch(0 0 0 / 0.6);
+    border-color: var(--hairline-strong);
+    color: var(--text);
+  }
+  .tab-count {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+  }
+  .category:not(.active),
+  .sound:not(.active),
+  .sound-open .stage,
+  .category-head {
+    display: none;
+  }
+  .category {
+    display: block;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+  }
+  .tiles {
+    height: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(88px, 180px));
+    align-content: center;
+  }
+  .category-note {
     grid-column: 1 / -1;
+    padding-left: 0;
+  }
+  .sound {
+    flex: 1;
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 22px;
+    padding: 18px 16px;
+    overflow: auto;
+  }
+  /* There is room here to stack each field: label and value, then the control. */
+  .field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .field-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .field.evolution input,
+  .inline,
+  .field .select {
+    flex: none;
+  }
+}
+
+/* Too short for fixed bars: everything scrolls together, inside the page area. */
+@media (max-height: 540px) {
+  .page {
+    overflow: hidden auto;
+  }
+  .stage {
+    flex: none;
+    overflow: visible;
+    justify-content: flex-start;
   }
 }
 
 /* Phones: the transport floats at the bottom, in thumb reach. */
 @media (max-width: 640px) {
-  html {
-    scroll-padding-top: 16px;
-    scroll-padding-bottom: 96px;
-  }
   .page {
-    padding-bottom: calc(max(12px, env(safe-area-inset-bottom)) + 96px);
-  }
-  .panel-row {
-    flex-wrap: wrap;
-  }
-  .panel-row .micro {
-    width: 100%;
-  }
-  .panel-row .name-list {
-    flex: 1;
+    padding-bottom: 8px;
   }
   .transport {
-    position: fixed;
-    top: auto;
-    bottom: max(10px, env(safe-area-inset-bottom));
-    left: 10px;
-    right: 10px;
+    order: 1;
     width: auto;
     height: 64px;
-    margin: 0;
+    margin: 0 10px max(10px, env(safe-area-inset-bottom));
     gap: 6px;
     padding: 0 6px 0 10px;
     border-radius: var(--r-lg);
@@ -1835,43 +1922,25 @@ input[type='range']:focus-visible {
   .toast {
     bottom: calc(max(10px, env(safe-area-inset-bottom)) + 76px);
   }
-  .panel {
-    padding: 14px 16px;
+  .mix-strip {
+    flex-wrap: wrap;
   }
-  .sound {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-  .sound .tk-toggle {
-    display: inline-flex;
-    justify-self: start;
-    margin: -8px 0 -8px -14px;
-  }
-  .tk {
-    display: none;
-  }
-  .tk.open {
-    display: contents;
+  .mix-strip .actions {
+    flex: 1 1 100%;
+    margin-left: 0;
   }
   .actions .btn {
     flex: 1 1 auto;
+    padding: 0 12px;
   }
-  /* Phones: the actions sit on top, full width, above what is playing. */
-  .mix-head {
-    flex-direction: column-reverse;
-    align-items: stretch;
-    gap: 14px;
-  }
-  .mix-head .actions {
-    padding-left: 0;
-    border-left: none;
-  }
-  .category {
-    margin-top: 24px;
+  .panel-row {
+    flex: 1 1 100%;
+    flex-direction: column;
+    align-items: flex-start;
   }
   .tiles {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-rows: repeat(3, minmax(72px, 160px));
   }
   .sheet-backdrop {
     place-items: end stretch;

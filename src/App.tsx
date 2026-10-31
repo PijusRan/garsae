@@ -20,7 +20,7 @@ import {
   type SavedMix,
 } from './state/mix';
 import { PRESETS, presetMix, type Preset } from './state/presets';
-import { CATEGORIES, TILES, TILE_IDS, type TileId } from './tiles';
+import { CATEGORIES, TILES, TILE_IDS, type Category, type TileId } from './tiles';
 import { useT } from './i18n';
 import type { Strings } from './i18n/en';
 import { AboutSheet } from './ui/AboutSheet';
@@ -28,7 +28,7 @@ import { Welcome } from './ui/Welcome';
 import { Background, levelReader, type AudioLevels } from './ui/Background';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
-import { ChevronIcon, CloseIcon, MarkIcon, MixesIcon, ShuffleIcon } from './ui/icons';
+import { ChevronIcon, MixesIcon, ShuffleIcon } from './ui/icons';
 import { ShareSheet } from './ui/ShareSheet';
 import { Transport } from './ui/Transport';
 import { TileCard } from './ui/TileCard';
@@ -101,11 +101,11 @@ export function App() {
   const [volume, setVolume] = useState(loadVolume);
   const [timerEnd, setTimerEnd] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [showStarters, setShowStarters] = useState(() => getBoot().firstVisit);
   const [invitePlay, setInvitePlay] = useState(() => getBoot().fromLink || getBoot().firstVisit);
   const [toast, setToast] = useState<Toast | null>(null);
   const [offline, setOffline] = useState<'off' | 'busy' | 'on'>(isOfflineEnabled() ? 'on' : 'off');
-  const [showTempoKey, setShowTempoKey] = useState(false);
+  // Under 900px one category shows at a time, or the sound settings. Wider, all of them show (styles.css).
+  const [tab, setTab] = useState<Category | 'sound'>('pads');
   const install = useInstallPrompt();
   const engineRef = useRef<Engine | null>(null);
   const appliedRef = useRef<MixState | null>(null);
@@ -331,7 +331,6 @@ export function App() {
   const loadPreset = (p: Preset) => {
     const next = presetMix(p);
     replaceMix(next, t.loaded(t.presets[p.id].name));
-    setShowStarters(false);
     startWith(next);
   };
 
@@ -340,7 +339,6 @@ export function App() {
     const nextRolled = { ...rolled, key: p.welcomeKey };
     setRolled(nextRolled);
     replaceMix(next, t.loaded(t.presets[p.id].name));
-    setShowStarters(false);
     startWith(next, nextRolled);
     setWelcome('leaving');
   };
@@ -363,15 +361,6 @@ export function App() {
     const tiles = { ...mix.tiles };
     for (const id of TILE_IDS) tiles[id] = { ...tiles[id], on: false };
     replaceMix({ ...mix, tiles }, t.allTilesOff);
-  };
-
-  const jumpToTile = (id: TileId) => {
-    const el = document.getElementById(`tile-${id}`);
-    if (!el) return;
-    el.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-    el.classList.remove('flash');
-    void el.offsetWidth;
-    el.classList.add('flash');
   };
 
   const share = async () => {
@@ -418,24 +407,6 @@ export function App() {
 
   const detail = t.detail(NOTE_NAMES[key], bpm);
 
-  // What is playing leads the mix panel; with nothing on, the starters take its place.
-  const onNowRow = (
-    <div className="panel-row" role="group" aria-label={t.onNow}>
-      <h2 className="micro bracket">{t.onNow}</h2>
-      <ul className="name-list">
-        {activeIds.map((id) => (
-          <li key={id}>
-            <button type="button" className="name" onClick={() => jumpToTile(id)}>
-              {t.tiles[id].name}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button type="button" className="micro-link" onClick={clearAll}>
-        {t.clear}
-      </button>
-    </div>
-  );
   const startersRow = (
     <div className="panel-row" role="group" aria-label={t.starterMixes}>
       <h2 className="micro bracket">{t.starters}</h2>
@@ -448,11 +419,6 @@ export function App() {
           </li>
         ))}
       </ul>
-      {showStarters && activeCount > 0 && (
-        <button type="button" className="icon-btn small" aria-label={t.hideStarters} onClick={() => setShowStarters(false)}>
-          <CloseIcon size={16} />
-        </button>
-      )}
     </div>
   );
 
@@ -471,49 +437,55 @@ export function App() {
         onToggle={pressPlay}
         onVolume={setVolume}
         onTimer={setTimer}
-        onMixes={() => setSheet('mixes')}
         onShare={() => void share()}
         onMore={() => setSheet('about')}
       />
 
-      <div className="page" id="top">
+      <div className={`page${tab === 'sound' ? ' sound-open' : ''}`}>
         <h1 className="sr-only">Garsæ</h1>
-        <section className="mix-panel panel" aria-label={t.mix}>
-          <div className="mix-head">
-            {activeCount > 0 ? onNowRow : startersRow}
-            <div className="actions">
-              <button type="button" className="btn black" onClick={surprise}>
-                <ShuffleIcon size={16} />
-                {t.surpriseMe}
-              </button>
-              <button type="button" className="btn" onClick={() => setSheet('mixes')}>
-                <MixesIcon size={16} />
-                {t.mixes}
-                {saved.length > 0 && <span className="btn-count">{saved.length}</span>}
-              </button>
-            </div>
+        <section className="mix-strip" aria-label={t.mix}>
+          {activeCount === 0 && startersRow}
+          {activeCount > 0 && (
+            <button type="button" className="micro-link" onClick={clearAll}>
+              {t.clear}
+            </button>
+          )}
+          <div className="actions">
+            <button type="button" className="btn" onClick={surprise}>
+              <ShuffleIcon size={16} />
+              {t.surpriseMe}
+            </button>
+            <button type="button" className="btn" onClick={() => setSheet('mixes')}>
+              <MixesIcon size={16} />
+              {t.mixes}
+              {saved.length > 0 && <span className="btn-count">{saved.length}</span>}
+            </button>
           </div>
-          {activeCount > 0 && showStarters && startersRow}
         </section>
 
-        <main>
+        <div className="tab-strip" role="group" aria-label={t.sound}>
+          {CATEGORIES.map((cat) => (
+            <button key={cat.id} type="button" aria-pressed={tab === cat.id} onClick={() => setTab(cat.id)}>
+              {t.categories[cat.id].name}
+              {onIn(cat.id) > 0 && <span className="tab-count">{onIn(cat.id)}</span>}
+            </button>
+          ))}
+          <button type="button" aria-pressed={tab === 'sound'} onClick={() => setTab('sound')}>
+            {t.sound}
+          </button>
+        </div>
+
+        <main className="stage">
           {CATEGORIES.map((cat) => (
             <section
               key={cat.id}
-              className="category"
+              className={`category${tab === cat.id ? ' active' : ''}`}
               aria-labelledby={`cat-${cat.id}`}
-              aria-describedby={t.categories[cat.id].note ? `note-${cat.id}` : undefined}
             >
               <div className="category-head">
                 <h2 id={`cat-${cat.id}`} className="micro bracket">
                   {t.categories[cat.id].name}
                 </h2>
-                {t.categories[cat.id].note && (
-                  <span id={`note-${cat.id}`} className="category-note">
-                    {t.categories[cat.id].note}
-                  </span>
-                )}
-                <span className="rule" aria-hidden="true" />
                 <span className="micro count">{onIn(cat.id) ? t.countOn(onIn(cat.id)) : ''}</span>
               </div>
               <div className="tiles">
@@ -526,13 +498,14 @@ export function App() {
                     onVolume={(v) => setTile(tile.id, { volume: v })}
                   />
                 ))}
+                {t.categories[cat.id].note && <p className="category-note">{t.categories[cat.id].note}</p>}
               </div>
             </section>
           ))}
         </main>
 
-        {/* Settings most mixes leave alone, below the tiles. */}
-        <section className="sound panel" aria-label={t.sound}>
+        {/* Settings most mixes leave alone: a bar along the bottom, or their own tab on small screens. */}
+        <section className={`sound panel${tab === 'sound' ? ' active' : ''}`} aria-label={t.sound}>
           <div className="field evolution">
             <div className="field-head">
               <label htmlFor="evolution">{t.evolution}</label>
@@ -550,87 +523,65 @@ export function App() {
             />
           </div>
 
-          <button
-            type="button"
-            className="tk-toggle btn ghost"
-            aria-expanded={showTempoKey}
-            onClick={() => setShowTempoKey((v) => !v)}
-          >
-            {t.tempoAndKey}
-            <ChevronIcon size={16} className={showTempoKey ? 'flip' : undefined} />
-          </button>
-
-          <div className={`tk${showTempoKey ? ' open' : ''}`}>
-            <div className="field">
-              <div className="field-head">
-                <label htmlFor="bpm">{t.tempo}</label>
-                <output htmlFor="bpm" className="field-value">
-                  {bpm} bpm
-                </output>
-              </div>
-              <div className="inline">
-                <div className="segmented" role="group" aria-label={t.tempoMode}>
-                  <button
-                    type="button"
-                    aria-pressed={mix.bpm === null}
-                    onClick={() => setMix((m) => ({ ...m, bpm: null }))}
-                  >
-                    {t.auto}
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={mix.bpm !== null}
-                    onClick={() => setMix((m) => ({ ...m, bpm }))}
-                  >
-                    {t.setManually}
-                  </button>
-                </div>
-                <input
-                  id="bpm"
-                  type="range"
-                  min={BPM_MIN}
-                  max={BPM_MAX}
-                  value={bpm}
-                  style={fill(bpmPct)}
-                  onChange={(e) => setMix((m) => ({ ...m, bpm: Number(e.currentTarget.value) }))}
-                />
-              </div>
+          <div className="field tempo">
+            <div className="field-head">
+              <label htmlFor="bpm">{t.tempo}</label>
+              <output htmlFor="bpm" className="field-value">
+                {bpm} bpm
+              </output>
             </div>
-
-            <div className="field">
-              <div className="field-head">
-                <label htmlFor="key">{t.key}</label>
-              </div>
-              <div className="select">
-                <select
-                  id="key"
-                  value={mix.key === null ? 'auto' : String(mix.key)}
-                  onChange={(e) => setMix((m) => ({ ...m, key: e.currentTarget.value === 'auto' ? null : Number(e.currentTarget.value) }))}
+            <div className="inline">
+              <div className="segmented" role="group" aria-label={t.tempoMode}>
+                <button
+                  type="button"
+                  aria-pressed={mix.bpm === null}
+                  onClick={() => setMix((m) => ({ ...m, bpm: null }))}
                 >
-                  <option value="auto">
-                    {t.auto} ({NOTE_NAMES[rolled.key]})
-                  </option>
-                  {NOTE_NAMES.map((n, i) => (
-                    <option key={n} value={i}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-                <ChevronIcon size={16} />
+                  {t.auto}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={mix.bpm !== null}
+                  onClick={() => setMix((m) => ({ ...m, bpm }))}
+                >
+                  {t.setManually}
+                </button>
               </div>
+              <input
+                id="bpm"
+                type="range"
+                min={BPM_MIN}
+                max={BPM_MAX}
+                value={bpm}
+                style={fill(bpmPct)}
+                onChange={(e) => setMix((m) => ({ ...m, bpm: Number(e.currentTarget.value) }))}
+              />
+            </div>
+          </div>
+
+          <div className="field key">
+            <div className="field-head">
+              <label htmlFor="key">{t.key}</label>
+            </div>
+            <div className="select">
+              <select
+                id="key"
+                value={mix.key === null ? 'auto' : String(mix.key)}
+                onChange={(e) => setMix((m) => ({ ...m, key: e.currentTarget.value === 'auto' ? null : Number(e.currentTarget.value) }))}
+              >
+                <option value="auto">
+                  {t.auto} ({NOTE_NAMES[rolled.key]})
+                </option>
+                {NOTE_NAMES.map((n, i) => (
+                  <option key={n} value={i}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <ChevronIcon size={16} />
             </div>
           </div>
         </section>
-
-        <footer className="footer">
-          <span className="footer-brand">
-            <MarkIcon size={18} />
-            Garsæ
-          </span>
-          <button type="button" className="micro-link" onClick={() => setSheet('about')}>
-            {t.aboutFooter}
-          </button>
-        </footer>
       </div>
 
       {sheet === 'mixes' && (

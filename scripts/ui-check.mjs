@@ -30,8 +30,6 @@ try {
   await page.keyboard.press('Escape');
   await new Promise((r) => setTimeout(r, 1500));
   await page.screenshot({ path: 'smoke-output/desktop.png', fullPage: true });
-  // Starter mixes are offered on a first visit too.
-  const startersShown = (await page.$('[aria-label="Starter mixes"]')) !== null;
 
   // Play, then check the audio clock is running.
   await page.click('.play');
@@ -46,18 +44,17 @@ try {
   const status = await page.$eval('.status', (el) => el.textContent);
   await page.screenshot({ path: 'smoke-output/desktop-playing.png' });
 
-  // Scrolled to the bottom, the player is still reachable.
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await new Promise((r) => setTimeout(r, 700));
-  // The transport stays on screen while scrolling.
-  const barVisible = await page.$eval('.transport', (el) => {
-    const r = el.getBoundingClientRect();
-    return r.top >= 0 && r.bottom <= window.innerHeight && r.height > 0;
+  // The app is one screen: the page never scrolls, and the player and sound bar stay on it.
+  const barVisible = await page.evaluate(() => {
+    const onScreen = (s) => {
+      const r = document.querySelector(s).getBoundingClientRect();
+      return r.top >= 0 && r.bottom <= window.innerHeight && r.height > 0;
+    };
+    return document.documentElement.scrollHeight <= window.innerHeight && onScreen('.transport') && onScreen('.sound');
   });
 
   // After clicking a tile, Space pauses the music and does not toggle the tile.
   const before = await page.$$eval('.tile.on', (els) => els.length);
-  await page.$eval('#tile-lofi', (el) => el.scrollIntoView({ block: 'center' }));
   await page.click('#tile-lofi .tile-toggle');
   await page.keyboard.press('Space');
   await new Promise((r) => setTimeout(r, 400));
@@ -65,7 +62,6 @@ try {
   const tilesAfter = await page.$$eval('.tile.on', (els) => els.length);
 
   // Surprise me can be undone.
-  await page.evaluate(() => window.scrollTo(0, 0));
   const onBefore = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
   await page.evaluate(() => [...document.querySelectorAll('.actions .btn')].find((b) => b.textContent === 'Surprise me').click());
   await page.waitForSelector('.toast-undo');
@@ -80,8 +76,11 @@ try {
   await new Promise((r) => setTimeout(r, 200));
   const dialogGone = (await page.$('[role=dialog]')) === null;
 
-  // A starter replaces the mix.
-  await page.evaluate(() => [...document.querySelectorAll('[aria-label="Starter mixes"] .name')].find((b) => b.textContent === 'Brown noise').click());
+  // A starter from the Mixes sheet replaces the mix.
+  await page.evaluate(() => [...document.querySelectorAll('.actions .btn')].find((b) => b.textContent.startsWith('Mixes')).click());
+  await page.waitForSelector('[role=dialog]');
+  const startersShown = (await page.$$('.mix-list .mix-name')).length > 0;
+  await page.evaluate(() => [...document.querySelectorAll('.mix-list .mix-name')].find((b) => b.textContent === 'Brown noise').click());
   await new Promise((r) => setTimeout(r, 200));
   const afterStarter = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
 
@@ -134,7 +133,10 @@ try {
   await page.goto(url);
   await page.waitForSelector('.tile');
   await page.screenshot({ path: 'smoke-output/phone.png', fullPage: true });
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  const overflow = await page.evaluate(() => {
+    const de = document.documentElement;
+    return de.scrollWidth > window.innerWidth || de.scrollHeight > window.innerHeight;
+  });
 
   console.log({ welcomed, stillPlayingDuringFade, timerStopped, timerToast, startersShown, afterStarter, savedRow, timerText, storedVolume, barVisible, tileToggledBySpace: tilesAfter !== before + 1, pausedBySpace: !afterSpace, undoRestores: onBefore === onRestored, dialogGone, playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, errors });
   const phase3Ok = welcomed && startersShown && afterStarter === 'Brown noise' && savedRow.current && savedRow.dots === 1 && /\d:\d\d/.test(timerText) && storedVolume === '0.4' && stillPlayingDuringFade && timerStopped;

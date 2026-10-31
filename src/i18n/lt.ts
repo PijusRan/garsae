@@ -7,22 +7,22 @@ export const lt: Strings = {
   tiles: {
     pad: { name: 'Šiltas fonas', hint: 'Plaukiantys akordai' },
     bells: { name: 'Stikliniai varpeliai', hint: 'Retos natos' },
-    arp: { name: 'Švelnus arpedžio', hint: 'Švelnios plaktukų frazės' },
+    arp: { name: 'Švelnus arpedžio', hint: 'Švelnios frazės' },
     drone: { name: 'Burdonas', hint: 'Pastovi tonika ir kvinta' },
-    epiano: { name: 'Elektrinis pianinas', hint: 'Švelnus akordų pritarimas' },
-    choir: { name: 'Choras', hint: 'Švelnūs balsai be žodžių' },
+    epiano: { name: 'Elektrinis pianinas', hint: 'Švelnūs akordai' },
+    choir: { name: 'Choras', hint: 'Balsai be žodžių' },
 
     sub: { name: 'Sub bosas', hint: 'Gilūs akordų pagrindai' },
     walk: { name: 'Vaikštantis bosas', hint: 'Šiltas, klajojantis' },
     pulse: { name: 'Pulsuojantis bosas', hint: 'Tolygios aštuntinės' },
     glide: { name: 'Slystantis bosas', hint: 'Slysta tarp natų' },
-    fm: { name: 'FM bosas', hint: 'Apvalios, gumuotos natos' },
+    fm: { name: 'FM bosas', hint: 'Guminės natos' },
     rolling: { name: 'Riedantis bosas', hint: 'Apvalus, sinkopuotas' },
 
     lofi: { name: 'Lo-fi hiphopas', hint: 'Dulkėtas, svinguojantis' },
-    techno: { name: 'Minimalus techno', hint: 'Tolygus ketvirtinių ritmas' },
+    techno: { name: 'Minimalus techno', hint: 'Ketvirtinių ritmas' },
     dub: { name: 'Dub', hint: 'One drop ritmas, aidai' },
-    ambient: { name: 'Ambient pulsas', hint: 'Švelnus širdies plakimas' },
+    ambient: { name: 'Ambient pulsas', hint: 'Širdies plakimas' },
     breaks: { name: 'Breakbeat', hint: 'Tirštas, bet tylus' },
     brushes: { name: 'Šepetėliai', hint: 'Švelnus džiazo svingas' },
 
@@ -31,10 +31,10 @@ export const lt: Strings = {
     hum: { name: 'Kambario ūžesys', hint: 'Tolimas mechanizmas' },
 
     brown: { name: 'Rudasis triukšmas', hint: 'Gilus dundesys' },
-    pink: { name: 'Rožinis triukšmas', hint: 'Tolygus, švelnus šnypštimas' },
-    green: { name: 'Žaliasis triukšmas', hint: 'Vidutiniai dažniai, natūralus' },
+    pink: { name: 'Rožinis triukšmas', hint: 'Tolygus šnypštimas' },
+    green: { name: 'Žaliasis triukšmas', hint: 'Natūralūs dažniai' },
 
-    am: { name: 'Amplitudės mod.', hint: 'Švelnus viso mikso pulsavimas' },
+    am: { name: 'Amplitudės mod.', hint: 'Mikso pulsavimas' },
     wobble: { name: 'Juostos virpesys', hint: 'Iškreipia visą miksą' },
   },
   presets: {
@@ -56,7 +56,6 @@ export const lt: Strings = {
   mediaArtist: 'Generatyvinė muzika susikaupti',
 
   player: 'Grotuvas',
-  backToTop: 'Garsæ, grįžti į viršų',
   play: 'Groti',
   pause: 'Pauzė',
   starting: 'Paleidžiama',
@@ -78,11 +77,9 @@ export const lt: Strings = {
   timerChoice: (minutes) => `${minutes} min., tada nutilti`,
 
   mix: 'Miksas',
-  onNow: 'Skamba',
   clear: 'Išvalyti',
   starters: 'Paruošti',
   starterMixes: 'Paruošti miksai',
-  hideStarters: 'Slėpti paruoštus miksus',
   surpriseMe: 'Nustebink mane',
   countOn: (count) => `Įjungta: ${count}`,
 
@@ -96,13 +93,11 @@ export const lt: Strings = {
   evolutionMostlySteady: 'beveik pastovus',
   evolutionGentle: 'švelniai kintantis',
   evolutionShifting: 'nuolat kintantis',
-  tempoAndKey: 'Tempas ir tonacija',
   tempo: 'Tempas',
   tempoMode: 'Tempo režimas',
   auto: 'Auto',
   setManually: 'Rankinis',
   key: 'Tonacija',
-  aboutFooter: 'Apie ir naudojimas neprisijungus',
 
   undo: 'Atšaukti',
   undone: 'Atšaukta',

@@ -18,7 +18,7 @@ export function TileCard({ meta, setting, onToggle, onVolume }: Props) {
   const { name, hint } = t.tiles[meta.id];
   return (
     <div id={`tile-${meta.id}`} className={`tile${setting.on ? ' on' : ''}`}>
-      <button type="button" className="tile-toggle" aria-pressed={setting.on} onClick={onToggle}>
+      <button type="button" className="tile-toggle" aria-pressed={setting.on} title={hint} onClick={onToggle}>
         <span className="tile-name">
           {name}
           {meta.effect && <EffectIcon size={14} aria-label={t.effect} />}
