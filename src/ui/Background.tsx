@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Grainient } from './Grainient';
 import { labToHex, mixPalette, type Lab } from './palette';
 
@@ -69,24 +69,39 @@ export function Background({ playing, getLevels, musicKey, bpm, evolution }: Pro
     root.setProperty('--slider-end', labToHex(target[target.length - 2]));
   }, [target]);
 
+  // Compile the shaders only after the page has painted, so the UI never waits for them.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const raf = requestAnimationFrame(() => {
+      timer = setTimeout(() => setReady(true), 0);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, []);
+
   return (
     <div className="background" aria-hidden="true">
-      <Grainient
-        angle={18}
-        speed={0.8}
-        flow={1.1}
-        scale={1.2}
-        softness={1}
-        silk={0.3}
-        grainAmount={0.06}
-        grainAnimated={false}
-        contrast={1.05}
-        interactive={false}
-        clickSwirl={false}
-        dpr={1}
-        liveSpeed={speed}
-        liveRamp={ramp}
-      />
+      {ready && (
+        <Grainient
+          angle={18}
+          speed={0.8}
+          flow={1.1}
+          scale={1.2}
+          softness={1}
+          silk={0.3}
+          grainAmount={0.06}
+          grainAnimated={false}
+          contrast={1.05}
+          interactive={false}
+          clickSwirl={false}
+          dpr={1}
+          liveSpeed={speed}
+          liveRamp={ramp}
+        />
+      )}
     </div>
   );
 }

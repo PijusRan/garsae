@@ -80,6 +80,7 @@ const STIR_LIFE = 1.3;
 const STIR_STEP = 0.06;
 const TWIRL_LIFE = 2.6;
 const INTRO_SECONDS = 1.6;
+const MIN_FRAME_MS = 31;
 const DEFAULT_COLORS = ['#120f17', '#2a0f0a', '#9a3412', '#f97316', '#fed7aa'];
 const TYPES: Record<string, number> = { linear: 0, radial: 1 };
 const LIFT = 0.2;
@@ -603,6 +604,11 @@ export const Grainient = ({
     const frame = (now: number) => {
       raf = 0;
       if (!visible || document.hidden) return;
+      // A slow background doesn't need 60 fps: draw at about 30 and let the elapsed time carry the motion.
+      if (last && now - last < MIN_FRAME_MS && introClock >= 1) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
       const s = settingsRef.current;
       const dt = last ? clamp((now - last) / 1000, 0.001, 0.05) : 1 / 60;
       last = now;
