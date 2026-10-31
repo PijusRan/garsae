@@ -115,7 +115,7 @@ export class Master {
     const air = new BiquadFilterNode(ctx, { type: 'highshelf', frequency: 9000, gain: 1.2 });
     // Glue: slow and gentle, it lifts sparse mixes and holds dense ones together without pumping.
     const glue = new DynamicsCompressorNode(ctx, { threshold: -26, knee: 14, ratio: 2.2, attack: 0.04, release: 0.35 });
-    const makeup = new GainNode(ctx, { gain: 1.5 });
+    const makeup = new GainNode(ctx, { gain: 1.3 });
     this.limiter = new DynamicsCompressorNode(ctx, {
       threshold: -4,
       knee: 3,
