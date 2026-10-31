@@ -1,6 +1,6 @@
 // Bass generators. All follow the hidden chord engine's roots.
-import { noteDensity } from '../evolution';
-import { cleanupAt, envelope, percussive } from '../params';
+import { movementDepth, noteDensity } from '../evolution';
+import { cleanupAt, envelope, glide, percussive } from '../params';
 import { chance, clamp, pick, rand } from '../random';
 import { saturationCurve } from '../synth';
 import { DORIAN, midiToFreq, placeInRange } from '../theory';
@@ -381,6 +381,273 @@ export function createRolling(core: Core): Instrument {
       const root = placeInRange(s.chord.rootPc, 33);
       const midi = hit.deg === 0 ? root : hit.deg === 1 ? root + 12 : nearest(s.chord.pcs[2], root + 7, 33, 52);
       note(s.time, midi, hit.len * s.stepDur * 0.85, hit.step === 0 ? 1 : rand(0.7, 0.9));
+    },
+  };
+}
+
+// ---------------------------------------------------------------- reese bass
+
+/**
+ * Two saws a few cents apart, so they beat and slowly turn inside the sound, over a clean sine that carries the actual
+ * low end. The saws are cut below 110 Hz, so the beating never makes the bass itself swell and vanish.
+ */
+export function createReese(core: Core): Instrument {
+  const { ctx } = core;
+  const out = new GainNode(ctx, { gain: 1 });
+  const amp = new GainNode(ctx, { gain: 0 });
+  amp.connect(out);
+  const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 110, Q: 0.6 });
+  const lp1 = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 620, Q: 0.7 });
+  const lp2 = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 620, Q: 1.1 });
+  const drive = new WaveShaperNode(ctx, { curve: saturationCurve(1.7), oversample: '2x' });
+  const driveOut = new GainNode(ctx, { gain: 0.34 });
+  hp.connect(lp1).connect(lp2).connect(drive).connect(driveOut).connect(amp);
+  const lfo = new OscillatorNode(ctx, { frequency: 0.11 });
+  const sweep = new GainNode(ctx, { gain: 0 });
+  lfo.connect(sweep);
+  sweep.connect(lp1.detune);
+  sweep.connect(lp2.detune);
+  lfo.start();
+  let oscs: OscillatorNode[] = [];
+  let sub: OscillatorNode | null = null;
+  let subGain: GainNode | null = null;
+  let last = 40;
+
+  return {
+    output: out,
+    activate(t) {
+      const f = midiToFreq(last);
+      oscs = [-11, 11].map((detune) => {
+        const o = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f, detune });
+        o.connect(hp);
+        o.start(t);
+        return o;
+      });
+      sub = new OscillatorNode(ctx, { frequency: f });
+      subGain = new GainNode(ctx, { gain: 0.32 });
+      sub.connect(subGain).connect(amp);
+      sub.start(t);
+    },
+    deactivate() {
+      for (const o of [...oscs, ...(sub ? [sub] : [])]) {
+        o.stop();
+        o.disconnect();
+      }
+      subGain?.disconnect();
+      oscs = [];
+      sub = null;
+      subGain = null;
+    },
+    setEvolution(e) {
+      glide(ctx, sweep.gain, 200 + 700 * movementDepth(e), 1.5);
+    },
+    step(s) {
+      if (!sub || s.stepInBar % 4 !== 0) return;
+      const beat = s.stepInBar / 4;
+      if (beat === 0) {
+        last = nearest(s.chord.rootPc, last, 31, 43);
+        const f = midiToFreq(last);
+        for (const o of [...oscs, sub]) o.frequency.setTargetAtTime(f, s.time, 0.03);
+        // Each bar speaks: the level falls away and swells back.
+        amp.gain.setTargetAtTime(0.25, s.time - 0.03, 0.012);
+        amp.gain.setTargetAtTime(1, s.time, 0.05);
+      } else if (beat === 2 && chance(0.25 * noteDensity(s.evolution))) {
+        const up = nearest(s.chord.pcs[2], last + 7, 31, 50);
+        for (const o of [...oscs, sub]) o.frequency.setTargetAtTime(midiToFreq(up), s.time, 0.06);
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------- fretless bass
+
+/**
+ * A fretless electric played near the neck: a soft triangle and sine that slide up into each note, and a resonance
+ * that sweeps down through the note for the vowel-like "mwah" nothing with frets can do. Long notes get a slow vibrato.
+ */
+export function createFretless(core: Core): Instrument {
+  const { ctx } = core;
+  const out = new GainNode(ctx, { gain: 1 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2200, Q: 0.5 });
+  lp.connect(out);
+  const vibrato = new OscillatorNode(ctx, { frequency: 4.6 });
+  vibrato.start();
+  let last = 43;
+  const LO = 33;
+  const HI = 55;
+
+  function note(t: number, midi: number, dur: number, vel: number) {
+    const f = midiToFreq(midi);
+    const tri = new OscillatorNode(ctx, { type: 'triangle', frequency: f });
+    const saw = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f });
+    const sine = new OscillatorNode(ctx, { frequency: f });
+    const sawGain = new GainNode(ctx, { gain: 0.16 });
+    const mwah = new BiquadFilterNode(ctx, { type: 'peaking', Q: 2.2, gain: 8, frequency: f * 6 });
+    mwah.frequency.setTargetAtTime(f * 2.2, t + 0.02, 0.16);
+    const g = new GainNode(ctx, { gain: 0 });
+    const vibDepth = new GainNode(ctx, { gain: 0 });
+    vibrato.connect(vibDepth);
+    vibDepth.gain.setValueAtTime(0, t + 0.3);
+    vibDepth.gain.linearRampToValueAtTime(dur > 0.6 ? 9 : 0, t + 0.8);
+    const oscs = [tri, saw, sine];
+    for (const o of oscs) {
+      // The finger arrives a little flat and slides up to pitch.
+      o.detune.setValueAtTime(-38, t);
+      o.detune.setTargetAtTime(0, t + 0.01, 0.035);
+      vibDepth.connect(o.detune);
+    }
+    saw.connect(sawGain).connect(mwah);
+    tri.connect(mwah);
+    sine.connect(g);
+    mwah.connect(g).connect(lp);
+    const end = envelope(g.gain, t, dur, { peak: 0.26 * vel, attack: 0.012, decay: 0.7, sustain: 0.55, release: 0.14 });
+    for (const o of oscs) o.start(t);
+    cleanupAt(oscs, end, [sawGain, mwah, g, vibDepth], () => {
+      vibrato.disconnect(vibDepth);
+    });
+  }
+
+  return {
+    output: out,
+    step(s) {
+      const busy = noteDensity(s.evolution);
+      if (s.stepInBar === 0) {
+        last = nearest(s.chord.rootPc, last, LO, HI);
+        note(s.time, last, s.stepDur * pick([5, 6, 8]), 1);
+      } else if (s.stepInBar === 6 && chance(0.4 * busy)) {
+        const options = s.chord.pcs.map((pc) => nearest(pc, last, LO, HI)).filter((m) => m !== last);
+        last = pick(options.length ? options : [last]);
+        note(s.time, last, s.stepDur * 4, rand(0.7, 0.85));
+      } else if (s.stepInBar === 10 && chance(0.35 * busy)) {
+        const options = s.chord.pcs.map((pc) => nearest(pc, last, LO, HI)).filter((m) => m !== last);
+        last = pick(options.length ? options : [last]);
+        note(s.time, last, s.stepDur * 3, rand(0.65, 0.8));
+      } else if (s.stepInBar === 14 && s.barsLeftInChord === 1) {
+        // A slide towards the next chord.
+        const target = nearest(s.nextChord.rootPc, last, LO, HI);
+        last = target + (target > last ? -2 : 2);
+        note(s.time, last, s.stepDur * 1.8, 0.7);
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------- 808 bass
+
+/** Where the booms fall in a bar. Sparse on purpose: the long tail is the point. */
+const BOOMS = [[0, 10], [0, 7, 10], [0, 8], [0, 6, 14], [0]];
+
+/**
+ * The long sine of a TR-808 kick played as a bass: a quick drop in pitch for the punch, then a slow decay, gently
+ * driven so its overtones carry the note on small speakers. One at a time, each new note cutting off the last.
+ */
+export function create808(core: Core): Instrument {
+  const { ctx } = core;
+  const out = new GainNode(ctx, { gain: 1 });
+  const drive = new WaveShaperNode(ctx, { curve: saturationCurve(2.4), oversample: '2x' });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 900, Q: 0.5 });
+  drive.connect(lp).connect(out);
+  let shape = BOOMS[0];
+  let current: GainNode | null = null;
+
+  function boom(t: number, midi: number, len: number, vel: number) {
+    const f = midiToFreq(midi);
+    current?.gain.setTargetAtTime(0, t - 0.006, 0.004);
+    const osc = new OscillatorNode(ctx, { frequency: f * 2.1 });
+    osc.frequency.setValueAtTime(f * 2.1, t);
+    osc.frequency.exponentialRampToValueAtTime(f, t + 0.045);
+    const g = new GainNode(ctx, { gain: 0 });
+    osc.connect(g).connect(drive);
+    const end = percussive(g.gain, t, 0.72 * vel, 0.003, len);
+    osc.start(t);
+    cleanupAt([osc], end, [g]);
+    current = g;
+  }
+
+  return {
+    output: out,
+    step(s) {
+      if (s.stepInBar === 0 && s.bar % 2 === 0 && chance(0.2 + 0.5 * s.evolution)) shape = pick(BOOMS);
+      if (!shape.includes(s.stepInBar)) return;
+      const idx = shape.indexOf(s.stepInBar);
+      const next = shape[idx + 1] ?? 16;
+      const root = placeInRange(s.chord.rootPc, 31);
+      const midi = idx > 0 && chance(0.2) ? nearest(s.chord.pcs[2], root + 7, 31, 45) : root;
+      // Rings until nearly the next note, up to a couple of beats.
+      note808(s, midi, next, idx);
+    },
+    deactivate() {
+      current = null;
+    },
+  };
+
+  function note808(s: StepInfo, midi: number, next: number, idx: number) {
+    const gap = (next - s.stepInBar) * s.stepDur;
+    boom(s.time, midi, clamp(gap * 1.3, 0.35, 1.8), idx === 0 ? 1 : 0.8);
+  }
+}
+
+// ---------------------------------------------------------------- muted bass
+
+/** One-bar riffs for a palm-muted electric: step and scale degree (0 root, 1 octave, 2 fifth, 3 seventh). */
+const MUTED_RIFFS: { step: number; deg: 0 | 1 | 2 | 3 }[][] = [
+  [{ step: 0, deg: 0 }, { step: 3, deg: 0 }, { step: 6, deg: 2 }, { step: 8, deg: 0 }, { step: 14, deg: 3 }],
+  [{ step: 0, deg: 0 }, { step: 6, deg: 0 }, { step: 8, deg: 2 }, { step: 11, deg: 0 }],
+  [{ step: 0, deg: 0 }, { step: 4, deg: 2 }, { step: 7, deg: 1 }, { step: 10, deg: 0 }, { step: 12, deg: 3 }],
+  [{ step: 0, deg: 0 }, { step: 2, deg: 0 }, { step: 8, deg: 2 }, { step: 10, deg: 2 }],
+];
+
+/**
+ * A short-scale bass with old flatwounds and foam under the strings, as on 1960s soul records: all thump and no
+ * ring. A triangle and a little saw through a dark filter, a finger thud, and the warm squash of tape.
+ */
+export function createMuted(core: Core): Instrument {
+  const { ctx } = core;
+  const out = new GainNode(ctx, { gain: 1 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 620, Q: 0.6 });
+  const sat = new WaveShaperNode(ctx, { curve: saturationCurve(1.9), oversample: '2x' });
+  const level = new GainNode(ctx, { gain: 0.75 });
+  lp.connect(sat).connect(level).connect(out);
+  let riff = pick(MUTED_RIFFS);
+
+  function note(t: number, midi: number, vel: number, len: number) {
+    const f = midiToFreq(midi);
+    const tri = new OscillatorNode(ctx, { type: 'triangle', frequency: f });
+    const saw = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f });
+    const sawGain = new GainNode(ctx, { gain: 0.25 });
+    const g = new GainNode(ctx, { gain: 0 });
+    tri.connect(g);
+    saw.connect(sawGain).connect(g);
+    g.connect(lp);
+    const end = envelope(g.gain, t, len, { peak: 0.52 * vel, attack: 0.004, decay: 0.22, sustain: 0.3, release: 0.05 });
+    const thud = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
+    const thudLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 420 });
+    const thudGain = new GainNode(ctx, { gain: 0 });
+    thud.connect(thudLp).connect(thudGain).connect(lp);
+    percussive(thudGain.gain, t, 0.5 * vel, 0.002, 0.03);
+    thud.start(t, rand(0, 1.5), 0.05);
+    tri.start(t);
+    saw.start(t);
+    cleanupAt([tri, saw], end, [sawGain, g, thud, thudLp, thudGain]);
+  }
+
+  return {
+    output: out,
+    step(s) {
+      if (s.stepInBar === 0 && s.chordChanged && chance(0.15 + 0.5 * s.evolution)) riff = pick(MUTED_RIFFS);
+      const hit = riff.find((n) => n.step === s.stepInBar);
+      if (!hit) return;
+      if (hit.step !== 0 && chance(0.25 - 0.15 * noteDensity(s.evolution))) return;
+      const root = placeInRange(s.chord.rootPc, 33);
+      const midi =
+        hit.deg === 0
+          ? root
+          : hit.deg === 1
+            ? root + 12
+            : hit.deg === 2
+              ? nearest(s.chord.pcs[2], root + 7, 33, 52)
+              : nearest(s.chord.pcs[s.chord.pcs.length - 1], root + 10, 33, 52);
+      note(s.time, midi, hit.step % 4 === 0 ? 1 : rand(0.72, 0.88), s.stepDur * 1.3);
     },
   };
 }

@@ -34,7 +34,21 @@ interface GenreDef {
   chain(ctx: BaseAudioContext): Chain;
 }
 
-const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient', GenreDef> = {
+/** A drum bus: cleaned-up lows, a fast gentle compressor for punch, soft saturation for glue, a roll-off on top. */
+function drumBus(
+  ctx: BaseAudioContext,
+  o: { highpass: number; lowpass: number; drive: number; threshold: number; ratio: number; release: number; gain: number },
+): Chain {
+  const input = new BiquadFilterNode(ctx, { type: 'highpass', frequency: o.highpass });
+  const comp = new DynamicsCompressorNode(ctx, { threshold: o.threshold, knee: 8, ratio: o.ratio, attack: 0.004, release: o.release });
+  const sat = new WaveShaperNode(ctx, { curve: saturationCurve(o.drive), oversample: '2x' });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: o.lowpass, Q: 0.4 });
+  const output = new GainNode(ctx, { gain: o.gain });
+  input.connect(comp).connect(sat).connect(lp).connect(output);
+  return { input, output };
+}
+
+const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop' | 'dnb' | 'bossa', GenreDef> = {
   // Lo-fi hip hop: lazy boom-bap, heavy swing, dusty and darkened.
   lofi: {
     swing: 0.2,
@@ -129,7 +143,83 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient', GenreDef> = {
       return { input, output };
     },
   },
+
+  // Deep house: a rounder kick than techno, a clap laid on top of a soft shuffle.
+  house: {
+    swing: 0.13,
+    humanize: 0.003,
+    tracks: [
+      { voice: 'kick', pattern: 'X...X...X...X...', core: true, opts: { tone: 0.92, decay: 1.05 } },
+      { voice: 'clap', pattern: '....x.......x...', core: true, gain: 0.5, opts: { decay: 1.3 } },
+      { voice: 'openhat', pattern: '..o...o...o...o.', gain: 0.75, opts: { decay: 0.8 } },
+      { voice: 'shaker', pattern: 'g.ogg.ogg.ogg.og', gain: 0.8 },
+      { voice: 'rim', pattern: '...g.....g....g.', gain: 0.4 },
+    ],
+    fills: [{ voice: 'shaker', pattern: 'o.oo' }],
+    chain: (ctx) => drumBus(ctx, { highpass: 32, lowpass: 8000, drive: 1.3, threshold: -18, ratio: 3, release: 0.12, gain: 0.85 }),
+  },
+
+  // Trip hop: a slow, heavy break with a big dark snare, sat low in a dusty room.
+  triphop: {
+    swing: 0.17,
+    humanize: 0.008,
+    tracks: [
+      { voice: 'kick', pattern: 'X.....x...X.....', core: true, opts: { tone: 0.82, decay: 1.35 } },
+      { voice: 'snare', pattern: '....X.......X...', core: true, echo: true, opts: { tone: 0.84, decay: 1.5 } },
+      { voice: 'hat', pattern: 'o.x.o.x.o.x.o.x.', gain: 0.6, opts: { tone: 0.88, decay: 1.2 } },
+      { voice: 'rim', pattern: '...........g...g', gain: 0.5, opts: { tone: 0.8 } },
+      { voice: 'kick', pattern: '.............g..', gain: 0.6, opts: { tone: 0.82, decay: 0.8 } },
+    ],
+    fills: [{ voice: 'snare', pattern: '..go', opts: { tone: 0.84, decay: 0.9 } }],
+    chain(ctx) {
+      const bus = drumBus(ctx, { highpass: 38, lowpass: 5200, drive: 1.7, threshold: -20, ratio: 4, release: 0.14, gain: 0.8 });
+      // A short, dark slap on the snare: the sound of a small room.
+      const echo = new GainNode(ctx, { gain: 0.5 });
+      const delay = new DelayNode(ctx, { maxDelayTime: 1, delayTime: 0.09 });
+      const dark = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1800 });
+      const feedback = new GainNode(ctx, { gain: 0.3 });
+      echo.connect(delay).connect(dark).connect(feedback).connect(delay);
+      dark.connect(bus.output);
+      return { ...bus, echo };
+    },
+  },
+
+  // Liquid drum and bass: the two-step played at double time over the slow tempo, light and rolling, on a tight bus.
+  dnb: {
+    swing: 0.03,
+    humanize: 0.002,
+    tracks: [
+      { voice: 'kick', pattern: 'X....x..X....x..', core: true, opts: { tone: 1.05, decay: 0.6 } },
+      { voice: 'snare', pattern: '..X...X...X...X.', core: true, gain: 0.8, opts: { tone: 1.15, decay: 0.75 } },
+      { voice: 'hat', pattern: 'x.o.x.o.x.o.x.o.', gain: 0.75, opts: { tone: 1.05, decay: 0.7 } },
+      { voice: 'shaker', pattern: '.g.g.g.g.g.g.g.g', gain: 0.8 },
+      { voice: 'snare', pattern: '.....g.......g..', gain: 0.45, opts: { tone: 1.2, decay: 0.5 } },
+      { voice: 'openhat', pattern: '...............o', gain: 0.5, opts: { decay: 0.5 } },
+    ],
+    fills: [{ voice: 'snare', pattern: '.ogo', opts: { tone: 1.15, decay: 0.6 } }],
+    chain: (ctx) => drumBus(ctx, { highpass: 45, lowpass: 11000, drive: 1.4, threshold: -20, ratio: 4, release: 0.07, gain: 0.8 }),
+  },
+
+  // Bossa nova: the cross-stick clave over a quiet surdo pulse and a steady shaker. Almost straight, never pushed.
+  bossa: {
+    swing: 0.03,
+    humanize: 0.006,
+    tracks: [
+      { voice: 'kick', pattern: 'x..g....x..g....', core: true, gain: 0.75, opts: { tone: 0.8, decay: 1.1 } },
+      { voice: 'rim', pattern: 'x..x..x...x..x..', core: true, gain: 0.7, opts: { tone: 0.82, decay: 1.5 } },
+      { voice: 'shaker', pattern: 'o.g.o.g.o.g.o.g.', gain: 0.8, opts: { decay: 1.2 } },
+      { voice: 'hat', pattern: '....g.......g...', gain: 0.5, opts: { tone: 0.8 } },
+    ],
+    fills: [{ voice: 'rim', pattern: '.gog', opts: { tone: 0.82 } }],
+    chain: (ctx) => drumBus(ctx, { highpass: 40, lowpass: 7000, drive: 1.2, threshold: -24, ratio: 2, release: 0.15, gain: 0.95 }),
+  },
 };
+
+/**
+ * Where each voice sits across the kit, as a drummer's kit is heard from the room. Kick, snare and clap stay centred:
+ * they carry the weight, and the master keeps the lows mono anyway.
+ */
+const KIT_PAN: Partial<Record<Voice, number>> = { hat: 0.16, openhat: 0.22, shaker: -0.22, rim: -0.12, tom: -0.14 };
 
 function swingOffset(stepInBar: number, stepDur: number, swing: number): number {
   return stepInBar % 2 === 1 ? swing * stepDur : 0;
@@ -142,6 +232,19 @@ function createPatternGenre(def: GenreDef) {
     const chain = def.chain(ctx);
     const tracks: Track[] = makeTracks(def.tracks);
     const fills = def.fills.map((f) => ({ ...f, steps: parsePattern(f.pattern) }));
+    const placed = new Map<Voice, AudioNode>();
+    /** The input a voice plays into: through a panner of its own if it has a place in the kit. */
+    const placeOf = (voice: Voice): AudioNode => {
+      const pan = KIT_PAN[voice];
+      if (pan === undefined) return chain.input;
+      let node = placed.get(voice);
+      if (!node) {
+        node = new StereoPannerNode(ctx, { pan });
+        node.connect(chain.input);
+        placed.set(voice, node);
+      }
+      return node;
+    };
     let fillThisBar = false;
 
     function onBar(s: StepInfo) {
@@ -165,13 +268,13 @@ function createPatternGenre(def: GenreDef) {
           if (vel <= 0) continue;
           const at = Math.max(s.time, t + rand(-def.humanize, def.humanize));
           const v = vel * (tr.def.gain ?? 1) * rand(0.92, 1.05);
-          playHit(kit, tr.def.voice, chain.input, at, v, tr.def.opts);
+          playHit(kit, tr.def.voice, placeOf(tr.def.voice), at, v, tr.def.opts);
           if (tr.def.echo && chain.echo) playHit(kit, tr.def.voice, chain.echo, at, v, tr.def.opts);
         }
         if (fillThisBar && s.stepInBar >= 12) {
           for (const f of fills) {
             const vel = f.steps[s.stepInBar - 12];
-            if (vel > 0) playHit(kit, f.voice, chain.input, t, vel * 0.8, f.opts);
+            if (vel > 0) playHit(kit, f.voice, placeOf(f.voice), t, vel * 0.8, f.opts);
           }
         }
       },
@@ -183,6 +286,10 @@ export const createLofi = createPatternGenre(GENRES.lofi);
 export const createTechno = createPatternGenre(GENRES.techno);
 export const createDub = createPatternGenre(GENRES.dub);
 export const createAmbientPulse = createPatternGenre(GENRES.ambient);
+export const createHouse = createPatternGenre(GENRES.house);
+export const createTripHop = createPatternGenre(GENRES.triphop);
+export const createDnb = createPatternGenre(GENRES.dnb);
+export const createBossa = createPatternGenre(GENRES.bossa);
 
 // ---------------------------------------------------------------- breakbeat
 

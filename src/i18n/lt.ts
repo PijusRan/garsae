@@ -11,6 +11,10 @@ export const lt: Strings = {
     drone: { name: 'Burdonas', hint: 'Pastovi tonika ir kvinta' },
     epiano: { name: 'Elektrinis pianinas', hint: 'Švelnūs akordai' },
     choir: { name: 'Choras', hint: 'Balsai be žodžių' },
+    piano: { name: 'Švelnus pianinas', hint: 'Tylūs plaktukai, retos natos' },
+    strings: { name: 'Styginiai', hint: 'Platūs, lėti antplūdžiai' },
+    vibes: { name: 'Vibrafonas', hint: 'Minkšti smūgiai, lėtas virpesys' },
+    flute: { name: 'Juostinė fleita', hint: 'Ilgos natos su kvėpavimu' },
 
     sub: { name: 'Sub bosas', hint: 'Gilūs akordų pagrindai' },
     walk: { name: 'Vaikštantis bosas', hint: 'Šiltas, klajojantis' },
@@ -18,6 +22,10 @@ export const lt: Strings = {
     glide: { name: 'Slystantis bosas', hint: 'Slysta tarp natų' },
     fm: { name: 'FM bosas', hint: 'Guminės natos' },
     rolling: { name: 'Riedantis bosas', hint: 'Apvalus, sinkopuotas' },
+    reese: { name: 'Reese bosas', hint: 'Tamsus, lėtai besisukantis' },
+    fretless: { name: 'Fretless bosas', hint: 'Dainuojantys slinktukai' },
+    b808: { name: '808 bosas', hint: 'Ilgi, gilūs smūgiai' },
+    muted: { name: 'Prislopintas bosas', hint: 'Trumpas, apvalus, šiltas' },
 
     lofi: { name: 'Lo-fi hiphopas', hint: 'Dulkėtas, svinguojantis' },
     techno: { name: 'Minimalus techno', hint: 'Ketvirtinių ritmas' },
@@ -25,6 +33,10 @@ export const lt: Strings = {
     ambient: { name: 'Ambient pulsas', hint: 'Širdies plakimas' },
     breaks: { name: 'Breakbeat', hint: 'Tirštas, bet tylus' },
     brushes: { name: 'Šepetėliai', hint: 'Švelnus džiazo svingas' },
+    house: { name: 'Deep house', hint: 'Šiltas, tolygus, pakrypęs' },
+    triphop: { name: 'Trip hop', hint: 'Lėtas, sunkus, dulkėtas' },
+    dnb: { name: 'Liquid DnB', hint: 'Greitas, lengvas ritmas' },
+    bossa: { name: 'Bosa nova', hint: 'Klavė ir švelnus pulsas' },
 
     crackle: { name: 'Vinilo traškesys', hint: 'Dulkės ir spragsėjimas' },
     wind: { name: 'Vėjas', hint: 'Judantis oras' },

@@ -29,14 +29,15 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 
 | Category | Tiles |
 |---|---|
-| Pads | warm chord pad, glass bells / sparse notes, soft arpeggio, drone, electric piano, choir |
-| Bass | sub bass, warm walking bass, pulse bass, glide bass, FM bass, rolling bass |
+| Pads | warm chord pad, glass bells / sparse notes, soft arpeggio, drone, electric piano, choir, felt piano, string ensemble, vibraphone, tape flute |
+| Bass | sub bass, warm walking bass, pulse bass, glide bass, FM bass, rolling bass, Reese bass, fretless bass, 808 bass, muted bass |
 | Drums | one tile per genre (see Drums) |
 | Texture | vinyl crackle, wind / air, room hum / machine, brown / pink / green noise (rain dropped for v1) |
 | Effects | amplitude modulation, tape wobble (they shape the whole mix and make no sound alone) |
 
 ### Pads / melodies
 - **Each instrument defines its own generator**; there is no single global method. For example, the chord pad drifts between chords, the bells play sparse notes, and the arpeggio arpeggiates.
+- Acoustic instruments copy the physics that makes them recognisable rather than a general synth patch: the felt piano's partials follow the stiff-string formula, the vibraphone's bars are tuned 1:4:10 with a motor tremolo, the string ensemble uses three detuned paths per note like the first string machines.
 
 ### Focus-aid tiles
 - **Noise colours**: brown / pink / green noise variants (Texture).
@@ -56,7 +57,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 
 ## Drums
 - Each **drum genre is its own tile with its own volume**. Several genres can be on at once and **layer** together.
-- Genres: **Lo-fi hip hop, Minimal techno/house, Dub/downtempo, Ambient pulse, Breakbeat** (amen / scatter-break flavour), **Brushes** (soft jazz swing). Six per category, so each fits one row on desktop.
+- Genres: **Lo-fi hip hop, Minimal techno/house, Dub/downtempo, Ambient pulse, Breakbeat** (amen / scatter-break flavour), **Brushes** (soft jazz swing), **Deep house, Trip hop, Liquid drum and bass** (the two-step at double time), **Bossa nova**. Ten per category, in two rows of five on desktop. Hats, shakers and rims sit a little off centre (`KIT_PAN` in `drums/genres.ts`); kick, snare and clap stay in the middle.
 
 ### Mutation rules (all genres except breakbeat)
 - Every few bars, a pattern may: add/remove a ghost hit, shift a hit by one step, swap in a small fill on the last bar, or change the velocity/accent pattern.
@@ -152,7 +153,8 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 ### Engine rules
 - **Scheduler clock in a Web Worker.** Only the timer tick runs in the Worker; scheduling stays on the main thread. This avoids background-tab timer throttling and is groundwork for later background playback.
 - **Large look-ahead (~0.5-1 s).** Nothing needs fast reaction, so a deep buffer makes playback resilient to hiccups. Toggling a tile fades it in or out with gain instead of cancelling notes already scheduled.
-- **Master limiter.** A `DynamicsCompressorNode` set up as a limiter sits on the output, and each tile keeps some headroom, so layered tiles never clip or jump in loudness.
+- **Mastered output.** The chain in `master.ts`: a subsonic filter, a Linkwitz-Riley crossover that makes everything below 120 Hz mono without touching the stereo image above it, a shallow tone curve, a slow glue compressor, a limiter and a 4x-oversampled soft clip at -1 dBFS. Typical mixes land around -17 LUFS with peaks under -1 dBTP, and everything at full volume never passes that ceiling.
+- **Level by measurement.** `npm run smoke` reports BS.1770 loudness and true peak for every tile and scene, against a reference tone. Set a new tile's `level` against its category's neighbours there, not by RMS. Sparse tiles read noisily over a short render.
 - **No direct `.value` writes.** Every parameter change (volume, filter, Evolution) goes through `setTargetAtTime` or ramps via one helper, to avoid clicks.
 - **iOS from day one:**
   - set `navigator.audioSession.type = "playback"` (Safari 16.4+) so the ringer switch doesn't mute audio

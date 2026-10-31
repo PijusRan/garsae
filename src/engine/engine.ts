@@ -2,9 +2,9 @@
 // the UI only sends commands such as setTile / setTileVolume / setEvolution.
 import { TILE_BY_ID, type TileId } from '../tiles';
 import { ChordEngine } from './chords';
-import { createAmbientPulse, createBreakbeat, createBrushes, createDub, createLofi, createTechno } from './drums/genres';
-import { createFmBass, createGlide, createPulse, createRolling, createSub, createWalk } from './instruments/bass';
-import { createChoir, createEPiano } from './instruments/keys';
+import { createAmbientPulse, createBossa, createBreakbeat, createBrushes, createDnb, createDub, createHouse, createLofi, createTechno, createTripHop } from './drums/genres';
+import { create808, createFmBass, createFretless, createGlide, createMuted, createPulse, createReese, createRolling, createSub, createWalk } from './instruments/bass';
+import { createChoir, createEPiano, createFeltPiano, createStrings, createTapeFlute, createVibes } from './instruments/keys';
 import { createCrackle, createHum, createNoise, createWind } from './instruments/atmosphere';
 import { createAmplitudeMod, createWobble } from './instruments/effects';
 import { createArp, createBells, createDrone, createPad } from './instruments/pads';
@@ -22,18 +22,30 @@ const FACTORIES: Record<TileId, InstrumentFactory> = {
   drone: createDrone,
   epiano: createEPiano,
   choir: createChoir,
+  piano: createFeltPiano,
+  strings: createStrings,
+  vibes: createVibes,
+  flute: createTapeFlute,
   sub: createSub,
   walk: createWalk,
   pulse: createPulse,
   glide: createGlide,
   fm: createFmBass,
   rolling: createRolling,
+  reese: createReese,
+  fretless: createFretless,
+  b808: create808,
+  muted: createMuted,
   lofi: createLofi,
   techno: createTechno,
   dub: createDub,
   ambient: createAmbientPulse,
   breaks: createBreakbeat,
   brushes: createBrushes,
+  house: createHouse,
+  triphop: createTripHop,
+  dnb: createDnb,
+  bossa: createBossa,
   crackle: createCrackle,
   wind: createWind,
   hum: createHum,

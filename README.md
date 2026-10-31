@@ -22,7 +22,7 @@ Endless, generative focus music in the browser. Toggle instrument tiles, mix the
 
 | | |
 | --- | --- |
-| **Tiles** | 26 instruments you switch on and mix, each with its own level |
+| **Tiles** | 38 instruments you switch on and mix, each with its own level |
 | **Surprise me** | Builds a new mix that always has a harmonic bed under it |
 | **Evolution** | One slider for how far the music drifts, from fixed to restless |
 | **Tempo and key** | Set them yourself; every tile follows |
@@ -34,13 +34,13 @@ Endless, generative focus music in the browser. Toggle instrument tiles, mix the
 
 ## Instruments
 
-No samples and no recordings: all of it is plain Web Audio nodes.
+No samples and no recordings: all of it is plain Web Audio nodes, mastered live to about -17 LUFS.
 
 | Category | Tiles |
 | --- | --- |
-| **Pads** | Warm pad, Glass bells, Soft arpeggio, Drone, Electric piano, Choir |
-| **Bass** | Sub bass, Walking bass, Pulse bass, Glide bass, FM bass, Rolling bass |
-| **Drums** | Lo-fi hip hop, Minimal techno, Dub, Ambient pulse, Breakbeat, Brushes |
+| **Pads** | Warm pad, Glass bells, Soft arpeggio, Drone, Electric piano, Choir, Felt piano, String ensemble, Vibraphone, Tape flute |
+| **Bass** | Sub bass, Walking bass, Pulse bass, Glide bass, FM bass, Rolling bass, Reese bass, Fretless bass, 808 bass, Muted bass |
+| **Drums** | Lo-fi hip hop, Minimal techno, Dub, Ambient pulse, Breakbeat, Brushes, Deep house, Trip hop, Liquid DnB, Bossa nova |
 | **Texture** | Vinyl crackle, Wind, Room hum, Brown noise, Pink noise, Green noise |
 | **Effects** | Amplitude mod, Tape wobble |
 

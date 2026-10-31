@@ -193,33 +193,33 @@ const pickOne = <T,>(xs: readonly T[]): T => xs[Math.floor(Math.random() * xs.le
 
 /**
  * A random but balanced, calm mix. Guardrails:
- * - always one harmonic bed, at most 6 tiles in total. The bed is warm pad, drone, choir, or a soft
- *   arpeggio, glass bells or electric piano over a bass (the bass gives it a floor), each a quarter of
- *   the time, so no tile dominates
+ * - always one harmonic bed, at most 6 tiles in total. The bed is warm pad, drone, choir, strings, or a
+ *   melodic instrument over a bass (the bass gives it a floor), each a fifth of the time, so no tile dominates
  * - at most one extra melodic layer and at most one bass
- * - at most one drum genre; busy genres (breakbeat, techno) are rarer and kept quiet
+ * - at most one drum genre; busy genres (breakbeat, techno, house, drum and bass) are rarer and kept quiet
  * - at most one atmosphere and at most one noise colour, both low in the mix
  * - effect tiles (AM, wobble) are never picked
  * - Evolution stays in the calm 0.15-0.5 range; BPM and key stay random (60-90)
  */
 export function surpriseMix(): MixState {
   const on: Partial<Record<TileId, number>> = {};
-  const basses: TileId[] = ['sub', 'walk', 'pulse', 'glide', 'fm', 'rolling'];
-  const bed = pickOne(['pad', 'drone', 'choir', 'tune'] as const);
+  const basses: TileId[] = ['sub', 'walk', 'pulse', 'glide', 'fm', 'rolling', 'reese', 'fretless', 'b808', 'muted'];
+  const bed = pickOne(['pad', 'drone', 'choir', 'strings', 'tune'] as const);
   if (bed === 'tune') {
-    on[pickOne<TileId>(['arp', 'bells', 'epiano'])] = between(0.4, 0.6);
+    on[pickOne<TileId>(['arp', 'bells', 'epiano', 'piano', 'vibes'])] = between(0.4, 0.6);
     on[pickOne(basses)] = between(0.35, 0.55);
   } else {
     on[bed] = between(0.5, 0.75);
   }
   if (bed === 'drone' || Math.random() < 0.6) {
-    const melodic = pickOne((['bells', 'arp', 'epiano'] as TileId[]).filter((id) => on[id] === undefined));
+    const melodic = pickOne((['bells', 'arp', 'epiano', 'piano', 'vibes', 'flute'] as TileId[]).filter((id) => on[id] === undefined));
     on[melodic] = between(0.3, 0.55);
   }
   if (bed !== 'tune' && Math.random() < 0.55) on[pickOne(basses)] = between(0.35, 0.55);
   if (Math.random() < 0.75) {
-    const drum = pickOne<TileId>(['lofi', 'lofi', 'dub', 'ambient', 'ambient', 'brushes', 'brushes', 'techno', 'breaks']);
-    on[drum] = drum === 'breaks' ? between(0.3, 0.42) : drum === 'techno' ? between(0.3, 0.42) : between(0.35, 0.55);
+    const drum = pickOne<TileId>(['lofi', 'lofi', 'dub', 'ambient', 'ambient', 'brushes', 'brushes', 'bossa', 'triphop', 'house', 'techno', 'breaks', 'dnb']);
+    const busy = drum === 'breaks' || drum === 'techno' || drum === 'dnb' || drum === 'house';
+    on[drum] = busy ? between(0.3, 0.42) : between(0.35, 0.55);
   }
   if (Math.random() < 0.5) on[pickOne<TileId>(['crackle', 'wind', 'hum'])] = between(0.2, 0.4);
   if (Math.random() < 0.35) on[pickOne<TileId>(['brown', 'pink', 'green'])] = between(0.15, 0.3);

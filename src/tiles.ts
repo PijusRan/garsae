@@ -4,11 +4,11 @@ export type Category = 'pads' | 'bass' | 'drums' | 'texture' | 'effects';
 
 export const TILE_IDS = [
   // pads / melodies
-  'pad', 'bells', 'arp', 'drone', 'epiano', 'choir',
+  'pad', 'bells', 'arp', 'drone', 'epiano', 'choir', 'piano', 'strings', 'vibes', 'flute',
   // bass
-  'sub', 'walk', 'pulse', 'glide', 'fm', 'rolling',
+  'sub', 'walk', 'pulse', 'glide', 'fm', 'rolling', 'reese', 'fretless', 'b808', 'muted',
   // drums (one tile per genre)
-  'lofi', 'techno', 'dub', 'ambient', 'breaks', 'brushes',
+  'lofi', 'techno', 'dub', 'ambient', 'breaks', 'brushes', 'house', 'triphop', 'dnb', 'bossa',
   // texture (room sounds and noise colours)
   'crackle', 'wind', 'hum',
   'brown', 'pink', 'green',
@@ -40,6 +40,10 @@ export const TILES: TileMeta[] = [
   { id: 'drone', category: 'pads', name: 'Drone', hint: 'Steady root and fifth', defaultVolume: 0.5, level: 0.59, reverb: 0.3 },
   { id: 'epiano', category: 'pads', name: 'Electric piano', hint: 'Mellow chord comping', defaultVolume: 0.5, level: 1.45, reverb: 0.3 },
   { id: 'choir', category: 'pads', name: 'Choir', hint: 'Soft, wordless voices', defaultVolume: 0.5, level: 2.2, reverb: 0.55 },
+  { id: 'piano', category: 'pads', name: 'Felt piano', hint: 'Quiet hammers, sparse notes', defaultVolume: 0.5, level: 1.5, reverb: 0.4 },
+  { id: 'strings', category: 'pads', name: 'String ensemble', hint: 'Wide, slow swells', defaultVolume: 0.5, level: 0.8, reverb: 0.45 },
+  { id: 'vibes', category: 'pads', name: 'Vibraphone', hint: 'Soft mallets, slow shimmer', defaultVolume: 0.5, level: 1.6, reverb: 0.4 },
+  { id: 'flute', category: 'pads', name: 'Tape flute', hint: 'Long, breathy notes', defaultVolume: 0.45, level: 0.9, reverb: 0.4 },
 
   { id: 'sub', category: 'bass', name: 'Sub bass', hint: 'Deep chord roots', defaultVolume: 0.55, level: 0.3, reverb: 0 },
   { id: 'walk', category: 'bass', name: 'Walking bass', hint: 'Warm, wandering', defaultVolume: 0.55, level: 0.72, reverb: 0.05 },
@@ -47,6 +51,10 @@ export const TILES: TileMeta[] = [
   { id: 'glide', category: 'bass', name: 'Glide bass', hint: 'Slides between notes', defaultVolume: 0.5, level: 0.32, reverb: 0.05 },
   { id: 'fm', category: 'bass', name: 'FM bass', hint: 'Round, rubbery notes', defaultVolume: 0.5, level: 0.9, reverb: 0.05 },
   { id: 'rolling', category: 'bass', name: 'Rolling bass', hint: 'Round, syncopated', defaultVolume: 0.5, level: 0.6, reverb: 0.05 },
+  { id: 'reese', category: 'bass', name: 'Reese bass', hint: 'Dark, slowly turning', defaultVolume: 0.45, level: 0.7, reverb: 0.05 },
+  { id: 'fretless', category: 'bass', name: 'Fretless bass', hint: 'Singing slides', defaultVolume: 0.5, level: 0.52, reverb: 0.1 },
+  { id: 'b808', category: 'bass', name: '808 bass', hint: 'Long, deep booms', defaultVolume: 0.45, level: 0.3, reverb: 0 },
+  { id: 'muted', category: 'bass', name: 'Muted bass', hint: 'Short, round, warm', defaultVolume: 0.5, level: 0.9, reverb: 0.05 },
 
   { id: 'lofi', category: 'drums', name: 'Lo-fi hip hop', hint: 'Dusty, swung', defaultVolume: 0.5, level: 0.46, reverb: 0.08 },
   { id: 'techno', category: 'drums', name: 'Minimal techno', hint: 'Four on the floor', defaultVolume: 0.45, level: 0.51, reverb: 0.08 },
@@ -54,6 +62,10 @@ export const TILES: TileMeta[] = [
   { id: 'ambient', category: 'drums', name: 'Ambient pulse', hint: 'A soft heartbeat', defaultVolume: 0.5, level: 0.42, reverb: 0.35 },
   { id: 'breaks', category: 'drums', name: 'Breakbeat', hint: 'Busy, kept low', defaultVolume: 0.4, level: 0.52, reverb: 0.06 },
   { id: 'brushes', category: 'drums', name: 'Brushes', hint: 'Soft jazz swing', defaultVolume: 0.5, level: 1.75, reverb: 0.12 },
+  { id: 'house', category: 'drums', name: 'Deep house', hint: 'Warm, steady, shuffled', defaultVolume: 0.45, level: 0.5, reverb: 0.08 },
+  { id: 'triphop', category: 'drums', name: 'Trip hop', hint: 'Slow, heavy, dusty', defaultVolume: 0.5, level: 0.5, reverb: 0.15 },
+  { id: 'dnb', category: 'drums', name: 'Liquid DnB', hint: 'Fast, light two-step', defaultVolume: 0.4, level: 0.5, reverb: 0.08 },
+  { id: 'bossa', category: 'drums', name: 'Bossa nova', hint: 'Clave and a soft pulse', defaultVolume: 0.5, level: 1, reverb: 0.12 },
 
   { id: 'crackle', category: 'texture', name: 'Vinyl crackle', hint: 'Dust and pops', defaultVolume: 0.4, level: 1.4, reverb: 0 },
   { id: 'wind', category: 'texture', name: 'Wind', hint: 'Moving air', defaultVolume: 0.4, level: 0.6, reverb: 0.1 },
