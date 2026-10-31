@@ -28,6 +28,7 @@ import type { Strings } from './i18n/en';
 import { AboutSheet } from './ui/AboutSheet';
 import { Welcome } from './ui/Welcome';
 import { Background, levelReader, type AudioLevels } from './ui/Background';
+import { LiveMark } from './ui/LiveMark';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
 import { CheckIcon, ChevronIcon, MixesIcon, SaveIcon, ShuffleIcon } from './ui/icons';
@@ -261,6 +262,7 @@ export function App() {
   };
 
   const timerLeft = timerEnd === null ? null : Math.max(0, timerEnd - now);
+  const fading = timerLeft !== null && timerLeft <= TIMER_FADE_MS;
 
   const activeIds = TILE_IDS.filter((id) => mix.tiles[id].on);
   const activeCount = activeIds.length;
@@ -453,6 +455,8 @@ export function App() {
         activeCount={activeCount}
         volume={volume}
         timerLeft={timerLeft}
+        fading={fading}
+        getLevels={getLevels}
         onToggle={pressPlay}
         onVolume={setVolume}
         onTimer={setTimer}
@@ -463,6 +467,11 @@ export function App() {
       <div className={`page${tab === 'sound' ? ' sound-open' : ''}`}>
         <h1 className="sr-only">Garsæ</h1>
         <section className="mix-strip" aria-label={t.mix}>
+          {/* Phones keep the player at the bottom, so the brand gets its place up here. */}
+          <span className="strip-brand">
+            <LiveMark size={22} risen={playing && !fading} fading={fading} getLevels={getLevels} />
+            <span className="wordmark">Garsæ</span>
+          </span>
           {activeCount === 0 ? (
             startersRow
           ) : (

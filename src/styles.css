@@ -276,9 +276,48 @@ output,
 }
 
 .wordmark {
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 500;
   letter-spacing: -0.03em;
+}
+
+/* The mark at rest is the logo. Playing, the eclipse rises clear of its horizon and glows with the music. */
+.live-mark {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+}
+
+.live-mark svg {
+  position: relative;
+  overflow: visible;
+}
+
+.live-mark-sun {
+  transition: transform 2.4s var(--ease-out);
+}
+
+.live-mark.risen .live-mark-sun {
+  transform: translateY(-2.5px);
+}
+
+/* Sets over the timer's last 30 seconds, along with the music. */
+.live-mark.fading .live-mark-sun {
+  transition: transform 30s linear;
+}
+
+.live-mark-glow {
+  position: absolute;
+  inset: -55%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, oklch(0.7 0.17 45 / 0.75), transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.strip-brand {
+  display: none;
 }
 
 .play {
@@ -470,12 +509,25 @@ output,
   min-height: 44px;
 }
 
+/* The strip sits directly on the background's brightest part, so its text brings its own shade. */
+.mix-strip {
+  text-shadow: 0 1px 10px oklch(0 0 0 / 0.55);
+}
+
+.mix-strip .micro-link {
+  color: var(--text);
+}
+
+.mix-strip .btn {
+  text-shadow: none;
+}
+
 .tagline {
   flex: 1;
   min-width: 0;
   margin: 0;
   font-size: 14px;
-  color: var(--text-2);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1930,6 +1982,16 @@ input[type='range']:focus-visible {
   }
   .mark-link {
     display: none;
+  }
+  .strip-brand {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text);
+  }
+  .strip-brand .wordmark {
+    font-size: 17px;
   }
   .play {
     width: 44px;
