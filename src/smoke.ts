@@ -17,9 +17,119 @@ interface Stats {
   windowMinDb: number;
   /** Largest jump in loudness between neighbouring windows, in dB. */
   maxJumpDb: number;
+  /** Integrated loudness (ITU-R BS.1770, gated). What ears hear, unlike RMS. */
+  lufs: number;
+  /** Peak between samples too, from 4x oversampling. */
+  truePeakDb: number;
 }
 
 const db = (x: number) => (x <= 1e-9 ? -180 : 20 * Math.log10(x));
+
+interface Biquad {
+  b: [number, number, number];
+  a: [number, number];
+}
+
+/** ITU-R BS.1770 K-weighting at any rate, in the libebur128 form, which reproduces the standard's 48 kHz coefficients. */
+function kWeighting(fs: number): Biquad[] {
+  const shelf = (() => {
+    const Q = 0.7071752369554196;
+    const K = Math.tan((Math.PI * 1681.974450955533) / fs);
+    const Vh = 10 ** (3.999843853973347 / 20);
+    const Vb = Vh ** 0.4996667741545416;
+    const a0 = 1 + K / Q + K * K;
+    return {
+      b: [(Vh + (Vb * K) / Q + K * K) / a0, (2 * (K * K - Vh)) / a0, (Vh - (Vb * K) / Q + K * K) / a0],
+      a: [(2 * (K * K - 1)) / a0, (1 - K / Q + K * K) / a0],
+    } as Biquad;
+  })();
+  const highpass = (() => {
+    const Q = 0.5003270373238773;
+    const K = Math.tan((Math.PI * 38.13547087602444) / fs);
+    const a0 = 1 + K / Q + K * K;
+    return { b: [1, -2, 1], a: [(2 * (K * K - 1)) / a0, (1 - K / Q + K * K) / a0] } as Biquad;
+  })();
+  return [shelf, highpass];
+}
+
+function filtered(x: Float32Array, filters: Biquad[]): Float64Array {
+  const out = Float64Array.from(x);
+  for (const { b, a } of filters) {
+    let x1 = 0;
+    let x2 = 0;
+    let y1 = 0;
+    let y2 = 0;
+    for (let i = 0; i < out.length; i++) {
+      const x0 = out[i];
+      const y0 = b[0] * x0 + b[1] * x1 + b[2] * x2 - a[0] * y1 - a[1] * y2;
+      x2 = x1;
+      x1 = x0;
+      y2 = y1;
+      y1 = y0;
+      out[i] = y0;
+    }
+  }
+  return out;
+}
+
+/** Gated integrated loudness: 400 ms blocks with 75% overlap, an absolute gate at -70, then a relative one 10 LU down. */
+function integratedLufs(buf: AudioBuffer, from: number, to: number): number {
+  const fs = buf.sampleRate;
+  const filters = kWeighting(fs);
+  const channels = [0, 1].map((c) => filtered(buf.getChannelData(c), filters));
+  const block = Math.round(0.4 * fs);
+  const hop = Math.round(0.1 * fs);
+  const energies: number[] = [];
+  for (let s = Math.floor(from * fs); s + block <= Math.floor(to * fs); s += hop) {
+    let sum = 0;
+    for (const ch of channels) {
+      let e = 0;
+      for (let i = s; i < s + block; i++) e += ch[i] * ch[i];
+      sum += e / block;
+    }
+    energies.push(sum);
+  }
+  const loudness = (e: number) => (e <= 0 ? -Infinity : -0.691 + 10 * Math.log10(e));
+  const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
+  const absolute = energies.filter((e) => loudness(e) > -70);
+  if (!absolute.length) return -180;
+  const gate = loudness(mean(absolute)) - 10;
+  const kept = absolute.filter((e) => loudness(e) > gate);
+  return Math.round(loudness(mean(kept)) * 10) / 10;
+}
+
+/** 4x oversampled peak: a windowed-sinc interpolation, run only around the loudest samples. */
+function truePeak(buf: AudioBuffer, from: number, to: number): number {
+  const TAPS = 16;
+  const phases = [0.25, 0.5, 0.75].map((frac) => {
+    const h: number[] = [];
+    for (let k = -TAPS + 1; k <= TAPS; k++) {
+      const x = k - frac;
+      const hann = 0.5 + 0.5 * Math.cos((Math.PI * x) / TAPS);
+      h.push((x === 0 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x)) * hann);
+    }
+    return h;
+  });
+  let peak = 0;
+  for (const c of [0, 1]) {
+    const x = buf.getChannelData(c);
+    const start = Math.max(TAPS, Math.floor(from * buf.sampleRate));
+    const end = Math.min(x.length - TAPS - 1, Math.floor(to * buf.sampleRate));
+    let raw = 0;
+    for (let i = start; i < end; i++) raw = Math.max(raw, Math.abs(x[i]));
+    for (let i = start; i < end; i++) {
+      const v = Math.abs(x[i]);
+      if (v > peak) peak = v;
+      if (v < raw * 0.6) continue;
+      for (const h of phases) {
+        let y = 0;
+        for (let k = 0; k < h.length; k++) y += h[k] * x[i + k - TAPS + 1];
+        if (Math.abs(y) > peak) peak = Math.abs(y);
+      }
+    }
+  }
+  return Math.round(db(peak) * 10) / 10;
+}
 
 function analyse(name: string, buf: AudioBuffer, from: number, to = buf.duration): Stats {
   const a = buf.getChannelData(0);
@@ -62,7 +172,20 @@ function analyse(name: string, buf: AudioBuffer, from: number, to = buf.duration
     windowMaxDb: Math.round(db(Math.max(...windows)) * 10) / 10,
     windowMinDb: Math.round(db(Math.min(...windows)) * 10) / 10,
     maxJumpDb: Math.round(maxJump * 10) / 10,
+    lufs: integratedLufs(buf, from, to),
+    truePeakDb: truePeak(buf, from, to),
   };
+}
+
+/** The standard's reference: a 997 Hz sine at 0 dBFS in one channel must read -3.01 LUFS. */
+async function meterReference(): Promise<number> {
+  const ctx = new OfflineAudioContext(2, SR * 4, SR);
+  const merger = new ChannelMergerNode(ctx, { numberOfInputs: 2 });
+  const tone = new OscillatorNode(ctx, { frequency: 997 });
+  tone.connect(merger, 0, 0);
+  merger.connect(ctx.destination);
+  tone.start();
+  return integratedLufs(await ctx.startRendering(), 0.5, 4);
 }
 
 interface Scenario {
@@ -170,7 +293,7 @@ export async function runSmoke(opts: { wavs?: boolean } = {}) {
   scenes.push(analyse('before switch-off (4-8 s)', fade, 4, 8));
   scenes.push(analyse('after switch-off (14-18 s)', fade, 14, 18));
 
-  return { solo, scenes, wavs };
+  return { solo, scenes, wavs, reference: await meterReference() };
 }
 
 declare global {

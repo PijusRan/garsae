@@ -26,6 +26,11 @@ try {
   await page.goto(`${url}smoke.html`);
   await page.waitForFunction(() => typeof window.runSmoke === 'function');
   const result = await page.evaluate((w) => window.runSmoke({ wavs: w }), wantWavs);
+  console.log(`\nMeter reference (997 Hz, 0 dBFS, one channel): ${result.reference} LUFS, should be about -3.0`);
+  if (Math.abs(result.reference + 3.01) > 0.2) {
+    failed = true;
+    console.error('FAIL the loudness meter is out of calibration');
+  }
   console.log('\nSolo tiles at full volume (stats after the fade-in):');
   console.table(result.solo);
   console.log('\nScenes:');
