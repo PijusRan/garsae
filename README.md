@@ -1,14 +1,11 @@
 <p align="center">
-  <img src="docs/images/banner.png" alt="Garsæ: endless generative focus music, synthesized live in your browser. All code written by AI." width="100%">
+  <img src="docs/images/banner.png" alt="Garsæ: endless generative focus music, synthesized live in your browser." width="100%">
 </p>
 
 <p align="center">
-  <a href="#ai-disclosure"><img src="https://img.shields.io/badge/code-100%25%20AI--written-d73a49?style=for-the-badge" alt="Code: 100% AI-written"></a>
   <a href="https://pijusran.github.io/garsae/"><img src="https://img.shields.io/badge/open-the%20app-fa7641?style=for-the-badge" alt="Open the app"></a>
   <a href="https://github.com/PijusRan/garsae/actions/workflows/deploy.yml"><img src="https://img.shields.io/github/actions/workflow/status/PijusRan/garsae/deploy.yml?branch=main&style=for-the-badge&label=deploy" alt="Deploy status"></a>
 </p>
-
-<a id="ai-disclosure"></a>
 
 > [!CAUTION]
 > **All of the code in this repository was written by AI** (Claude, through Claude Code). The design decisions and direction are human; the implementation is not.
