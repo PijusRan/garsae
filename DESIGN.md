@@ -85,7 +85,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 - v1: tab open is fine. Background/lock-screen playback is deferred (it needs the Media Session API and throttle-proof timing later).
 
 ## UI
-A compact mix panel, then the tiles, then the sound settings. No hero: the page opens straight onto the instrument.
+A compact mix panel, then the tiles, then the sound settings. No hero: the page opens straight onto the instrument. A first visit adds one **welcome** sheet over it, once, offering to play Deep focus or to build a mix; share links skip it.
 - One **transport** holds playback: the mark and wordmark, a labelled **Play / Pause** pill (an icon-only circle on phones), chord with key and tempo, master volume (after the limiter), the session timer, Mixes, Share and About. Share lives only here, as one icon button, at every width. On wide screens it is a glass bar as wide as the page, stuck to the top; on phones it floats at the bottom, in thumb reach.
 - Picking a whole mix (a starter, Surprise me or a saved mix) while stopped also starts playback. Play with nothing on says "Pick a sound first" instead of playing silence.
 - Under it, the **Mix** panel: Surprise me and Mixes, then compact rows: **On now** (active tile names; tap to jump to the tile, plus Clear) and **Starters** (on a first visit, or when nothing is on), shown as small secondary pills because they are actions.

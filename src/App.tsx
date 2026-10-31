@@ -22,6 +22,7 @@ import {
 import { PRESETS, presetMix, type Preset } from './state/presets';
 import { CATEGORIES, TILES, TILE_IDS, type TileId } from './tiles';
 import { AboutSheet } from './ui/AboutSheet';
+import { WelcomeSheet } from './ui/WelcomeSheet';
 import { Background, levelReader, type AudioLevels } from './ui/Background';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
@@ -84,7 +85,7 @@ export function App() {
   const [starting, setStarting] = useState(false);
   const [chord, setChord] = useState('');
   const [saved, setSaved] = useState<SavedMix[]>(loadSavedMixes);
-  const [sheet, setSheet] = useState<'mixes' | 'about' | 'share' | null>(null);
+  const [sheet, setSheet] = useState<'mixes' | 'about' | 'share' | 'welcome' | null>(() => (getBoot().firstVisit ? 'welcome' : null));
   const [shareUrl, setShareUrl] = useState('');
   const [volume, setVolume] = useState(loadVolume);
   const [timerEnd, setTimerEnd] = useState<number | null>(null);
@@ -629,6 +630,15 @@ export function App() {
         />
       )}
       {sheet === 'share' && <ShareSheet url={shareUrl} onClose={() => setSheet(null)} />}
+      {sheet === 'welcome' && (
+        <WelcomeSheet
+          onStart={() => {
+            loadPreset(PRESETS[0]);
+            setSheet(null);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
       {sheet === 'about' && (
         <AboutSheet
           offlineSupported={offlineSupported()}

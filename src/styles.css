@@ -1342,6 +1342,12 @@ input[type='range']:focus-visible {
   color: var(--text-2);
 }
 
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .about-row {
   display: flex;
   align-items: center;

@@ -23,8 +23,13 @@ try {
   await page.setViewport({ width: 1280, height: 900 });
   await page.goto(url);
   await page.waitForSelector('.tile');
+  // A fresh browser counts as a first visit, so the welcome sheet opens. Escape leaves it.
+  const welcomed = (await page.$('[role=dialog]')) !== null;
+  await page.screenshot({ path: 'smoke-output/welcome.png' });
+  await page.keyboard.press('Escape');
+  await new Promise((r) => setTimeout(r, 200));
   await page.screenshot({ path: 'smoke-output/desktop.png', fullPage: true });
-  // A fresh browser counts as a first visit, so starter mixes are offered.
+  // Starter mixes are offered on a first visit too.
   const startersShown = (await page.$('[aria-label="Starter mixes"]')) !== null;
 
   // Play, then check the audio clock is running.
@@ -130,8 +135,8 @@ try {
   await page.screenshot({ path: 'smoke-output/phone.png', fullPage: true });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
 
-  console.log({ stillPlayingDuringFade, timerStopped, timerToast, startersShown, afterStarter, savedRow, timerText, storedVolume, barVisible, tileToggledBySpace: tilesAfter !== before + 1, pausedBySpace: !afterSpace, undoRestores: onBefore === onRestored, dialogGone, playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, errors });
-  const phase3Ok = startersShown && afterStarter === 'Brown noise' && savedRow.current && savedRow.dots === 1 && /\d:\d\d/.test(timerText) && storedVolume === '0.4' && stillPlayingDuringFade && timerStopped;
+  console.log({ welcomed, stillPlayingDuringFade, timerStopped, timerToast, startersShown, afterStarter, savedRow, timerText, storedVolume, barVisible, tileToggledBySpace: tilesAfter !== before + 1, pausedBySpace: !afterSpace, undoRestores: onBefore === onRestored, dialogGone, playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, errors });
+  const phase3Ok = welcomed && startersShown && afterStarter === 'Brown noise' && savedRow.current && savedRow.dots === 1 && /\d:\d\d/.test(timerText) && storedVolume === '0.4' && stillPlayingDuringFade && timerStopped;
   if (!phase3Ok || !playing || bellsOn !== 'true' || !barVisible || afterSpace || onBefore !== onRestored || !dialogGone || overflow || errors.length) process.exitCode = 1;
 } finally {
   await browser.close();

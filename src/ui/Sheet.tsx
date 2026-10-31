@@ -20,7 +20,7 @@ export function Sheet({ title, onClose, children }: Props) {
     const opener = document.activeElement as HTMLElement | null;
     const root = ref.current!;
     const items = () => Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE));
-    (root.querySelector<HTMLElement>('input[type="text"]') ?? items()[0])?.focus();
+    (root.querySelector<HTMLElement>('[data-autofocus], input[type="text"]') ?? items()[0])?.focus();
     const scrollbar = window.innerWidth - document.documentElement.clientWidth;
     const prevOverflow = document.body.style.overflow;
     const prevPadding = document.body.style.paddingRight;
