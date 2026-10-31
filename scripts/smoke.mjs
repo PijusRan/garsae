@@ -13,6 +13,8 @@ const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_PATH ?? '/usr/bin/chromium-browser',
   headless: true,
   args: ['--autoplay-policy=no-user-gesture-required', '--no-sandbox'],
+  // Every tile and scene renders in one call, which takes minutes.
+  protocolTimeout: 900_000,
 });
 let failed = false;
 try {

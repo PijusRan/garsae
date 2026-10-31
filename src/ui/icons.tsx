@@ -64,6 +64,14 @@ export const MixesIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const ShuffleIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 6.5h2.25c1.5 0 2.4.7 3.2 1.9l3.1 4.7c.8 1.2 1.7 1.9 3.2 1.9H17" />
+    <path d="M3 14.5h2.25c1.1 0 1.9-.4 2.5-1M12.25 7.5c.6-.6 1.4-1 2.5-1H17" />
+    <path d="M15 4.5l2 2-2 2M15 12.5l2 2-2 2" />
+  </Icon>
+);
+
 export const MoreIcon = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="5" cy="10" r=".9" fill="currentColor" />
@@ -97,15 +105,6 @@ export const ChevronIcon = (p: IconProps) => (
   </Icon>
 );
 
-export const HeadphonesIcon = (p: IconProps) => (
-  <Icon {...p}>
-    <path d="M3.75 13v-2.5a6.25 6.25 0 0 1 12.5 0V13" />
-    <rect x="3.75" y="11.5" width="3" height="5" rx="1" />
-    <rect x="13.25" y="11.5" width="3" height="5" rx="1" />
-  </Icon>
-);
-
-/** Marks effect tiles: they shape the whole mix rather than add a sound. */
 export const EffectIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M2.75 10c1.5-4 3-4 4.5 0s3 4 4.5 0 3-4 4.5 0" />

@@ -1,6 +1,6 @@
 // Harmony rules from DESIGN.md:
 // - the chord engine uses Dorian on the user's root
-// - melodic notes (bells, arps, sparse notes, grains) use minor pentatonic on the same root
+// - melodic notes (bells, arps, sparse notes) use minor pentatonic on the same root
 
 export const NOTE_NAMES = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'] as const;
 

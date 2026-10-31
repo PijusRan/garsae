@@ -25,7 +25,7 @@ import { AboutSheet } from './ui/AboutSheet';
 import { Background, levelReader, type AudioLevels } from './ui/Background';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
-import { ChevronIcon, CloseIcon, MarkIcon } from './ui/icons';
+import { ChevronIcon, CloseIcon, MarkIcon, MixesIcon, ShuffleIcon } from './ui/icons';
 import { ShareSheet } from './ui/ShareSheet';
 import { Transport } from './ui/Transport';
 import { TileCard } from './ui/TileCard';
@@ -360,6 +360,47 @@ export function App() {
 
   const detail = `Key of ${NOTE_NAMES[key]} · ${bpm} bpm`;
 
+  // What is playing leads the mix panel; with nothing on, the starters take its place.
+  const onNowRow = (
+    <div className="panel-row" role="group" aria-label="On now">
+      <h2 className="micro bracket">On now</h2>
+      <ul className="name-list">
+        {activeIds.map((id) => {
+          const t = TILES.find((x) => x.id === id)!;
+          return (
+            <li key={id}>
+              <button type="button" className="name" onClick={() => jumpToTile(id)}>
+                {t.name}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <button type="button" className="micro-link" onClick={clearAll}>
+        Clear
+      </button>
+    </div>
+  );
+  const startersRow = (
+    <div className="panel-row" role="group" aria-label="Starter mixes">
+      <h2 className="micro bracket">Starters</h2>
+      <ul className="name-list">
+        {PRESETS.map((p) => (
+          <li key={p.id}>
+            <button type="button" className="name" title={p.hint} onClick={() => loadPreset(p)}>
+              {p.name}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {showStarters && activeCount > 0 && (
+        <button type="button" className="icon-btn small" aria-label="Hide starters" onClick={() => setShowStarters(false)}>
+          <CloseIcon size={16} />
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className={`app${playing ? ' is-playing' : ''}`}>
       <Background playing={playing} getLevels={getLevels} musicKey={key} bpm={bpm} evolution={mix.evolution} />
@@ -382,6 +423,60 @@ export function App() {
 
       <div className="page" id="top">
         <h1 className="sr-only">Garsæ</h1>
+        <section className="mix-panel panel" aria-label="Mix">
+          <div className="mix-head">
+            {activeCount > 0 ? onNowRow : startersRow}
+            <div className="actions">
+              <button type="button" className="btn black" onClick={surprise}>
+                <ShuffleIcon size={16} />
+                Surprise me
+              </button>
+              <button type="button" className="btn" onClick={() => setSheet('mixes')}>
+                <MixesIcon size={16} />
+                Mixes
+                {saved.length > 0 && <span className="btn-count">{saved.length}</span>}
+              </button>
+            </div>
+          </div>
+          {activeCount > 0 && showStarters && startersRow}
+        </section>
+
+        <main>
+          {CATEGORIES.map((cat) => (
+            <section
+              key={cat.id}
+              className="category"
+              aria-labelledby={`cat-${cat.id}`}
+              aria-describedby={cat.note ? `note-${cat.id}` : undefined}
+            >
+              <div className="category-head">
+                <h2 id={`cat-${cat.id}`} className="micro bracket">
+                  {cat.name}
+                </h2>
+                {cat.note && (
+                  <span id={`note-${cat.id}`} className="category-note">
+                    {cat.note}
+                  </span>
+                )}
+                <span className="rule" aria-hidden="true" />
+                <span className="micro count">{onIn(cat.id) ? `${onIn(cat.id)} on` : ''}</span>
+              </div>
+              <div className="tiles">
+                {TILES.filter((t) => t.category === cat.id).map((t) => (
+                  <TileCard
+                    key={t.id}
+                    meta={t}
+                    setting={mix.tiles[t.id]}
+                    onToggle={() => toggleTile(t.id)}
+                    onVolume={(v) => setTile(t.id, { volume: v })}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </main>
+
+        {/* Settings most mixes leave alone, below the tiles. */}
         <section className="sound panel" aria-label="Sound">
           <div className="field evolution">
             <div className="field-head">
@@ -468,94 +563,7 @@ export function App() {
               </div>
             </div>
           </div>
-
-          <div className="actions">
-            <button type="button" className="btn black" onClick={surprise}>
-              Surprise me
-            </button>
-            <button type="button" className="btn" onClick={() => setSheet('mixes')}>
-              Mixes{saved.length ? ` (${saved.length})` : ''}
-            </button>
-            <button type="button" className="btn" onClick={() => void share()} disabled={activeCount === 0}>
-              Share link
-            </button>
-          </div>
-
-          {activeCount > 0 && (
-            <div className="panel-row" role="group" aria-label="On now">
-              <h2 className="micro bracket">On now</h2>
-              <ul className="name-list">
-                {activeIds.map((id) => {
-                  const t = TILES.find((x) => x.id === id)!;
-                  return (
-                    <li key={id}>
-                      <button type="button" className="name" onClick={() => jumpToTile(id)}>
-                        {t.name}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-              <button type="button" className="micro-link" onClick={clearAll}>
-                Clear
-              </button>
-            </div>
-          )}
-          {(showStarters || activeCount === 0) && (
-            <div className="panel-row" role="group" aria-label="Starter mixes">
-              <h2 className="micro bracket">Starters</h2>
-              <ul className="name-list">
-                {PRESETS.map((p) => (
-                  <li key={p.id}>
-                    <button type="button" className="name" title={p.hint} onClick={() => loadPreset(p)}>
-                      {p.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {showStarters && activeCount > 0 && (
-                <button type="button" className="icon-btn small" aria-label="Hide starters" onClick={() => setShowStarters(false)}>
-                  <CloseIcon size={16} />
-                </button>
-              )}
-            </div>
-          )}
         </section>
-
-        <main>
-          {CATEGORIES.map((cat) => (
-            <section
-              key={cat.id}
-              className="category"
-              aria-labelledby={`cat-${cat.id}`}
-              aria-describedby={cat.note ? `note-${cat.id}` : undefined}
-            >
-              <div className="category-head">
-                <h2 id={`cat-${cat.id}`} className="micro bracket">
-                  {cat.name}
-                </h2>
-                {cat.note && (
-                  <span id={`note-${cat.id}`} className="category-note">
-                    {cat.note}
-                  </span>
-                )}
-                <span className="rule" aria-hidden="true" />
-                <span className="micro count">{onIn(cat.id) ? `${onIn(cat.id)} on` : ''}</span>
-              </div>
-              <div className="tiles">
-                {TILES.filter((t) => t.category === cat.id).map((t) => (
-                  <TileCard
-                    key={t.id}
-                    meta={t}
-                    setting={mix.tiles[t.id]}
-                    onToggle={() => toggleTile(t.id)}
-                    onVolume={(v) => setTile(t.id, { volume: v })}
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
-        </main>
 
         <footer className="footer">
           <span className="footer-brand">

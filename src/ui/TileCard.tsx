@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { TileMeta } from '../tiles';
 import type { TileSetting } from '../state/mix';
-import { EffectIcon, HeadphonesIcon } from './icons';
+import { EffectIcon } from './icons';
 
 interface Props {
   meta: TileMeta;
@@ -20,9 +20,8 @@ export function TileCard({ meta, setting, onToggle, onVolume }: Props) {
         <span className="tile-name">
           {meta.name}
           {meta.effect && <EffectIcon size={14} aria-label="Effect" />}
-          {meta.needsHeadphones && <HeadphonesIcon size={14} />}
         </span>
-        <span className="tile-hint">{meta.needsHeadphones ? `Headphones · ${meta.hint}` : meta.hint}</span>
+        <span className="tile-hint">{meta.hint}</span>
       </button>
       <input
         className="tile-volume"

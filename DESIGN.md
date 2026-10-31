@@ -29,22 +29,19 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 
 | Category | Tiles |
 |---|---|
-| Pads | warm chord pad, glass bells / sparse notes, soft arpeggio, drone |
-| Bass | sub bass, warm walking bass, pulse bass |
+| Pads | warm chord pad, glass bells / sparse notes, soft arpeggio, drone, electric piano, choir |
+| Bass | sub bass, warm walking bass, pulse bass, glide bass, FM bass, rolling bass |
 | Drums | one tile per genre (see Drums) |
 | Texture | vinyl crackle, wind / air, room hum / machine, brown / pink / green noise (rain dropped for v1) |
 | Effects | amplitude modulation, tape wobble (they shape the whole mix and make no sound alone) |
-| Experimental | binaural / isochronic tones, granular cloud |
 
 ### Pads / melodies
 - **Each instrument defines its own generator**; there is no single global method. For example, the chord pad drifts between chords, the bells play sparse notes, and the arpeggio arpeggiates.
 
-### Experimental tiles
-Sounds that might aid focus. No claims are made in v1.
-- **Binaural / isochronic tones**: binaural needs headphones; the evidence is mixed.
-- **Noise colours**: brown / pink / green noise variants.
+### Focus-aid tiles
+- **Noise colours**: brown / pink / green noise variants (Texture).
 - **Amplitude modulation**: gentle pulsing applied to the mix, beta range (~12-20 Hz). This tile is the v1 test bed for the later Focus feature, which replaces it (see Focus method).
-- **Generative textures**: granular clouds, drones, tape wobble.
+- The Experimental category (binaural and isochronic tones, granular cloud) was removed: the beat tones had weak evidence and the granular cloud didn't earn its place next to the pads.
 
 ## Harmony
 - **Key:** user picks the **root note**; the scale is fixed and mellow so random notes never clash:
@@ -59,7 +56,7 @@ Sounds that might aid focus. No claims are made in v1.
 
 ## Drums
 - Each **drum genre is its own tile with its own volume**. Several genres can be on at once and **layer** together.
-- v1 genres: **Lo-fi hip hop, Minimal techno/house, Dub/downtempo, Ambient pulse, Breakbeat** (amen / scatter-break flavour).
+- Genres: **Lo-fi hip hop, Minimal techno/house, Dub/downtempo, Ambient pulse, Breakbeat** (amen / scatter-break flavour), **Brushes** (soft jazz swing). Six per category, so each fits one row on desktop.
 
 ### Mutation rules (all genres except breakbeat)
 - Every few bars, a pattern may: add/remove a ghost hit, shift a hit by one step, swap in a small fill on the last bar, or change the velocity/accent pattern.
@@ -67,7 +64,7 @@ Sounds that might aid focus. No claims are made in v1.
 - Evolution scales how often and how much.
 
 ### Breakbeat
-- A full, authentic busy break; **no automatic thinning**. The user controls its volume, and it defaults to soft and low in the mix so it stays in the background.
+- A full, authentic busy break, **tight like electronic music** (near-quantized, compressed, bright), with occasional 32nd-note snare rolls into phrase ends; **no automatic thinning**. The user controls its volume, and it defaults to soft and low in the mix so it stays in the background.
 - It mutates **more freely** than other genres, like real break programming: slices are rearranged and scattered, core hits included. Evolution still scales how often and how much.
 
 ## Session features (v1)
@@ -88,10 +85,11 @@ Sounds that might aid focus. No claims are made in v1.
 - v1: tab open is fine. Background/lock-screen playback is deferred (it needs the Media Session API and throttle-proof timing later).
 
 ## UI
-One compact screen of controls, then the tiles. No hero: the page opens straight onto the instrument.
-- One **transport** holds playback: the mark and wordmark, play, chord with key and tempo, master volume (after the limiter), the session timer, Mixes, Share and About. On wide screens it is a glass bar as wide as the page, stuck to the top; on phones it floats at the bottom, in thumb reach.
-- Under it, the **Sound** panel. On wide screens one row holds the Evolution slider, tempo, key, and Surprise me / Mixes / Share link (the buttons drop to their own row below 1100px; tempo and key go behind a "Tempo and key" disclosure on phones). Below that, compact rows inside the same panel: **On now** (active tile names; tap to jump to the tile, plus Clear) and **Starters** (on a first visit, or when nothing is on).
+A compact mix panel, then the tiles, then the sound settings. No hero: the page opens straight onto the instrument.
+- One **transport** holds playback: the mark and wordmark, play, chord with key and tempo, master volume (after the limiter), the session timer, Mixes, Share and About. Share lives only here, as one icon button, at every width. On wide screens it is a glass bar as wide as the page, stuck to the top; on phones it floats at the bottom, in thumb reach.
+- Under it, the **Mix** panel: Surprise me and Mixes, then compact rows: **On now** (active tile names; tap to jump to the tile, plus Clear) and **Starters** (on a first visit, or when nothing is on).
 - Tiles are **grouped by category** under bracketed micro labels (`[ PADS ]`) with a hairline rule and an "N on" count: tap to toggle, slider for level. The page is up to 1240px wide, so most categories fit on one row.
+- Below the tiles, the **Sound** panel: Evolution, tempo and key, which most mixes leave alone. On wide screens they share one row; on phones tempo and key go behind a "Tempo and key" disclosure.
 - Media keys and OS media overlays work through the Media Session API. Space toggles playback unless a keyboard user is on a button.
 
 ## Visual language
@@ -119,7 +117,7 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 - **Primary** (`.btn.black` / `.btn.primary`): black pill, faint white hairline, a 4px glass halo, and a warm glow on hover. **Secondary**: a dark vertical gradient pill with a hairline. Ghost for the rest. Press scales to 0.97. Nothing lifts on hover.
 - On tiles keep the glass and add a peach rim, light rising from the bottom edge (a radial coral glow plus a 1px cream line), and a soft coral shadow beneath.
 - Sliders: a 2px track lit cream into the background's two brightest colours up to the value, and a cream thumb with a black ring that glows on hover. 44px tall on touch.
-- Tiles show only their name, centred. On hover or keyboard focus the name rises and the description slides in beneath it (transforms only, so tiles never resize); touch screens, which cannot hover, show names only. The headphones and effect marks sit beside the name.
+- Tiles show only their name, centred. On hover or keyboard focus the name rises and the description slides in beneath it (transforms only, so tiles never resize); touch screens, which cannot hover, show names only. The effect mark sits beside the name.
 
 **Icons and controls**
 - One SVG icon set (`src/ui/icons.tsx`): 20px grid, 1.5px stroke, round caps. The mark (`MarkIcon`) is the eclipse setting over the horizon; the app icon matches it, and the browser tab shows the mark itself (`public/favicon.svg`), black on light themes and `--text` on dark. No emoji or unicode glyphs as icons.
@@ -168,12 +166,11 @@ Sources: [binaural meta-analysis](https://pubmed.ncbi.nlm.nih.gov/35842538/), [S
 ### Focus method (decided)
 - After the v1 prototype, adopt **amplitude modulation** (beta range, ~12-20 Hz) applied to pads and noise. This replaces the experimental AM tile.
 - UI: a single **Focus toggle with presets (Off / Light / Strong)**. No numbers are shown.
-- Binaural beats stay available as an experimental tile only; they are not the main method.
+- Binaural beats are not offered; the evidence is mixed and they need headphones.
 
 ## Open questions
 - **Mutation timing:** what "every few bars" means exactly, and how the Evolution slider maps to mutation rate and size.
 - **Generators:** how each pad / bass / arp generator works in detail (note choice, rhythm, density).
 - **Drum genres:** what defines "Ambient pulse" musically.
 - **"Surprise me" guardrails:** e.g. max number of active tiles, volume balance rules, whether to avoid stacking busy drum genres.
-- **Binaural vs isochronic:** whether to ship one or both as tiles.
 - **Focus presets:** what Light vs Strong mean in modulation depth and rate.

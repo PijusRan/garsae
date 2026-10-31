@@ -55,13 +55,17 @@
   --cat-drums: oklch(0.78 0.06 30);
   --cat-texture: oklch(0.78 0.06 140);
   --cat-effects: oklch(0.78 0.06 95);
-  --cat-experimental: oklch(0.78 0.06 340);
 
   --r-sm: 6px;
   --r-md: 8px;
   --r-lg: 12px;
   --r-pill: 999px;
 
+  /* Frosted glass for tiles and panels: a translucent tint over a backdrop blur, under a sheen that
+     catches the light at the top left. */
+  --glass-tint: oklch(0.12 0.004 60 / 0.42);
+  --glass-sheen: linear-gradient(160deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.015) 45%, oklch(1 0 0 / 0.035));
+  --glass-blur: blur(16px) saturate(150%);
   /* The lit top edge and shaded bottom edge of a glass tile. */
   --tile-edge: inset 0 1px 0 oklch(1 0 0 / 0.12), inset 0 -1px 0 oklch(0 0 0 / 0.25);
   --shadow-float: 0 1px 2px oklch(0 0 0 / 0.4), 0 20px 50px -16px oklch(0 0 0 / 0.8);
@@ -403,7 +407,6 @@ output,
 .mark.cat-drums { background: var(--cat-drums); }
 .mark.cat-texture { background: var(--cat-texture); }
 .mark.cat-effects { background: var(--cat-effects); }
-.mark.cat-experimental { background: var(--cat-experimental); }
 
 /* ---------------------------------------------------------------- page */
 
@@ -418,15 +421,50 @@ output,
 .panel {
   padding: 16px 20px;
   border-radius: var(--r-lg);
-  border: 1px solid var(--hairline);
-  background: oklch(0.06 0.003 60 / 0.66);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--tile-edge), 0 16px 40px -24px oklch(0 0 0 / 0.9);
+}
+
+/* One row: what is playing (or the starters) on the left, the two actions on the right. */
+.mix-panel {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.mix-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 46px;
+}
+
+.mix-head .panel-row {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.mix-head .actions {
+  flex: none;
+  padding-left: 20px;
+  border-left: 1px solid var(--hairline);
+}
+
+.mix-panel > .panel-row {
+  margin-top: 12px;
 }
 
 .sound {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) minmax(0, 0.6fr) auto;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) minmax(0, 0.6fr);
   gap: 14px 28px;
   align-items: start;
+  margin-top: 40px;
 }
 
 .tk {
@@ -477,7 +515,6 @@ output,
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  align-self: center;
 }
 
 /* On now and starters: a bracketed label, then names set large and grey, lit on hover. */
@@ -626,15 +663,10 @@ output,
   border-radius: var(--r-md);
   /* Frosted glass: the background shows through, blurred, under a sheen that
      catches the light at the top left and a bright upper edge. */
-  background-color: oklch(0.12 0.004 60 / 0.42);
-  background-image: linear-gradient(
-    160deg,
-    oklch(1 0 0 / 0.08),
-    oklch(1 0 0 / 0.015) 45%,
-    oklch(1 0 0 / 0.035)
-  );
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  backdrop-filter: blur(16px) saturate(150%);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   border: 1px solid oklch(1 0 0 / 0.1);
   box-shadow: var(--tile-edge), 0 12px 30px -20px oklch(0 0 0 / 0.9);
   /* Lets the light line sit under the slider without falling behind the tile. */
@@ -700,7 +732,8 @@ output,
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .tile {
+  .tile,
+  .panel {
     background-color: oklch(0.12 0.004 60 / 0.9);
   }
 }
@@ -850,6 +883,27 @@ output,
   box-shadow:
     0 0 0 4px oklch(1 0 0 / 0.06),
     0 0 24px -6px var(--accent-glow);
+}
+
+.btn svg {
+  flex: none;
+  margin-left: -3px;
+  color: var(--text-2);
+}
+
+/* A small count beside a button label (saved mixes). */
+.btn-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-right: -8px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: oklch(1 0 0 / 0.09);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
 }
 
 .btn.ghost {
@@ -1358,16 +1412,6 @@ input[type='range']:focus-visible {
 
 /* ---------------------------------------------------------------- responsive */
 
-/* Actions drop to their own row once the controls need the width. */
-@media (max-width: 1100px) {
-  .sound {
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) minmax(0, 0.7fr);
-  }
-  .actions {
-    grid-column: 1 / -1;
-  }
-}
-
 @media (max-width: 960px) {
   .t-volume,
   .t-sep {
@@ -1415,8 +1459,7 @@ input[type='range']:focus-visible {
     padding: 0 6px 0 10px;
     border-radius: var(--r-lg);
   }
-  .mark-link,
-  .t-share {
+  .mark-link {
     display: none;
   }
   .play {
@@ -1453,6 +1496,16 @@ input[type='range']:focus-visible {
   }
   .actions .btn {
     flex: 1 1 auto;
+  }
+  /* Phones: the actions sit on top, full width, above what is playing. */
+  .mix-head {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .mix-head .actions {
+    padding-left: 0;
+    border-left: none;
   }
   .category {
     margin-top: 24px;

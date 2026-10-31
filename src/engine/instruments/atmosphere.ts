@@ -1,8 +1,8 @@
-// Atmosphere: vinyl crackle, wind / air, room hum.
+// Atmosphere: vinyl crackle, wind / air, room hum, and the noise colours.
 import { movementDepth } from '../evolution';
 import { glide, percussive } from '../params';
 import { chance, rand } from '../random';
-import { startLoop } from '../noise';
+import { startLoop, type NoiseColor } from '../noise';
 import { midiToFreq, placeInRange } from '../theory';
 import type { Core, Instrument } from '../types';
 
@@ -167,5 +167,42 @@ export function createHum(core: Core): Instrument {
       const f = humFreq(root);
       for (const { osc, mult } of oscs) glide(ctx, osc.frequency, f * mult, 1.5);
     },
+  };
+}
+
+// ---------------------------------------------------------------- noise colours
+
+export function createNoise(color: NoiseColor | 'green') {
+  return (core: Core): Instrument => {
+    const { ctx } = core;
+    const out = new GainNode(ctx, { gain: 1 });
+    let head: AudioNode;
+    if (color === 'green') {
+      // "Green" noise: pink noise focused on the middle of the spectrum, around 500 Hz.
+      const bp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 500, Q: 0.55 });
+      const makeUp = new GainNode(ctx, { gain: 2.2 });
+      bp.connect(makeUp).connect(out);
+      head = bp;
+    } else if (color === 'pink') {
+      const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 9000 });
+      lp.connect(out);
+      head = lp;
+    } else {
+      head = out;
+    }
+    let src: AudioBufferSourceNode | undefined;
+    return {
+      output: out,
+      activate(t) {
+        src = core.noise.loop(color === 'green' ? 'pink' : color);
+        src.connect(head);
+        startLoop(src, t);
+      },
+      deactivate() {
+        src?.stop();
+        src?.disconnect();
+        src = undefined;
+      },
+    };
   };
 }

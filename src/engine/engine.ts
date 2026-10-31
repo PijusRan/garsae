@@ -2,17 +2,11 @@
 // the UI only sends commands such as setTile / setTileVolume / setEvolution.
 import { TILE_BY_ID, type TileId } from '../tiles';
 import { ChordEngine } from './chords';
-import { createAmbientPulse, createBreakbeat, createDub, createLofi, createTechno } from './drums/genres';
-import { createSub, createWalk, createPulse } from './instruments/bass';
-import { createCrackle, createHum, createWind } from './instruments/atmosphere';
-import {
-  createAmplitudeMod,
-  createBinaural,
-  createGrains,
-  createIsochronic,
-  createNoise,
-  createWobble,
-} from './instruments/experimental';
+import { createAmbientPulse, createBreakbeat, createBrushes, createDub, createLofi, createTechno } from './drums/genres';
+import { createFmBass, createGlide, createPulse, createRolling, createSub, createWalk } from './instruments/bass';
+import { createChoir, createEPiano } from './instruments/keys';
+import { createCrackle, createHum, createNoise, createWind } from './instruments/atmosphere';
+import { createAmplitudeMod, createWobble } from './instruments/effects';
 import { createArp, createBells, createDrone, createPad } from './instruments/pads';
 import { Master, type ModulationSettings } from './master';
 import { NoiseBank } from './noise';
@@ -26,14 +20,20 @@ const FACTORIES: Record<TileId, InstrumentFactory> = {
   bells: createBells,
   arp: createArp,
   drone: createDrone,
+  epiano: createEPiano,
+  choir: createChoir,
   sub: createSub,
   walk: createWalk,
   pulse: createPulse,
+  glide: createGlide,
+  fm: createFmBass,
+  rolling: createRolling,
   lofi: createLofi,
   techno: createTechno,
   dub: createDub,
   ambient: createAmbientPulse,
   breaks: createBreakbeat,
+  brushes: createBrushes,
   crackle: createCrackle,
   wind: createWind,
   hum: createHum,
@@ -41,9 +41,6 @@ const FACTORIES: Record<TileId, InstrumentFactory> = {
   pink: createNoise('pink'),
   green: createNoise('green'),
   am: createAmplitudeMod,
-  binaural: createBinaural,
-  iso: createIsochronic,
-  grains: createGrains,
   wobble: createWobble,
 };
 

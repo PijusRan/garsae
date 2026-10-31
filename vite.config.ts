@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -24,8 +23,4 @@ function precacheList(): Plugin {
 export default defineConfig({
   base: './',
   plugins: [react(), precacheList()],
-  test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-  },
 });

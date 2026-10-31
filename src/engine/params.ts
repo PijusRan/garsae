@@ -57,16 +57,21 @@ export function percussive(param: AudioParam, t: number, peak: number, attack: n
   return t + attack + decay + 0.01;
 }
 
-/** Stops sources at `end` and disconnects the given nodes once the first source has ended. */
+/**
+ * Stops sources at `end` and disconnects the given nodes once the first source has ended.
+ * `onEnded` runs then too: use it to unhook shared modulators (drift) from the voice's params.
+ */
 export function cleanupAt(
   sources: AudioScheduledSourceNode[],
   end: number,
   nodes: AudioNode[] = [],
+  onEnded?: () => void,
 ): void {
   for (const s of sources) s.stop(end);
   if (sources.length === 0) return;
   sources[0].onended = () => {
     for (const s of sources) s.disconnect();
     for (const n of nodes) n.disconnect();
+    onEnded?.();
   };
 }

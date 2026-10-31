@@ -4,6 +4,7 @@
 import { movementDepth, movementRate, noteDensity } from '../evolution';
 import { cleanupAt, envelope, glide, percussive } from '../params';
 import { chance, clamp, pick, rand, randInt } from '../random';
+import { createChorus, createDrift } from '../synth';
 import { chordInPentatonic, midiToFreq, notesInRange, pentatonicNotes, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
 
@@ -24,26 +25,46 @@ function movingFilter(core: Core, base: number, maxDepth: number, baseRate: numb
 
 // ---------------------------------------------------------------- warm chord pad
 
+/** Saw detune (cents) and pan offset for the three unison oscillators in a pad note. */
+const PAD_UNISON = [
+  { detune: -11, pan: -0.45 },
+  { detune: 0, pan: 0 },
+  { detune: 12, pan: 0.45 },
+];
+
 export function createPad(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const { filter, setEvolution } = movingFilter(core, 1000, 550, 0.045, 0.6);
-  filter.connect(out);
+  const { filter, setEvolution } = movingFilter(core, 1400, 650, 0.045, 0.5);
+  const chorus = createChorus(ctx, { wet: 0.8 });
+  const drift = createDrift(ctx, 6);
+  filter.connect(chorus.input);
+  chorus.output.connect(out);
   let soundingUntil = 0;
 
+  /** Three detuned saws per note, each with its own slow drift, through a filter that opens as the note swells. */
   function voice(midi: number, t: number, hold: number, peak: number, pan: number) {
     const f = midiToFreq(midi);
     const g = new GainNode(ctx, { gain: 0 });
-    const p = new StereoPannerNode(ctx, { pan });
-    const a = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f, detune: -7 + rand(-2, 2) });
-    const b = new OscillatorNode(ctx, { type: 'triangle', frequency: f, detune: 6 + rand(-2, 2) });
-    a.connect(g);
-    b.connect(g);
-    g.connect(p).connect(filter);
+    const lp = new BiquadFilterNode(ctx, { type: 'lowpass', Q: 0.6, frequency: f * 1.5 });
+    lp.frequency.setTargetAtTime(Math.min(f * 5, 4200), t, 0.9);
+    lp.frequency.setTargetAtTime(f * 2, t + hold, 1.2);
+    lp.connect(g).connect(filter);
+    const oscs: OscillatorNode[] = [];
+    const nodes: AudioNode[] = [g, lp];
+    for (const u of PAD_UNISON) {
+      const osc = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f, detune: u.detune + rand(-3, 3) });
+      const p = new StereoPannerNode(ctx, { pan: clamp(pan + u.pan, -0.9, 0.9) });
+      osc.connect(p).connect(lp);
+      drift.connect(osc.detune);
+      oscs.push(osc);
+      nodes.push(p);
+    }
     const end = envelope(g.gain, t, hold, { peak, attack: 1.8, release: 3.2 });
-    a.start(t);
-    b.start(t);
-    cleanupAt([a, b], end, [g, p]);
+    for (const o of oscs) o.start(t);
+    cleanupAt(oscs, end, nodes, () => {
+      for (const o of oscs) drift.disconnect(o.detune);
+    });
   }
 
   function playChord(s: StepInfo, bars: number) {
@@ -77,10 +98,22 @@ export function createPad(core: Core): Instrument {
 
 // ---------------------------------------------------------------- glass bells / sparse notes
 
+/**
+ * Partials of an ideal free bar (glockenspiel, vibraphone): 1, 2.76 and 5.40 times the
+ * fundamental, each fading faster than the one below. A twin of the fundamental a few
+ * cents sharp beats slowly against it, which is what makes struck metal shimmer.
+ */
+const BAR_PARTIALS = [
+  { ratio: 1, detune: 0, gain: 0.11, decay: 4.6 },
+  { ratio: 1, detune: 4, gain: 0.05, decay: 3.6 },
+  { ratio: 2.756, detune: 0, gain: 0.04, decay: 1.5 },
+  { ratio: 5.404, detune: 0, gain: 0.014, decay: 0.45 },
+];
+
 export function createBells(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const tone = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 6500 });
+  const tone = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 9000 });
   tone.connect(out);
   let nextAllowed = 0;
   let last = 79;
@@ -88,23 +121,30 @@ export function createBells(core: Core): Instrument {
   function bell(t: number, midi: number, vel: number) {
     const f = midiToFreq(midi);
     const pan = new StereoPannerNode(ctx, { pan: rand(-0.6, 0.6) });
-    const amp = new GainNode(ctx, { gain: 0 });
-    const carrier = new OscillatorNode(ctx, { frequency: f });
-    const mod = new OscillatorNode(ctx, { frequency: f * 3.5 });
-    const modGain = new GainNode(ctx, { gain: 0 });
-    const shimmer = new OscillatorNode(ctx, { frequency: f * 2.01 });
-    const shimmerGain = new GainNode(ctx, { gain: 0 });
-    mod.connect(modGain).connect(carrier.frequency);
-    carrier.connect(amp);
-    shimmer.connect(shimmerGain).connect(amp);
+    const amp = new GainNode(ctx, { gain: vel });
     amp.connect(pan).connect(tone);
-    // FM index falls quickly: a bright strike that mellows into a pure tone.
-    modGain.gain.setValueAtTime(f * 1.1 * vel, t);
-    modGain.gain.exponentialRampToValueAtTime(f * 0.01, t + 1.4);
-    percussive(shimmerGain.gain, t, 0.25, 0.003, 1.6);
-    const end = percussive(amp.gain, t, 0.16 * vel, 0.004, 4.2);
-    for (const o of [carrier, mod, shimmer]) o.start(t);
-    cleanupAt([carrier, mod, shimmer], end, [modGain, shimmerGain, amp, pan]);
+    const oscs: OscillatorNode[] = [];
+    const nodes: AudioNode[] = [amp, pan];
+    let end = t;
+    for (const p of BAR_PARTIALS) {
+      const osc = new OscillatorNode(ctx, { frequency: f * p.ratio, detune: p.detune });
+      const g = new GainNode(ctx, { gain: 0 });
+      osc.connect(g).connect(amp);
+      // Softer strikes lose the upper partials first, like a lighter mallet.
+      const level = p.gain * (p.ratio > 2 ? vel : 1);
+      end = Math.max(end, percussive(g.gain, t, level, 0.002, p.decay));
+      oscs.push(osc);
+      nodes.push(g);
+    }
+    // The mallet: a few milliseconds of noise around the upper partials.
+    const strike = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
+    const strikeBp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: Math.min(f * 4, 9000), Q: 1.5 });
+    const strikeGain = new GainNode(ctx, { gain: 0 });
+    strike.connect(strikeBp).connect(strikeGain).connect(amp);
+    percussive(strikeGain.gain, t, 0.05 * vel, 0.001, 0.025);
+    strike.start(t, rand(0, 1.5), 0.05);
+    for (const o of oscs) o.start(t);
+    cleanupAt(oscs, end, [...nodes, strike, strikeBp, strikeGain]);
   }
 
   function chooseNote(s: StepInfo): number {
@@ -138,85 +178,114 @@ export function createBells(core: Core): Instrument {
 
 // ---------------------------------------------------------------- soft arpeggio
 
-type ArpMode = 'up' | 'down' | 'updown' | 'walk';
+/**
+ * A felt-mallet marimba: a round fundamental that rings longer on low notes, the bar's
+ * tuned overtone two octaves up, a faint tenth partial and a soft wooden knock. Softer
+ * notes keep only the fundamental, like a lighter stroke with a yarn mallet.
+ */
+const MALLET_PARTIALS = [
+  { ratio: 1, gain: 1, decay: 1 },
+  { ratio: 4, gain: 0.08, decay: 0.2 },
+  { ratio: 9.8, gain: 0.02, decay: 0.05 },
+];
+
+/** One-bar rhythms (16ths). Calm ones first; livelier settings reach further down the list. */
+const ARP_RHYTHMS = [
+  'x...x...x.......',
+  'x.....x.....x...',
+  'x...x...x...x...',
+  'x.x.x.......x...',
+  'x.x...x.x...x...',
+  'x...x.x.x...x.x.',
+  'x.x.x.x.x.......',
+];
+
+type Contour = 'up' | 'down' | 'arch';
 
 export function createArp(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const { filter, setEvolution } = movingFilter(core, 2100, 900, 0.06, 0.7);
-  const dry = new GainNode(ctx, { gain: 1 });
-  const delay = new DelayNode(ctx, { maxDelayTime: 2, delayTime: 0.5 });
-  const feedback = new GainNode(ctx, { gain: 0.38 });
-  const loopFilter = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2300 });
-  const wet = new GainNode(ctx, { gain: 0.32 });
-  filter.connect(dry).connect(out);
+  const { filter, setEvolution } = movingFilter(core, 3200, 900, 0.06, 0.5);
+  // One dark, quiet echo a dotted quarter later: a trail behind the phrase, not more notes.
+  const delay = new DelayNode(ctx, { maxDelayTime: 3, delayTime: 0.75 });
+  const feedback = new GainNode(ctx, { gain: 0.22 });
+  const loopFilter = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1500 });
+  const wet = new GainNode(ctx, { gain: 0.16 });
+  filter.connect(out);
   filter.connect(delay);
   delay.connect(loopFilter).connect(feedback).connect(delay);
   loopFilter.connect(wet).connect(out);
 
-  let mode: ArpMode = pick(['up', 'down', 'updown', 'walk']);
-  let pos = 0;
-  let walkIdx = 2;
+  let phrase: { step: number; midi: number; vel: number }[] = [];
+  let last = 64;
 
   function note(t: number, midi: number, vel: number) {
     const f = midiToFreq(midi);
-    const g = new GainNode(ctx, { gain: 0 });
-    const a = new OscillatorNode(ctx, { type: 'triangle', frequency: f });
-    const b = new OscillatorNode(ctx, { type: 'sine', frequency: f * 2 });
-    const bg = new GainNode(ctx, { gain: 0.18 });
-    a.connect(g);
-    b.connect(bg).connect(g);
-    g.connect(filter);
-    const end = percussive(g.gain, t, 0.13 * vel, 0.008, 0.75);
-    a.start(t);
-    b.start(t);
-    cleanupAt([a, b], end, [g, bg]);
+    const amp = new GainNode(ctx, { gain: 1 });
+    const pan = new StereoPannerNode(ctx, { pan: clamp((midi - 64) / 24, -0.4, 0.4) });
+    amp.connect(pan).connect(filter);
+    // Low bars ring longer than high ones.
+    const ring = clamp(1.5 * Math.sqrt(262 / f), 0.7, 2);
+    const oscs: OscillatorNode[] = [];
+    const nodes: AudioNode[] = [amp, pan];
+    let end = t;
+    for (const p of MALLET_PARTIALS) {
+      const osc = new OscillatorNode(ctx, { frequency: f * p.ratio });
+      const g = new GainNode(ctx, { gain: 0 });
+      osc.connect(g).connect(amp);
+      const level = 0.12 * p.gain * (p.ratio > 1 ? vel * vel : vel);
+      end = Math.max(end, percussive(g.gain, t, level, p.ratio > 1 ? 0.002 : 0.006, p.decay * ring));
+      oscs.push(osc);
+      nodes.push(g);
+    }
+    const knock = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
+    const knockLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 900 });
+    const knockGain = new GainNode(ctx, { gain: 0 });
+    knock.connect(knockLp).connect(knockGain).connect(amp);
+    percussive(knockGain.gain, t, 0.05 * vel, 0.001, 0.015);
+    knock.start(t, rand(0, 1.5), 0.04);
+    for (const o of oscs) o.start(t);
+    cleanupAt(oscs, end, [...nodes, knock, knockLp, knockGain]);
   }
 
-  function pickFrom(pool: number[]): number {
-    const n = pool.length;
-    let idx: number;
-    switch (mode) {
-      case 'up':
-        idx = pos % n;
-        break;
-      case 'down':
-        idx = n - 1 - (pos % n);
-        break;
-      case 'updown': {
-        const period = Math.max(1, 2 * n - 2);
-        const p = pos % period;
-        idx = p < n ? p : period - p;
-        break;
-      }
-      default:
-        walkIdx = clamp(walkIdx + pick([-1, 1, 1, -1, 2, -2]), 0, n - 1);
-        idx = walkIdx;
-    }
-    pos++;
-    return pool[clamp(idx, 0, n - 1)];
+  /** A short broken-chord phrase for one bar: a rhythm, a contour and gentle dynamics. */
+  function makePhrase(s: StepInfo) {
+    const pool = notesInRange(chordInPentatonic(s.root, s.chord), 55, 74);
+    const reach = Math.round(2 + 4 * s.evolution);
+    const rhythm = ARP_RHYTHMS[randInt(0, clamp(reach, 0, ARP_RHYTHMS.length - 1))];
+    const steps = [...rhythm].map((c, i) => (c === 'x' ? i : -1)).filter((i) => i >= 0);
+    const contour = pick<Contour>(['up', 'up', 'down', 'arch']);
+    // Start near the last phrase so consecutive phrases connect.
+    let idx = pool.findIndex((m) => m >= last);
+    if (idx < 0) idx = pool.length - 1;
+    if (contour === 'up') idx = clamp(idx - 2, 0, pool.length - 1);
+    if (contour === 'down') idx = clamp(idx + 2, 0, pool.length - 1);
+    phrase = steps.map((step, i) => {
+      const goingUp = contour === 'up' || (contour === 'arch' && i < steps.length / 2);
+      if (i > 0) idx = clamp(idx + (goingUp ? 1 : -1) * (chance(0.2) ? 2 : 1), 0, pool.length - 1);
+      const vel = i === 0 ? 0.8 : i === steps.length - 1 ? 0.5 : rand(0.55, 0.7);
+      return { step, midi: pool[idx], vel };
+    });
+    last = phrase[phrase.length - 1]?.midi ?? last;
   }
 
   return {
     output: out,
     setEvolution,
     setTempo(bpm) {
-      // Dotted-eighth echo.
-      glide(ctx, delay.delayTime, (60 / bpm) * 0.75, 0.5);
+      glide(ctx, delay.delayTime, (60 / bpm) * 1.5, 0.5);
     },
     step(s) {
-      if (s.stepInBar === 0 && chance(0.12 * s.evolution)) {
-        mode = pick(['up', 'down', 'updown', 'walk']);
+      if (s.stepInBar === 0) {
+        // Whole bars of rest let the phrases breathe; livelier settings rest less.
+        if (chance(0.4 - 0.2 * s.evolution)) phrase = [];
+        else makePhrase(s);
       }
-      if (s.stepInBar % 2 !== 0) return;
-      const restChance = 0.62 - 0.36 * noteDensity(s.evolution);
-      if (s.stepInBar !== 0 && chance(restChance)) {
-        pos++;
-        return;
-      }
-      const pool = notesInRange(chordInPentatonic(s.root, s.chord), 60, 79);
-      const vel = s.stepInBar === 0 ? 1 : s.stepInBar % 4 === 0 ? 0.8 : 0.6;
-      note(s.time, pickFrom(pool), vel * rand(0.85, 1));
+      const hit = phrase.find((n) => n.step === s.stepInBar);
+      if (hit) note(s.time + rand(0, 0.008), hit.midi, hit.vel * rand(0.9, 1));
+    },
+    deactivate() {
+      phrase = [];
     },
   };
 }
@@ -227,7 +296,10 @@ export function createDrone(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const { filter, setEvolution } = movingFilter(core, 420, 220, 0.03, 0.9);
-  filter.connect(out);
+  const chorus = createChorus(ctx, { wet: 0.8, rate: 0.23, depth: 0.0025 });
+  const drift = createDrift(ctx, 5, 0.07);
+  filter.connect(chorus.input);
+  chorus.output.connect(out);
   let oscs: { osc: OscillatorNode; interval: number }[] = [];
   let nodes: AudioNode[] = [];
 
@@ -250,6 +322,8 @@ export function createDrone(core: Core): Instrument {
         const g = new GainNode(ctx, { gain: l.gain });
         const p = new StereoPannerNode(ctx, { pan: l.pan });
         osc.connect(g).connect(p).connect(filter);
+        // The sine an octave down stays put; the rest wander slightly, so the drone breathes.
+        if (l.type !== 'sine') drift.connect(osc.detune);
         osc.start(t);
         oscs.push({ osc, interval: l.interval });
         nodes.push(g, p);
@@ -261,6 +335,8 @@ export function createDrone(core: Core): Instrument {
         osc.disconnect();
       }
       for (const n of nodes) n.disconnect();
+      // The drift only feeds this drone's oscillators, so unhook it from all of them.
+      drift.disconnect();
       oscs = [];
       nodes = [];
     },

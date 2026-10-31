@@ -147,7 +147,7 @@ export async function runSmoke(opts: { wavs?: boolean } = {}) {
   };
   await add('default mix', { tiles: { pad: 0.65, lofi: 0.45, brown: 0.3 }, seconds: 60 });
   await add('evolving mix', {
-    tiles: { pad: 0.6, bells: 0.5, sub: 0.5, dub: 0.5, crackle: 0.35, grains: 0.4 },
+    tiles: { pad: 0.6, bells: 0.5, sub: 0.5, dub: 0.5, crackle: 0.35, arp: 0.4 },
     seconds: 60,
     evolution: 0.9,
     bpm: 72,
