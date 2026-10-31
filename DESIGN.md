@@ -65,8 +65,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 - Evolution scales how often and how much.
 
 ### Breakbeat
-- A full, authentic busy break, **tight like electronic music** (near-quantized, compressed, bright), with occasional 32nd-note snare rolls into phrase ends; **no automatic thinning**. The user controls its volume, and it defaults to soft and low in the mix so it stays in the background.
-- It mutates **more freely** than other genres, like real break programming: slices are rearranged and scattered, core hits included. Evolution still scales how often and how much.
+- The **Amen break**, the most sampled drum break there is: G. C. Coleman's four bars from The Winstons' "Amen, Brother" (1969), as recorded, tight and compressed. It is the one tile that never mutates, whatever Evolution says, because its value is that people recognise it. The original runs at about 136 BPM, just above the tempo slider's 130.
 
 ## Session features (v1)
 - **Save/load mixes** locally (browser storage, no account).

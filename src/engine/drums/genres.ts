@@ -3,16 +3,7 @@ import { drumMutationChance, drumMutationInterval, drumMutationSize, noteDensity
 import { glide } from '../params';
 import { chance, clamp, rand } from '../random';
 import type { Core, Instrument, StepInfo } from '../types';
-import {
-  freshSlices,
-  makeTracks,
-  mutateOnce,
-  mutateSlices,
-  parsePattern,
-  sliceSource,
-  type Track,
-  type TrackDef,
-} from './patterns';
+import { makeTracks, mutateOnce, parsePattern, type Track, type TrackDef } from './patterns';
 import { saturationCurve } from '../synth';
 import { playHit, type HitOpts, type Kit, type Voice } from './voices';
 
@@ -294,23 +285,22 @@ export const createBossa = createPatternGenre(GENRES.bossa);
 // ---------------------------------------------------------------- breakbeat
 
 /**
- * A two-bar, amen-flavoured break as electronic music uses it: chopped, near-quantized and
- * compressed. A short punchy kick, a crisp snare, tight 16th hats with an open hat on the
- * turnaround. Never thinned automatically.
+ * The Amen break: G. C. Coleman's four bars from The Winstons' "Amen, Brother" (1969), the most sampled drum break
+ * there is. Played as recorded, on the 64-step grid: two bars of the groove with its doubled kick and snare pickups,
+ * a third that delays the last snare, and a fourth that drops the downbeat and hits the crash early.
+ * Eighths on the ride throughout, broken only by that crash. It never mutates: the point is that you know it.
  */
-const BREAK: TrackDef[] = [
-  { voice: 'kick', pattern: 'X.X.......xX....' + 'X.X.......X.....', opts: { tone: 1.15, decay: 0.55 } },
-  { voice: 'snare', pattern: '....X..o.og.X..o' + '....X..o.o..g.X.', opts: { tone: 1.2, decay: 0.7 } },
-  { voice: 'hat', pattern: 'x.o.x.o.x.o.x.o.' + 'x.o.x.o.x.o.x...', gain: 0.85, opts: { tone: 1.05, decay: 0.7 } },
-  { voice: 'hat', pattern: '.g.g.g.g.g.g.g.g' + '.g.g.g.g.g.g.g..', gain: 0.55, opts: { tone: 1.1, decay: 0.5 } },
-  { voice: 'openhat', pattern: '................' + '..............o.', gain: 0.6, opts: { decay: 0.6 } },
+const AMEN: TrackDef[] = [
+  { voice: 'kick', pattern: 'X.X.......xX....' + 'X.X.......xX....' + 'X.X.......X.....' + '..xX......X.....', opts: { tone: 1.1, decay: 0.6 } },
+  { voice: 'snare', pattern: '....X..o.o..X..o' + '....X..o.o..X..o' + '....X..o.o....X.' + '.o..X..o.o....X.', opts: { tone: 1.12, decay: 0.8 } },
+  { voice: 'ride', pattern: 'x.o.x.o.x.o.x.o.' + 'x.o.x.o.x.o.x.o.' + 'x.o.x.o.x.o.x.o.' + 'x.o.x.o.x...x.o.', gain: 3, opts: { decay: 0.9 } },
+  { voice: 'openhat', pattern: '................' + '................' + '................' + '..........X.....', gain: 0.9, opts: { tone: 0.82, decay: 3 } },
 ];
 
 export function createBreakbeat(core: Core): Instrument {
   const { ctx } = core;
   const kit: Kit = { ctx, noise: core.noise };
-  const tracks = makeTracks(BREAK);
-  const slices = freshSlices(8);
+  const tracks = makeTracks(AMEN);
   // Drum-bus glue: a fast compressor for punch, then soft saturation. Bright, not darkened.
   const input = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 45 });
   const comp = new DynamicsCompressorNode(ctx, { threshold: -20, knee: 6, ratio: 4, attack: 0.002, release: 0.07 });
@@ -319,37 +309,16 @@ export function createBreakbeat(core: Core): Instrument {
   const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 12000, Q: 0.4 });
   const output = new GainNode(ctx, { gain: 0.75 });
   input.connect(comp).connect(makeUp).connect(sat).connect(lp).connect(output);
-  let rollThisBar = false;
 
   return {
     output,
     step(s) {
-      const pos = (s.bar % 2) * 16 + s.stepInBar;
-      const e = s.evolution;
-      if (pos === 0) {
-        // Mutates more freely than other genres, but Evolution still scales it.
-        if (e > 0 && chance(0.35 + 0.65 * e)) {
-          const ops = 1 + Math.floor(rand(0, 1.5 + 3 * e));
-          for (let i = 0; i < ops; i++) mutateSlices(slices);
-        }
-      }
-      // A 32nd-note snare roll may replace the snare on the last beat of a 4-bar phrase.
-      if (s.stepInBar === 0) rollThisBar = s.bar % 4 === 3 && chance(0.15 + 0.4 * e);
-      const rolling = rollThisBar && s.stepInBar >= 12;
-      const src = sliceSource(slices, pos);
+      const pos = (s.bar % 4) * 16 + s.stepInBar;
       const t = s.time + swingOffset(s.stepInBar, s.stepDur, 0.02);
       for (const tr of tracks) {
-        if (rolling && tr.def.voice === 'snare') continue;
-        const vel = tr.cur[src];
+        const vel = tr.base[pos];
         if (vel <= 0) continue;
         playHit(kit, tr.def.voice, input, Math.max(s.time, t + rand(-0.001, 0.001)), vel * (tr.def.gain ?? 1), tr.def.opts);
-      }
-      if (rolling) {
-        // Two hits per 16th, rising in level and pitch into the downbeat.
-        for (let h = 0; h < 2; h++) {
-          const k = (s.stepInBar - 12) * 2 + h;
-          playHit(kit, 'snare', input, t + (h * s.stepDur) / 2, 0.3 + 0.07 * k, { tone: 1.15 + 0.02 * k, decay: 0.45 });
-        }
       }
     },
   };

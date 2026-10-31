@@ -60,7 +60,7 @@ export const TILES: TileMeta[] = [
   { id: 'techno', category: 'drums', name: 'Minimal techno', hint: 'Four on the floor', defaultVolume: 0.45, level: 0.928, reverb: 0.08 },
   { id: 'dub', category: 'drums', name: 'Dub', hint: 'One drop, echoes', defaultVolume: 0.5, level: 0.788, reverb: 0.15 },
   { id: 'ambient', category: 'drums', name: 'Ambient pulse', hint: 'A soft heartbeat', defaultVolume: 0.5, level: 0.666, reverb: 0.35 },
-  { id: 'breaks', category: 'drums', name: 'Breakbeat', hint: 'Busy, kept low', defaultVolume: 0.4, level: 0.377, reverb: 0.06 },
+  { id: 'breaks', category: 'drums', name: 'Breakbeat', hint: 'The classic Amen break', defaultVolume: 0.4, level: 0.377, reverb: 0.06 },
   { id: 'brushes', category: 'drums', name: 'Brushes', hint: 'Soft jazz swing', defaultVolume: 0.5, level: 2.74, reverb: 0.12 },
   { id: 'house', category: 'drums', name: 'Deep house', hint: 'Warm, steady, shuffled', defaultVolume: 0.45, level: 0.456, reverb: 0.08 },
   { id: 'triphop', category: 'drums', name: 'Trip hop', hint: 'Slow, heavy, dusty', defaultVolume: 0.5, level: 0.5, reverb: 0.15 },

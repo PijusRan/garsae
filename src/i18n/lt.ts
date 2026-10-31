@@ -31,7 +31,7 @@ export const lt: Strings = {
     techno: { name: 'Minimalus techno', hint: 'Ketvirtinių ritmas' },
     dub: { name: 'Dub', hint: 'One drop ritmas, aidai' },
     ambient: { name: 'Ambient pulsas', hint: 'Širdies plakimas' },
-    breaks: { name: 'Breakbeat', hint: 'Tirštas, bet tylus' },
+    breaks: { name: 'Breakbeat', hint: 'Klasikinis „Amen“ ritmas' },
     brushes: { name: 'Šepetėliai', hint: 'Švelnus džiazo svingas' },
     house: { name: 'Deep house', hint: 'Šiltas, tolygus, pakrypęs' },
     triphop: { name: 'Trip hop', hint: 'Lėtas, sunkus, dulkėtas' },
