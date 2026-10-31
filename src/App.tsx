@@ -154,15 +154,16 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, [replaceMix]);
 
-  const togglePlay = useCallback(async () => {
+  const togglePlay = useCallback(async (next?: { mix: MixState; bpm: number; key: number }) => {
+    const useMix = next?.mix ?? mix;
     let engine = engineRef.current;
     if (!engine) {
       // Created inside the tap so iOS lets the AudioContext start.
       engine = new Engine();
       engine.onChord = setChord;
       engine.setMasterVolume(volume);
-      applyMix(engine, mix, null, bpm, key);
-      appliedRef.current = mix;
+      applyMix(engine, useMix, null, next?.bpm ?? bpm, next?.key ?? key);
+      appliedRef.current = useMix;
       engineRef.current = engine;
       levelsRef.current = levelReader(engine.master.analyser);
     }
@@ -186,6 +187,12 @@ export function App() {
       setStarting(false);
     }
   }, [mix, bpm, key, say, volume]);
+
+  /** Picking a whole mix while stopped means "play this". Undo keeps whatever state playback is in. */
+  const startWith = (next: MixState, nextRolled = rolled) => {
+    if (engineRef.current?.playing || starting) return;
+    void togglePlay({ mix: next, bpm: next.bpm ?? nextRolled.bpm, key: next.key ?? nextRolled.key });
+  };
 
   const play = useCallback(() => {
     if (!engineRef.current?.playing) void togglePlay();
@@ -292,13 +299,18 @@ export function App() {
   };
 
   const surprise = () => {
-    replaceMix(surpriseMix(), 'Surprise mix');
-    setRolled({ bpm: rollBpm(), key: rollKey() });
+    const next = surpriseMix();
+    const nextRolled = { bpm: rollBpm(), key: rollKey() };
+    replaceMix(next, 'Surprise mix');
+    setRolled(nextRolled);
+    startWith(next, nextRolled);
   };
 
   const loadPreset = (p: Preset) => {
-    replaceMix(presetMix(p), `Loaded “${p.name}”`);
+    const next = presetMix(p);
+    replaceMix(next, `Loaded “${p.name}”`);
     setShowStarters(false);
+    startWith(next);
   };
 
   const clearAll = () => {
@@ -594,7 +606,10 @@ export function App() {
           }}
           onLoad={(m) => {
             const decoded = decodeMix(m.mix);
-            if (decoded) replaceMix(decoded, `Loaded “${m.name}”`);
+            if (decoded) {
+              replaceMix(decoded, `Loaded “${m.name}”`);
+              startWith(decoded);
+            }
             setSheet(null);
           }}
           onPreset={(p) => {
