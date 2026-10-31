@@ -3,7 +3,7 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
 /** Files from /public that the offline cache must also hold. */
-const PUBLIC_FILES = ['manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
+const PUBLIC_FILES = ['manifest.webmanifest', 'favicon.svg', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 /**
  * Emits precache.json: the list of every built file. The in-app

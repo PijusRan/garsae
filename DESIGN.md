@@ -122,7 +122,7 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 - Tiles show only their name, centred. On hover or keyboard focus the name rises and the description slides in beneath it (transforms only, so tiles never resize); touch screens, which cannot hover, show names only. The headphones and effect marks sit beside the name.
 
 **Icons and controls**
-- One SVG icon set (`src/ui/icons.tsx`): 20px grid, 1.5px stroke, round caps. The mark (`MarkIcon`) is the eclipse setting over the horizon; the app icon matches it. No emoji or unicode glyphs as icons.
+- One SVG icon set (`src/ui/icons.tsx`): 20px grid, 1.5px stroke, round caps. The mark (`MarkIcon`) is the eclipse setting over the horizon; the app icon matches it, and the browser tab shows the mark itself (`public/favicon.svg`), black on light themes and `--text` on dark. No emoji or unicode glyphs as icons.
 
 **Motion**
 - `cubic-bezier(.2,.8,.2,1)`. 120ms for press and toggle, 200ms for hover, 320ms for sheets. Everything respects `prefers-reduced-motion`.
