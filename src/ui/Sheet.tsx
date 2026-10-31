@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useLayoutEffect, useId, useRef, type ReactNode } from 'react';
 import { CloseIcon } from './icons';
 
 interface Props {
@@ -16,7 +16,7 @@ export function Sheet({ title, onClose, children }: Props) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
     const root = ref.current!;
     const items = () => Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE));

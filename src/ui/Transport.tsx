@@ -57,7 +57,7 @@ export function Transport(props: Props) {
           style={{ '--fill': `${pct}%` } as CSSProperties}
           aria-label="Master volume"
           aria-valuetext={`${pct}%`}
-          onChange={(e) => props.onVolume(Number(e.target.value) / 100)}
+          onChange={(e) => props.onVolume(Number(e.currentTarget.value) / 100)}
         />
       </label>
       <TimerControl left={timerLeft} onSet={props.onTimer} />

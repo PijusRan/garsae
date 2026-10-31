@@ -25,7 +25,7 @@ export function TimerControl({ left, onSet }: Props) {
       <select
         aria-label={left === null ? 'Session timer' : `Session timer, ${formatLeft(left)} left`}
         value={left === null ? 'off' : 'on'}
-        onChange={(e) => onSet(e.target.value === 'off' ? null : Number(e.target.value))}
+        onChange={(e) => onSet(e.currentTarget.value === 'off' ? null : Number(e.currentTarget.value))}
       >
         {left !== null && (
           <option value="on" disabled>

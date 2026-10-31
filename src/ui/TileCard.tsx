@@ -35,7 +35,7 @@ export function TileCard({ meta, setting, onToggle, onVolume }: Props) {
         title={`${pct}%`}
         disabled={!setting.on}
         tabIndex={setting.on ? 0 : -1}
-        onChange={(e) => onVolume(Number(e.target.value) / 100)}
+        onChange={(e) => onVolume(Number(e.currentTarget.value) / 100)}
       />
     </div>
   );

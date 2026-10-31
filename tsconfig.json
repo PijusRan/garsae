@@ -5,6 +5,12 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "paths": {
+      "react": ["./node_modules/preact/compat/"],
+      "react-dom/client": ["./node_modules/preact/compat/client"],
+      "react-dom": ["./node_modules/preact/compat/"]
+    },
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

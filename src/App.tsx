@@ -512,7 +512,7 @@ export function App() {
               value={evoPct}
               style={fill(evoPct)}
               aria-valuetext={`${evoPct}%, ${evolutionText(mix.evolution)}`}
-              onChange={(e) => setMix((m) => ({ ...m, evolution: Number(e.target.value) / 100 }))}
+              onChange={(e) => setMix((m) => ({ ...m, evolution: Number(e.currentTarget.value) / 100 }))}
             />
           </div>
 
@@ -558,7 +558,7 @@ export function App() {
                   max={BPM_MAX}
                   value={bpm}
                   style={fill(bpmPct)}
-                  onChange={(e) => setMix((m) => ({ ...m, bpm: Number(e.target.value) }))}
+                  onChange={(e) => setMix((m) => ({ ...m, bpm: Number(e.currentTarget.value) }))}
                 />
               </div>
             </div>
@@ -571,7 +571,7 @@ export function App() {
                 <select
                   id="key"
                   value={mix.key === null ? 'auto' : String(mix.key)}
-                  onChange={(e) => setMix((m) => ({ ...m, key: e.target.value === 'auto' ? null : Number(e.target.value) }))}
+                  onChange={(e) => setMix((m) => ({ ...m, key: e.currentTarget.value === 'auto' ? null : Number(e.currentTarget.value) }))}
                 >
                   <option value="auto">Auto ({NOTE_NAMES[rolled.key]})</option>
                   {NOTE_NAMES.map((n, i) => (

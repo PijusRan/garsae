@@ -1,5 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
-import react from '@vitejs/plugin-react';
+import preact from '@preact/preset-vite';
 
 /** Files from /public that the offline cache must also hold. */
 const PUBLIC_FILES = ['manifest.webmanifest', 'favicon.svg', 'icon.svg', 'icon-192.png', 'icon-512.png'];
@@ -22,5 +22,5 @@ function precacheList(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [react(), precacheList()],
+  plugins: [preact(), precacheList()],
 });

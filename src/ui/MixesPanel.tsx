@@ -61,7 +61,7 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
           placeholder={suggested}
           value={name}
           maxLength={40}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => setName(e.currentTarget.value)}
           aria-label="Name for the current mix"
         />
         <button type="submit" className="btn primary">
@@ -86,7 +86,7 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
                     maxLength={40}
                     aria-label={`New name for ${m.name}`}
                     autoFocus
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={(e) => setDraft(e.currentTarget.value)}
                     onBlur={() => finishRename(m)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') finishRename(m);
