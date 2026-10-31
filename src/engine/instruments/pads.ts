@@ -35,7 +35,7 @@ const PAD_UNISON = [
 export function createPad(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const { filter, setEvolution } = movingFilter(core, 1400, 650, 0.045, 0.5);
+  const { filter, setEvolution } = movingFilter(core, 4200, 1600, 0.045, 0.5);
   const chorus = createChorus(ctx, { wet: 0.8 });
   const drift = createDrift(ctx, 6);
   filter.connect(chorus.input);
@@ -46,9 +46,9 @@ export function createPad(core: Core): Instrument {
   function voice(midi: number, t: number, hold: number, peak: number, pan: number) {
     const f = midiToFreq(midi);
     const g = new GainNode(ctx, { gain: 0 });
-    const lp = new BiquadFilterNode(ctx, { type: 'lowpass', Q: 0.6, frequency: f * 1.5 });
-    lp.frequency.setTargetAtTime(Math.min(f * 5, 4200), t, 0.9);
-    lp.frequency.setTargetAtTime(f * 2, t + hold, 1.2);
+    const lp = new BiquadFilterNode(ctx, { type: 'lowpass', Q: 0.6, frequency: f * 3 });
+    lp.frequency.setTargetAtTime(Math.min(f * 14, 11000), t, 0.9);
+    lp.frequency.setTargetAtTime(f * 4, t + hold, 1.2);
     lp.connect(g).connect(filter);
     const oscs: OscillatorNode[] = [];
     const nodes: AudioNode[] = [g, lp];
@@ -61,7 +61,8 @@ export function createPad(core: Core): Instrument {
       nodes.push(p);
     }
     const end = envelope(g.gain, t, hold, { peak, attack: 1.8, release: 3.2 });
-    for (const o of oscs) o.start(t);
+    // Oscillators always start at the same phase. A random start stops every chord attacking identically.
+    for (const o of oscs) o.start(t + rand(0, 1 / f));
     cleanupAt(oscs, end, nodes, () => {
       for (const o of oscs) drift.disconnect(o.detune);
     });
@@ -113,7 +114,7 @@ const BAR_PARTIALS = [
 export function createBells(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const tone = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 9000 });
+  const tone = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 14000 });
   tone.connect(out);
   let nextAllowed = 0;
   let last = 79;
@@ -185,8 +186,8 @@ export function createBells(core: Core): Instrument {
  */
 const MALLET_PARTIALS = [
   { ratio: 1, gain: 1, decay: 1 },
-  { ratio: 4, gain: 0.08, decay: 0.2 },
-  { ratio: 9.8, gain: 0.02, decay: 0.05 },
+  { ratio: 4, gain: 0.17, decay: 0.2 },
+  { ratio: 9.8, gain: 0.05, decay: 0.06 },
 ];
 
 /** One-bar rhythms (16ths). Calm ones first; livelier settings reach further down the list. */
@@ -205,7 +206,7 @@ type Contour = 'up' | 'down' | 'arch';
 export function createArp(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const { filter, setEvolution } = movingFilter(core, 3200, 900, 0.06, 0.5);
+  const { filter, setEvolution } = movingFilter(core, 7000, 1500, 0.06, 0.5);
   // One dark, quiet echo a dotted quarter later: a trail behind the phrase, not more notes.
   const delay = new DelayNode(ctx, { maxDelayTime: 3, delayTime: 0.75 });
   const feedback = new GainNode(ctx, { gain: 0.22 });
@@ -295,7 +296,7 @@ export function createArp(core: Core): Instrument {
 export function createDrone(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const { filter, setEvolution } = movingFilter(core, 420, 220, 0.03, 0.9);
+  const { filter, setEvolution } = movingFilter(core, 1100, 450, 0.03, 0.9);
   const chorus = createChorus(ctx, { wet: 0.8, rate: 0.23, depth: 0.0025 });
   const drift = createDrift(ctx, 5, 0.07);
   filter.connect(chorus.input);

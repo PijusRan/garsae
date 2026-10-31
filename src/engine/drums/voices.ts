@@ -47,7 +47,7 @@ function kick(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const g = new GainNode(ctx, { gain: 0 });
   const drive = new WaveShaperNode(ctx, { curve: saturationCurve(2) });
   // Well below the rest of the kit. A kick this low in pitch carries far more energy than it sounds like.
-  const level = new GainNode(ctx, { gain: 0.34 });
+  const level = new GainNode(ctx, { gain: 0.26 });
   osc.connect(g).connect(drive).connect(level).connect(dest);
   const end = percussive(g.gain, t, 0.95 * vel, 0.002, decay);
   osc.start(t);
@@ -69,8 +69,8 @@ function snare(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const decay = o.decay ?? 1;
   // Two drum-shell modes, both dipping slightly in pitch as the head relaxes.
   for (const [f, peak, len] of [
-    [185, 0.3, 0.12],
-    [330, 0.14, 0.07],
+    [185, 0.42, 0.12],
+    [330, 0.24, 0.07],
   ]) {
     const body = new OscillatorNode(ctx, { type: 'sine', frequency: f * tone });
     body.frequency.setValueAtTime(f * 1.12 * tone, t);
@@ -89,11 +89,11 @@ function snare(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 9000 });
   const ng = new GainNode(ctx, { gain: 0 });
   n.connect(hp).connect(lp).connect(ng).connect(dest);
-  percussive(ng.gain, t, 0.36 * vel, 0.001, 0.22 * decay);
+  percussive(ng.gain, t, 0.62 * vel, 0.001, 0.22 * decay);
   const snap = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 4500 * tone, Q: 1 });
   const sg = new GainNode(ctx, { gain: 0 });
   n.connect(snap).connect(sg).connect(dest);
-  percussive(sg.gain, t, 0.25 * vel, 0.001, 0.05 * decay);
+  percussive(sg.gain, t, 0.42 * vel, 0.001, 0.05 * decay);
   release(n, [hp, lp, ng, snap, sg]);
 }
 
@@ -122,7 +122,7 @@ function clap(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const bp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 1150 * (o.tone ?? 1), Q: 1.1 });
   const g = new GainNode(ctx, { gain: 0 });
   n.connect(bp).connect(g).connect(dest);
-  const peak = 0.55 * vel;
+  const peak = 0.8 * vel;
   // Three quick bursts, then a short tail.
   g.gain.setValueAtTime(0, t);
   for (const off of [0, 0.011, 0.022]) {
@@ -146,7 +146,7 @@ function hat(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts, open
   const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 7000 * tone });
   const g = new GainNode(ctx, { gain: 0 });
   bp.connect(hp).connect(g).connect(dest);
-  const end = percussive(g.gain, t, (open ? 0.22 : 0.34) * vel, 0.0008, decay);
+  const end = percussive(g.gain, t, (open ? 0.34 : 0.52) * vel, 0.0008, decay);
   const metal = new GainNode(ctx, { gain: 0.6 });
   metal.connect(bp);
   const oscs = METAL_808.map((f) => {

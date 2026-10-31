@@ -63,7 +63,7 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop'
     chain(ctx) {
       const input = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 35 });
       const sat = new WaveShaperNode(ctx, { curve: saturationCurve(1.6), oversample: '2x' });
-      const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 4000, Q: 0.4 });
+      const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 7500, Q: 0.4 });
       const output = new GainNode(ctx, { gain: 0.8 });
       input.connect(sat).connect(lp).connect(output);
       return { input, output };
@@ -84,7 +84,7 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop'
     fills: [{ voice: 'rim', pattern: 'o.oo' }],
     chain(ctx) {
       const input = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 30 });
-      const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 9000 });
+      const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 15000 });
       const output = new GainNode(ctx, { gain: 0.8 });
       input.connect(lp).connect(output);
       return { input, output };
@@ -104,7 +104,7 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop'
     ],
     fills: [{ voice: 'tom', pattern: '.o.o', opts: { tone: 0.8 } }],
     chain(ctx) {
-      const input = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 6000 });
+      const input = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 11000 });
       const output = new GainNode(ctx, { gain: 0.85 });
       input.connect(output);
       const echo = new GainNode(ctx, { gain: 0.6 });
@@ -137,7 +137,7 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop'
     ],
     fills: [{ voice: 'tom', pattern: '..g.', opts: { tone: 0.6 } }],
     chain(ctx) {
-      const input = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1100, Q: 0.5 });
+      const input = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 3200, Q: 0.5 });
       const output = new GainNode(ctx, { gain: 1.3 });
       input.connect(output);
       return { input, output };
@@ -156,7 +156,7 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop'
       { voice: 'rim', pattern: '...g.....g....g.', gain: 0.4 },
     ],
     fills: [{ voice: 'shaker', pattern: 'o.oo' }],
-    chain: (ctx) => drumBus(ctx, { highpass: 32, lowpass: 8000, drive: 1.3, threshold: -18, ratio: 3, release: 0.12, gain: 0.85 }),
+    chain: (ctx) => drumBus(ctx, { highpass: 32, lowpass: 13000, drive: 1.3, threshold: -18, ratio: 3, release: 0.12, gain: 0.85 }),
   },
 
   // Trip hop: a slow, heavy break with a big dark snare, sat low in a dusty room.
@@ -172,7 +172,7 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop'
     ],
     fills: [{ voice: 'snare', pattern: '..go', opts: { tone: 0.84, decay: 0.9 } }],
     chain(ctx) {
-      const bus = drumBus(ctx, { highpass: 38, lowpass: 5200, drive: 1.7, threshold: -20, ratio: 4, release: 0.14, gain: 0.8 });
+      const bus = drumBus(ctx, { highpass: 38, lowpass: 8500, drive: 1.7, threshold: -20, ratio: 4, release: 0.14, gain: 0.8 });
       // A short, dark slap on the snare: the sound of a small room.
       const echo = new GainNode(ctx, { gain: 0.5 });
       const delay = new DelayNode(ctx, { maxDelayTime: 1, delayTime: 0.09 });
@@ -211,7 +211,7 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop'
       { voice: 'hat', pattern: '....g.......g...', gain: 0.5, opts: { tone: 0.8 } },
     ],
     fills: [{ voice: 'rim', pattern: '.gog', opts: { tone: 0.82 } }],
-    chain: (ctx) => drumBus(ctx, { highpass: 40, lowpass: 7000, drive: 1.2, threshold: -24, ratio: 2, release: 0.15, gain: 0.95 }),
+    chain: (ctx) => drumBus(ctx, { highpass: 40, lowpass: 11000, drive: 1.2, threshold: -24, ratio: 2, release: 0.15, gain: 0.95 }),
   },
 };
 
@@ -379,7 +379,7 @@ const FEEL = { ride: -0.006, hat: 0, slap: 0.012, kick: 0.004, brush: -0.01 };
 export function createBrushes(core: Core): Instrument {
   const { ctx } = core;
   const kit: Kit = { ctx, noise: core.noise };
-  const input = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 7500, Q: 0.4 });
+  const input = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 12000, Q: 0.4 });
   const output = new GainNode(ctx, { gain: 1 });
   input.connect(output);
   let sweepDown = false;

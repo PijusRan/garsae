@@ -18,7 +18,7 @@ function nearest(pc: number, ref: number, lo: number, hi: number): number {
 export function createSub(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 260 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 520 });
   lp.connect(out);
   let soundingUntil = 0;
 
@@ -28,7 +28,7 @@ export function createSub(core: Core): Instrument {
     const a = new OscillatorNode(ctx, { frequency: f });
     // A quiet second harmonic so small speakers still hear the bass line.
     const b = new OscillatorNode(ctx, { frequency: f * 2 });
-    const bg = new GainNode(ctx, { gain: 0.22 });
+    const bg = new GainNode(ctx, { gain: 0.32 });
     a.connect(g);
     b.connect(bg).connect(g);
     g.connect(lp);
@@ -64,7 +64,7 @@ export function createSub(core: Core): Instrument {
 export function createWalk(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1600, Q: 0.5 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 3200, Q: 0.5 });
   lp.connect(out);
   let last = 43;
   const LO = 36;
@@ -78,10 +78,10 @@ export function createWalk(core: Core): Instrument {
     const f = midiToFreq(midi);
     const g = new GainNode(ctx, { gain: 0 });
     const tone = new BiquadFilterNode(ctx, { type: 'lowpass', Q: 0.9, frequency: 500 + 900 * vel });
-    tone.frequency.setTargetAtTime(f * 2.2, t + 0.01, 0.09);
+    tone.frequency.setTargetAtTime(f * 5, t + 0.01, 0.12);
     const a = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f });
     const b = new OscillatorNode(ctx, { type: 'triangle', frequency: f });
-    const sawGain = new GainNode(ctx, { gain: 0.45 });
+    const sawGain = new GainNode(ctx, { gain: 0.7 });
     for (const o of [a, b]) {
       o.detune.setValueAtTime(14, t);
       o.detune.setTargetAtTime(0, t, 0.02);
@@ -152,8 +152,8 @@ export function createPulse(core: Core): Instrument {
     osc2.connect(filt);
     sub.connect(g);
     filt.connect(g).connect(driveIn);
-    filt.frequency.setValueAtTime(220 + 650 * vel, t);
-    filt.frequency.setTargetAtTime(200, t, 0.06);
+    filt.frequency.setValueAtTime(380 + 1400 * vel, t);
+    filt.frequency.setTargetAtTime(420, t, 0.08);
     const end = envelope(g.gain, t, dur, { peak: 0.2 * vel, attack: 0.006, decay: 0.2, sustain: 0.4, release: 0.07 });
     osc.start(t);
     osc2.start(t);
@@ -254,8 +254,8 @@ export function createGlide(core: Core): Instrument {
         const slide = i === 0 ? 0.012 : 0.045;
         for (const o of oscs) o.frequency.setTargetAtTime(f, t, slide);
         for (const lp of [lp1, lp2]) {
-          lp.frequency.setTargetAtTime(Math.min(f * (i === 0 ? 7 : 4.5), 1800), t, 0.008);
-          lp.frequency.setTargetAtTime(f * 2.2, t + 0.03, 0.18);
+          lp.frequency.setTargetAtTime(Math.min(f * (i === 0 ? 12 : 8), 3200), t, 0.008);
+          lp.frequency.setTargetAtTime(f * 4, t + 0.03, 0.2);
         }
         if (i === 0) {
           amp.gain.setTargetAtTime(0.05, t - 0.012, 0.004);
@@ -281,7 +281,7 @@ export function createGlide(core: Core): Instrument {
 export function createFmBass(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1600, Q: 0.5 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 3600, Q: 0.5 });
   lp.connect(out);
   let last = 40;
 
@@ -292,7 +292,7 @@ export function createFmBass(core: Core): Instrument {
     const index = new GainNode(ctx, { gain: 0 });
     mod.connect(index).connect(carrier.frequency);
     index.gain.setValueAtTime(f * (1.2 + 1.3 * vel), t);
-    index.gain.setTargetAtTime(f * 0.35, t, 0.07);
+    index.gain.setTargetAtTime(f * 0.6, t, 0.09);
     const g = new GainNode(ctx, { gain: 0 });
     carrier.connect(g).connect(lp);
     const end = envelope(g.gain, t, dur, { peak: 0.32 * vel, attack: 0.004, decay: 0.5, sustain: 0.45, release: 0.09 });
@@ -349,7 +349,7 @@ const ROLLS: { step: number; deg: 0 | 1 | 2; len: number }[][] = [
 export function createRolling(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 700, Q: 0.7 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1500, Q: 0.7 });
   lp.connect(out);
   let riff = pick(ROLLS);
 
@@ -360,7 +360,7 @@ export function createRolling(core: Core): Instrument {
     const b = new OscillatorNode(ctx, { frequency: f * 2 });
     const c = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f, detune: 4 });
     const bg = new GainNode(ctx, { gain: 0.18 });
-    const cg = new GainNode(ctx, { gain: 0.12 });
+    const cg = new GainNode(ctx, { gain: 0.22 });
     a.connect(g);
     b.connect(bg).connect(g);
     c.connect(cg).connect(g);
@@ -397,8 +397,8 @@ export function createReese(core: Core): Instrument {
   const amp = new GainNode(ctx, { gain: 0 });
   amp.connect(out);
   const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 110, Q: 0.6 });
-  const lp1 = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 620, Q: 0.7 });
-  const lp2 = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 620, Q: 1.1 });
+  const lp1 = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1200, Q: 0.7 });
+  const lp2 = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1200, Q: 1.1 });
   const drive = new WaveShaperNode(ctx, { curve: saturationCurve(1.7), oversample: '2x' });
   const driveOut = new GainNode(ctx, { gain: 0.34 });
   hp.connect(lp1).connect(lp2).connect(drive).connect(driveOut).connect(amp);
@@ -468,7 +468,7 @@ export function createReese(core: Core): Instrument {
 export function createFretless(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2200, Q: 0.5 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 4200, Q: 0.5 });
   lp.connect(out);
   const vibrato = new OscillatorNode(ctx, { frequency: 4.6 });
   vibrato.start();
@@ -545,7 +545,7 @@ export function create808(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const drive = new WaveShaperNode(ctx, { curve: saturationCurve(2.4), oversample: '2x' });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 900, Q: 0.5 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2600, Q: 0.5 });
   drive.connect(lp).connect(out);
   let shape = BOOMS[0];
   let current: GainNode | null = null;
@@ -604,7 +604,7 @@ const MUTED_RIFFS: { step: number; deg: 0 | 1 | 2 | 3 }[][] = [
 export function createMuted(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 620, Q: 0.6 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1100, Q: 0.6 });
   const sat = new WaveShaperNode(ctx, { curve: saturationCurve(1.9), oversample: '2x' });
   const level = new GainNode(ctx, { gain: 0.75 });
   lp.connect(sat).connect(level).connect(out);

@@ -25,7 +25,7 @@ function voicing(s: StepInfo, lo: number, ninth: boolean): number[] {
 export function createEPiano(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const warmth = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 4200, Q: 0.4 });
+  const warmth = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 9000, Q: 0.4 });
   const pan = new StereoPannerNode(ctx, { pan: 0 });
   const trem = new OscillatorNode(ctx, { frequency: 2.6 });
   const tremDepth = new GainNode(ctx, { gain: 0.28 });
@@ -45,7 +45,7 @@ export function createEPiano(core: Core): Instrument {
     const bodyIndex = new GainNode(ctx, { gain: 0 });
     bodyMod.connect(bodyIndex).connect(body.frequency);
     bodyIndex.gain.setValueAtTime(f * (0.5 + 0.7 * vel), t);
-    bodyIndex.gain.setTargetAtTime(f * 0.12, t, 0.5);
+    bodyIndex.gain.setTargetAtTime(f * 0.38, t, 0.6);
     const tine = new OscillatorNode(ctx, { frequency: f });
     const tineMod = new OscillatorNode(ctx, { frequency: f * 14 });
     const tineIndex = new GainNode(ctx, { gain: 0 });
@@ -53,8 +53,8 @@ export function createEPiano(core: Core): Instrument {
     tineMod.connect(tineIndex).connect(tine.frequency);
     tineIndex.gain.setValueAtTime(f * 1.4 * vel, t);
     tineIndex.gain.setTargetAtTime(0, t, 0.08);
-    tineGain.gain.setValueAtTime(0.35 * vel * vel, t);
-    tineGain.gain.setTargetAtTime(0, t, 0.25);
+    tineGain.gain.setValueAtTime(0.6 * vel * vel, t);
+    tineGain.gain.setTargetAtTime(0, t, 0.32);
     body.connect(amp);
     tine.connect(tineGain).connect(amp);
     // A struck note: it decays while held, then damps quickly on release.
@@ -102,18 +102,18 @@ export function createEPiano(core: Core): Instrument {
 const VOWELS = {
   oo: [
     { f: 350, g: 1 },
-    { f: 640, g: 0.3 },
-    { f: 2700, g: 0.06 },
+    { f: 640, g: 0.35 },
+    { f: 2700, g: 0.14 },
   ],
   oh: [
     { f: 450, g: 1 },
-    { f: 800, g: 0.45 },
-    { f: 2830, g: 0.08 },
+    { f: 800, g: 0.5 },
+    { f: 2830, g: 0.18 },
   ],
   ah: [
     { f: 750, g: 1 },
-    { f: 1150, g: 0.55 },
-    { f: 2900, g: 0.1 },
+    { f: 1150, g: 0.6 },
+    { f: 2900, g: 0.22 },
   ],
 } as const;
 type Vowel = keyof typeof VOWELS;
@@ -170,7 +170,7 @@ export function createChoir(core: Core): Instrument {
     const breathGain = new GainNode(ctx, { gain: 0.25 });
     breath.connect(breathGain).connect(g);
     const end = envelope(g.gain, t, hold, { peak, attack: 2.2, release: 3.5 });
-    for (const o of oscs) o.start(t);
+    for (const o of oscs) o.start(t + rand(0, 1 / f));
     startLoop(breath, t);
     cleanupAt([...oscs, breath], end, [g, p, vibDepth, breathGain], () => {
       vibrato.disconnect(vibDepth);
@@ -220,7 +220,7 @@ const PIANO_B = 0.00032;
 export function createFeltPiano(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const felt = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2800, Q: 0.35 });
+  const felt = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 7500, Q: 0.35 });
   const body = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 190, Q: 0.9, gain: 2.5 });
   felt.connect(body).connect(out);
   let nextNote = 0;
@@ -233,11 +233,11 @@ export function createFeltPiano(core: Core): Instrument {
     amp.connect(pan).connect(felt);
     // Low strings ring far longer than high ones.
     const ring = clamp(7 * Math.sqrt(220 / f), 2.5, 9);
-    const count = clamp(Math.floor(3800 / f), 3, 8);
+    const count = clamp(Math.floor(9000 / f), 4, 14);
     const oscs: OscillatorNode[] = [];
     const nodes: AudioNode[] = [amp, pan];
     for (let n = 1; n <= count; n++) {
-      const level = vel * Math.exp(-(n - 1) * (1.2 - 0.5 * vel));
+      const level = vel * Math.exp(-(n - 1) * (0.62 - 0.24 * vel));
       const decay = ring / (1 + 0.6 * (n - 1));
       const g = new GainNode(ctx, { gain: 0 });
       g.connect(amp);
@@ -260,7 +260,7 @@ export function createFeltPiano(core: Core): Instrument {
     amp.gain.setTargetAtTime(0, t + hold, 0.14);
     const end = t + hold + 0.9;
     const thud = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
-    const thudLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 750 });
+    const thudLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1800 });
     const thudGain = new GainNode(ctx, { gain: 0 });
     thud.connect(thudLp).connect(thudGain).connect(amp);
     percussive(thudGain.gain, t, 0.45 * vel, 0.002, 0.03);
@@ -317,7 +317,7 @@ export function createStrings(core: Core): Instrument {
   const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 150, Q: 0.6 });
   const body = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 430, Q: 0.8, gain: 2.5 });
   const sheen = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 3000, Q: 0.7, gain: 2 });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 5200, Q: 0.5 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 9000, Q: 0.5 });
   const fast = createChorus(ctx, { delay: 0.006, depth: 0.0006, rate: 5.3, wet: 0.5 });
   const slow = createChorus(ctx, { delay: 0.012, depth: 0.0028, rate: 0.63, wet: 0.8 });
   hp.connect(body).connect(sheen).connect(lp).connect(fast.input);
@@ -337,7 +337,7 @@ export function createStrings(core: Core): Instrument {
       return o;
     });
     const end = envelope(g.gain, t, hold, { peak, attack: 1.3, release: 2.8 });
-    for (const o of oscs) o.start(t);
+    for (const o of oscs) o.start(t + rand(0, 1 / f));
     cleanupAt(oscs, end, [g], () => {
       for (const o of oscs) drift.disconnect(o.detune);
     });
@@ -370,8 +370,8 @@ export function createStrings(core: Core): Instrument {
 const VIBE_PARTIALS = [
   { ratio: 1, detune: 0, gain: 1, decay: 1 },
   { ratio: 1, detune: 2.5, gain: 0.35, decay: 0.8 },
-  { ratio: 4, detune: 0, gain: 0.16, decay: 0.16 },
-  { ratio: 10, detune: 0, gain: 0.03, decay: 0.05 },
+  { ratio: 4, detune: 0, gain: 0.3, decay: 0.2 },
+  { ratio: 10, detune: 0, gain: 0.09, decay: 0.07 },
 ];
 
 /**
@@ -381,7 +381,7 @@ const VIBE_PARTIALS = [
 export function createVibes(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const tone = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 6500, Q: 0.4 });
+  const tone = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 11000, Q: 0.4 });
   const motor = new GainNode(ctx, { gain: 0.8 });
   const sweep = new StereoPannerNode(ctx, { pan: 0 });
   const rotor = new OscillatorNode(ctx, { frequency: 4.1 });
@@ -460,7 +460,7 @@ export function createTapeFlute(core: Core): Instrument {
   const out = new GainNode(ctx, { gain: 1 });
   const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 220, Q: 0.6 });
   const sat = new WaveShaperNode(ctx, { curve: saturationCurve(1.4), oversample: '2x' });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 3600, Q: 0.4 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 8000, Q: 0.4 });
   hp.connect(sat).connect(lp).connect(out);
   const delay = new DelayNode(ctx, { maxDelayTime: 3, delayTime: 0.75 });
   const feedback = new GainNode(ctx, { gain: 0.25 });
@@ -488,8 +488,9 @@ export function createTapeFlute(core: Core): Instrument {
     vibDepth.gain.linearRampToValueAtTime(11, t + 1.1);
     const oscs = [
       { ratio: 1, gain: 1 },
-      { ratio: 2, gain: 0.2 },
-      { ratio: 3, gain: 0.07 },
+      { ratio: 2, gain: 0.3 },
+      { ratio: 3, gain: 0.14 },
+      { ratio: 4, gain: 0.05 },
     ].map((p) => {
       const o = new OscillatorNode(ctx, { frequency: f * p.ratio });
       const g = new GainNode(ctx, { gain: p.gain });
@@ -499,8 +500,8 @@ export function createTapeFlute(core: Core): Instrument {
       return { o, g };
     });
     const breath = new AudioBufferSourceNode(ctx, { buffer: core.noise.get('pink'), loop: true });
-    const breathBp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: f * 2, Q: 1.2 });
-    const breathGain = new GainNode(ctx, { gain: 0.5 });
+    const breathBp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: f * 2.5, Q: 0.8 });
+    const breathGain = new GainNode(ctx, { gain: 0.8 });
     breath.connect(breathBp).connect(breathGain).connect(amp);
     const end = envelope(amp.gain, t, hold, { peak: 0.16 * vel, attack: 0.09, decay: 0.4, sustain: 0.82, release: 0.55 });
     for (const { o } of oscs) o.start(t);
