@@ -64,6 +64,18 @@ export const MixesIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const SaveIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5.5 3.5h9v13L10 13.25 5.5 16.5z" />
+  </Icon>
+);
+
+export const CheckIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 10.5l4 4 8-9" />
+  </Icon>
+);
+
 export const ShuffleIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M3 6.5h2.25c1.5 0 2.4.7 3.2 1.9l3.1 4.7c.8 1.2 1.7 1.9 3.2 1.9H17" />

@@ -77,6 +77,9 @@ export const lt: Strings = {
   timerChoice: (minutes) => `${minutes} min., tada nutilti`,
 
   mix: 'Miksas',
+  tagline: 'Pritaikomi ambient garsų peizažai giliam darbui ir susikaupimui',
+  saveMix: 'Išsaugoti miksą',
+  mixSaved: 'Išsaugota',
   clear: 'Išvalyti',
   starters: 'Paruošti',
   starterMixes: 'Paruošti miksai',

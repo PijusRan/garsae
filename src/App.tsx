@@ -14,7 +14,9 @@ import {
   restoreMixes,
   rollBpm,
   rollKey,
+  saveMix,
   saveVolume,
+  suggestName,
   surpriseMix,
   type MixState,
   type SavedMix,
@@ -28,7 +30,7 @@ import { Welcome } from './ui/Welcome';
 import { Background, levelReader, type AudioLevels } from './ui/Background';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
-import { ChevronIcon, MixesIcon, ShuffleIcon } from './ui/icons';
+import { CheckIcon, ChevronIcon, MixesIcon, SaveIcon, ShuffleIcon } from './ui/icons';
 import { ShareSheet } from './ui/ShareSheet';
 import { Transport } from './ui/Transport';
 import { TileCard } from './ui/TileCard';
@@ -357,6 +359,19 @@ export function App() {
     return () => clearTimeout(id);
   }, [welcome]);
 
+  const isSaved = saved.some((m) => m.mix === encodeMix(mix));
+
+  /** One click: it takes the suggested name, and the Mixes sheet can rename it later. */
+  const saveCurrent = () => {
+    const name = suggestName(mix, (id) => t.tiles[id].name, t.untitledMix);
+    const before = saved;
+    setSaved(saveMix(name, mix));
+    say(t.savedName(name), () => {
+      setSaved(restoreMixes(before));
+      say(t.restored);
+    });
+  };
+
   const clearAll = () => {
     const tiles = { ...mix.tiles };
     for (const id of TILE_IDS) tiles[id] = { ...tiles[id], on: false };
@@ -444,16 +459,24 @@ export function App() {
       <div className={`page${tab === 'sound' ? ' sound-open' : ''}`}>
         <h1 className="sr-only">Garsæ</h1>
         <section className="mix-strip" aria-label={t.mix}>
-          {activeCount === 0 && startersRow}
-          {activeCount > 0 && (
-            <button type="button" className="micro-link" onClick={clearAll}>
-              {t.clear}
-            </button>
+          {activeCount === 0 ? (
+            startersRow
+          ) : (
+            <>
+              <p className="tagline">{t.tagline}</p>
+              <button type="button" className="micro-link" onClick={clearAll}>
+                {t.clear}
+              </button>
+            </>
           )}
           <div className="actions">
             <button type="button" className="btn" onClick={surprise}>
               <ShuffleIcon size={16} />
               {t.surpriseMe}
+            </button>
+            <button type="button" className="btn primary" disabled={activeCount === 0 || isSaved} onClick={saveCurrent}>
+              {isSaved ? <CheckIcon size={16} /> : <SaveIcon size={16} />}
+              {isSaved ? t.mixSaved : t.saveMix}
             </button>
             <button type="button" className="btn" onClick={() => setSheet('mixes')}>
               <MixesIcon size={16} />
