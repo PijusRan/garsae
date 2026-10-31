@@ -115,7 +115,7 @@ export class Master {
     const air = new BiquadFilterNode(ctx, { type: 'highshelf', frequency: 9000, gain: 1.2 });
     // Glue: so slow and shallow that a kick drum can't move it. Fast compression here makes pads duck on every beat.
     const glue = new DynamicsCompressorNode(ctx, { threshold: -22, knee: 20, ratio: 1.5, attack: 0.08, release: 0.8 });
-    const makeup = new GainNode(ctx, { gain: 1.6 });
+    const makeup = new GainNode(ctx, { gain: 2 });
     // Only for the odd peak. If this works on every kick, the mix is wrong, not the limiter.
     this.limiter = new DynamicsCompressorNode(ctx, {
       threshold: -2,
