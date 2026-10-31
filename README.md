@@ -70,7 +70,7 @@ npm run build && npm run ui-check   # drives the built app: play, toggle, share 
 ```
 src/
   tiles.ts                 tile catalogue (names, categories, default volumes, loudness levels)
-  engine/                  audio engine: plain TypeScript, no React
+  engine/                  audio engine: plain TypeScript, no UI framework
     engine.ts              public commands: start, stop, setTile, setTileVolume, setEvolution, setBpm, setKey, setModulation
     scheduler.ts           0.8 s look-ahead scheduler, ticked by clock.worker.ts
     chords.ts, theory.ts   hidden chord engine (Dorian) and melodic scale (minor pentatonic)
@@ -81,7 +81,7 @@ src/
     instruments/           pads, keys, bass, atmosphere and noise colours, effect tiles
     drums/                 synthesized drum voices, genre patterns and mutation rules
   state/mix.ts             mix model, share-link encoding, saved mixes, Surprise me
-  App.tsx, ui/             React UI and PWA helpers
+  App.tsx, ui/             Preact UI and PWA helpers
 public/sw.js               service worker, only used after "Download for offline"
 ```
 

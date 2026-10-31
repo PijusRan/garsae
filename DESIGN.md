@@ -6,7 +6,7 @@ Guiding principle: it is a **background player, never a distractor.** All change
 
 ## Project
 - **Platform:** web app / PWA built on the Web Audio API. Desktop and phone, installable.
-- **Hosting:** free static host (Vercel / Netlify / Cloudflare Pages), no backend.
+- **Hosting:** GitHub Pages (any static host works), no backend.
 - **Audience:** just the author first, maybe public later.
 - **First milestone:** playable prototype with one pad, drums and a noise bed, plus mixer tiles, to prove the sound feels good.
 - **Prototype success test:** pass if the author can **work with it for 1 hour without noticing it** (no fatigue, no distraction).
@@ -86,8 +86,9 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 
 ## UI
 A compact mix panel, then the tiles, then the sound settings. No hero: the page opens straight onto the instrument.
-- One **transport** holds playback: the mark and wordmark, play, chord with key and tempo, master volume (after the limiter), the session timer, Mixes, Share and About. Share lives only here, as one icon button, at every width. On wide screens it is a glass bar as wide as the page, stuck to the top; on phones it floats at the bottom, in thumb reach.
-- Under it, the **Mix** panel: Surprise me and Mixes, then compact rows: **On now** (active tile names; tap to jump to the tile, plus Clear) and **Starters** (on a first visit, or when nothing is on).
+- One **transport** holds playback: the mark and wordmark, a labelled **Play / Pause** pill (an icon-only circle on phones), chord with key and tempo, master volume (after the limiter), the session timer, Mixes, Share and About. Share lives only here, as one icon button, at every width. On wide screens it is a glass bar as wide as the page, stuck to the top; on phones it floats at the bottom, in thumb reach.
+- Picking a whole mix (a starter, Surprise me or a saved mix) while stopped also starts playback. Play with nothing on says "Pick a sound first" instead of playing silence.
+- Under it, the **Mix** panel: Surprise me and Mixes, then compact rows: **On now** (active tile names; tap to jump to the tile, plus Clear) and **Starters** (on a first visit, or when nothing is on), shown as small secondary pills because they are actions.
 - Tiles are **grouped by category** under bracketed micro labels (`[ PADS ]`) with a hairline rule and an "N on" count: tap to toggle, slider for level. The page is up to 1240px wide, so most categories fit on one row.
 - Below the tiles, the **Sound** panel: Evolution, tempo and key, which most mixes leave alone. On wide screens they share one row; on phones tempo and key go behind a "Tempo and key" disclosure.
 - Media keys and OS media overlays work through the Media Session API. Space toggles playback unless a keyboard user is on a button.
@@ -98,7 +99,7 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 **Colour**
 - Ground is pure black (`--bg`). Surfaces are white at low alpha (2.5-10%) over near-black, so the background light shows through them. Edges are white hairlines at 8% and 14%.
 - Text is warm cream `--text` `#f9f7e9`, then `--text-2` `#c4c1b5` and grey `--text-3` `#8e8e8e`.
-- **Light is the accent**: peach `--accent` `#ffc5a8`, coral `--coral` `#fa7641` for glows, ember `--ember` for the deepest note. It marks only: on state (the light rising in on tiles, "N on" counts), focus rings, the active timer, the current mix, and the play button while playing. No other hues, except the category marks and the sliders, which follow the background.
+- **Light is the accent**: peach `--accent` `#ffc5a8`, coral `--coral` `#fa7641` for glows, ember `--ember` for the deepest note. It marks only: on state (the light rising in on tiles, "N on" counts), focus rings, the active timer, the current mix, the play button while playing, and the first-press invite ring around Play (a first visit or an opened share link; still, not pulsing, under reduced motion). No other hues, except the category marks and the sliders, which follow the background.
 - Category marks keep one lightness and chroma, varying hue only. They appear only as 6px dots (mix fingerprints in the Mixes sheet).
 
 **Type**
@@ -109,12 +110,12 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 
 **Surfaces and glass**
 - Glass is for layers that float (the transport, sheets and the toast) and for the tiles. Tiles are frosted: a 42% dark tint over a 16px backdrop blur, a diagonal sheen that catches the light at the top left, a lit top edge and a shaded bottom edge (`--tile-edge`). Without backdrop-filter they fall back to a near-opaque tint. Never glass inside other glass, such as glass tiles inside the Sound panel.
-- The background is **Grainient** from React Bits (`src/ui/Grainient.tsx`, vendored with its MIT + Commons Clause notice; wrapped by `src/ui/Background.tsx`): a slow, domain-warped grainy gradient whose colours come from the mix (`src/ui/palette.ts`), always near-black at the bottom and lit towards the top. **Key sets the hue**, walked around the circle of fifths so related keys get neighbouring hues (C is cobalt, G violet, A crimson, A♭ green); **tempo sets the vividness** (slow mixes deeper and muted, fast ones more saturated and a little brighter); **evolution sets the hue spread** across the gradient (a static mix is one hue, a shifting one sweeps across its neighbours). Colours are built in OKLCH and fitted into sRGB by lowering chroma, so no key clips. A new mix glides to its colours over a few seconds (instantly under reduced motion). Sliders take the same colours (`--slider-mid`, `--slider-end`, cream into the two brightest stops, registered with `@property` so they glide too) rather than the peach accent. Paused, it is dimmer (75% opacity) and barely flows; while music plays it brightens over a couple of seconds and flows faster with the mix's loudness (read from an analyser after the limiter, so the volume knob doesn't change it). Pointer stirring and click swirls are off, and its grain is static: the background never reacts to the pointer. It renders at 1x pixel ratio (the gradient field at half of that), fades in on load, creates a fresh canvas on every mount (a lost WebGL context never comes back, and StrictMode mounts twice in development), and stands still under reduced motion.
+- The background is **Grainient** from React Bits (`src/ui/Grainient.tsx`, vendored with its MIT + Commons Clause notice; wrapped by `src/ui/Background.tsx`): a slow, domain-warped grainy gradient whose colours come from the mix (`src/ui/palette.ts`), always near-black at the bottom and lit towards the top. **Key sets the hue**, walked around the circle of fifths so related keys get neighbouring hues (C is cobalt, G violet, A crimson, A♭ green); **tempo sets the vividness** (slow mixes deeper and muted, fast ones more saturated and a little brighter); **evolution sets the hue spread** across the gradient (a static mix is one hue, a shifting one sweeps across its neighbours). Colours are built in OKLCH and fitted into sRGB by lowering chroma, so no key clips. A new mix glides to its colours over a few seconds (instantly under reduced motion). Sliders take the same colours (`--slider-mid`, `--slider-end`, cream into the two brightest stops, registered with `@property` so they glide too) rather than the peach accent. Paused, it is dimmer (75% opacity) and barely flows; while music plays it brightens over a couple of seconds and flows faster with the mix's loudness (read from an analyser after the limiter, so the volume knob doesn't change it). Pointer stirring and click swirls are off, and its grain is static: the background never reacts to the pointer. It renders at 1x pixel ratio (the gradient field at half of that) and at about 30 fps, mounts after the first paint so the shaders never delay the UI, fades in on load, creates a fresh canvas on every mount (a lost WebGL context never comes back, and StrictMode mounts twice in development), and stands still under reduced motion.
 - Film grain (an SVG noise overlay) sits over everything.
 
 **Shape and depth**
 - Buttons, the segmented control, selects, the save field and the toast are pills. Surfaces are small-radius rectangles: 6 (icon buttons), 8 (tiles, transport), 12 (panel, sheets).
-- **Primary** (`.btn.black` / `.btn.primary`): black pill, faint white hairline, a 4px glass halo, and a warm glow on hover. **Secondary**: a dark vertical gradient pill with a hairline. Ghost for the rest. Press scales to 0.97. Nothing lifts on hover.
+- **Primary** (`.btn.black` / `.btn.primary`): black pill, faint white hairline, a 4px glass halo, and a warm glow on hover. **Secondary**: a dark vertical gradient pill with a hairline. Ghost for the rest. Press scales to 0.97. Nothing lifts on hover; the idle Play button only gains a soft glow.
 - On tiles keep the glass and add a peach rim, light rising from the bottom edge (a radial coral glow plus a 1px cream line), and a soft coral shadow beneath.
 - Sliders: a 2px track lit cream into the background's two brightest colours up to the value, and a cream thumb with a black ring that glows on hover. 44px tall on touch.
 - Tiles show only their name, centred. On hover or keyboard focus the name rises and the description slides in beneath it (transforms only, so tiles never resize); touch screens, which cannot hover, show names only. The effect mark sits beside the name.
@@ -133,8 +134,8 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 - **Storage:** browser storage only (saved mixes and settings). Clearing site data loses them; no export/import in v1.
 
 ## Stack
-- **TypeScript + Vite + React.**
-- Audio engine: **raw Web Audio API**, no audio library. It is a plain TypeScript module with no React inside; the UI only sends commands (e.g. `setInstrumentVolume`). An AudioWorklet can be added later for individual experimental instruments that need it.
+- **TypeScript + Vite + Preact** (through its React compatibility layer, so the code imports from `react`). Chosen over React for the bundle size: about 4 KB instead of 45 KB gzipped.
+- Audio engine: **raw Web Audio API**, no audio library. It is a plain TypeScript module with no UI framework inside; the UI only sends commands (e.g. `setInstrumentVolume`). An AudioWorklet can be added later for individual experimental instruments that need it.
 - The engine needs: a look-ahead scheduler, envelope helpers, reverb and noise generators.
 
 ### Engine rules
