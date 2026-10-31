@@ -708,6 +708,16 @@ output,
     transform var(--t-press) var(--ease-out);
 }
 
+/* What the tile is playing, as a soft shape under the name. Only as loud as the music, and never over the text. */
+.tile-wave {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 /* The light that rises in a tile when it is on: a coral glow that swells up from
    below the edge, and a cream line that opens out from the centre. Switching off
    runs it back down, a little quicker. */

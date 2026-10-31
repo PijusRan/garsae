@@ -136,6 +136,11 @@ export class Engine {
     t.setOn(on, !this.playing);
   }
 
+  /** What a tile is playing, for visuals. Null until it has been switched on, and for effect tiles. */
+  tileMeter(id: TileId): AnalyserNode | null {
+    return this.tiles.get(id)?.meter ?? null;
+  }
+
   setTileVolume(id: TileId, volume: number): void {
     this.tile(id).setVolume(volume, !this.playing);
   }

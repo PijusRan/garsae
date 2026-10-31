@@ -21,6 +21,7 @@ export class Tile {
   private active = false;
   private offAt = 0;
   private bus: GainNode;
+  private analyser: AnalyserNode | null = null;
 
   constructor(
     private core: Core,
@@ -40,6 +41,20 @@ export class Tile {
     }
     instrument.setEvolution?.(core.evolution);
     instrument.setTempo?.(core.bpm);
+  }
+
+  /** A tap on this tile's sound after its level, for the UI to draw. Made on first use; effect tiles have none. */
+  get meter(): AnalyserNode | null {
+    if (!this.analyser && this.instrument.output) {
+      this.analyser = new AnalyserNode(this.core.ctx, {
+        fftSize: 256,
+        smoothingTimeConstant: 0.85,
+        minDecibels: -85,
+        maxDecibels: -20,
+      });
+      this.bus.connect(this.analyser);
+    }
+    return this.analyser;
   }
 
   /** `atOnce` skips the fade: used while paused, when the audio clock is stopped and a fade would wait for Play. */

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Engine } from './engine/engine';
 import { NOTE_NAMES } from './engine/theory';
 import {
@@ -116,6 +116,10 @@ export function App() {
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const levelsRef = useRef<(() => AudioLevels) | null>(null);
   const getLevels = useCallback(() => levelsRef.current?.() ?? null, []);
+  const meters = useMemo(
+    () => Object.fromEntries(TILE_IDS.map((id) => [id, () => engineRef.current?.tileMeter(id) ?? null])) as Record<TileId, () => AnalyserNode | null>,
+    [],
+  );
 
   const bpm = mix.bpm ?? rolled.bpm;
   const key = mix.key ?? rolled.key;
@@ -517,6 +521,8 @@ export function App() {
                     key={tile.id}
                     meta={tile}
                     setting={mix.tiles[tile.id]}
+                    playing={playing}
+                    meter={meters[tile.id]}
                     onToggle={() => toggleTile(tile.id)}
                     onVolume={(v) => setTile(tile.id, { volume: v })}
                   />
