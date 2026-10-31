@@ -21,6 +21,8 @@ import {
 } from './state/mix';
 import { PRESETS, presetMix, type Preset } from './state/presets';
 import { CATEGORIES, TILES, TILE_IDS, type TileId } from './tiles';
+import { useT } from './i18n';
+import type { Strings } from './i18n/en';
 import { AboutSheet } from './ui/AboutSheet';
 import { Welcome } from './ui/Welcome';
 import { Background, levelReader, type AudioLevels } from './ui/Background';
@@ -68,11 +70,11 @@ const WELCOME_LEAVE_MS = 500;
 /** The session timer starts fading this long before it ends. */
 const TIMER_FADE_MS = 30_000;
 
-function evolutionText(v: number): string {
-  if (v < 0.15) return 'completely steady';
-  if (v < 0.4) return 'mostly steady';
-  if (v < 0.7) return 'gently changing';
-  return 'constantly shifting';
+function evolutionText(v: number, t: Strings): string {
+  if (v < 0.15) return t.evolutionSteady;
+  if (v < 0.4) return t.evolutionMostlySteady;
+  if (v < 0.7) return t.evolutionGentle;
+  return t.evolutionShifting;
 }
 
 interface Toast {
@@ -81,6 +83,10 @@ interface Toast {
 }
 
 export function App() {
+  const t = useT();
+  // For callbacks and effects that must not rerun when the language changes.
+  const tRef = useRef(t);
+  tRef.current = t;
   const [mix, setMix] = useState<MixState>(initialMix);
   // Random BPM and key used whenever the user left them on Auto.
   const [rolled, setRolled] = useState(() => ({ bpm: rollBpm(), key: rollKey() }));
@@ -125,14 +131,14 @@ export function App() {
       setMix(next);
       say(msg, () => {
         setMix(prev);
-        say('Undone');
+        say(tRef.current.undone);
       });
     },
     [mix, say],
   );
 
   useEffect(() => {
-    if (getBoot().fromLink) say('Shared mix loaded. Press play to listen.');
+    if (getBoot().fromLink) say(tRef.current.sharedMixLoaded);
   }, [say]);
 
   useEffect(() => {
@@ -154,7 +160,7 @@ export function App() {
       const m = decodeMix(window.location.hash);
       if (!m) return;
       history.replaceState(null, '', window.location.pathname + window.location.search);
-      replaceMix(m, 'Mix loaded from link');
+      replaceMix(m, tRef.current.mixFromLink);
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
@@ -188,7 +194,7 @@ export function App() {
       setPlaying(true);
     } catch {
       engine.playing = false;
-      say('Couldn’t start audio. Tap play again.');
+      say(tRef.current.audioFailed);
     } finally {
       setStarting(false);
     }
@@ -221,7 +227,7 @@ export function App() {
         engine.stop();
         setPlaying(false);
         setTimerEnd(null);
-        say('Session finished');
+        say(tRef.current.sessionFinished);
       } else if (left <= TIMER_FADE_MS && !fadingRef.current) {
         fadingRef.current = true;
         engine.fadeOut(left / 1000);
@@ -239,13 +245,13 @@ export function App() {
     }
     if (minutes === null) {
       setTimerEnd(null);
-      say('Timer off');
+      say(t.timerOff);
       return;
     }
     setTimerEnd(Date.now() + minutes * 60_000);
     setNow(Date.now());
     if (!engineRef.current?.playing) void togglePlay();
-    say(`Fading out in ${minutes} min`);
+    say(t.fadingOutIn(minutes));
   };
 
   const timerLeft = timerEnd === null ? null : Math.max(0, timerEnd - now);
@@ -256,7 +262,7 @@ export function App() {
   /** Play button and Space: starting an empty mix would only play silence. */
   const pressPlay = useCallback(() => {
     if (!engineRef.current?.playing && activeCount === 0) {
-      say('Pick a sound first');
+      say(tRef.current.pickSoundFirst);
       return;
     }
     void togglePlay();
@@ -265,7 +271,8 @@ export function App() {
 
   useMediaSession({
     playing,
-    subtitle: activeIds.map((id) => TILES.find((t) => t.id === id)!.name).join(', '),
+    subtitle: activeIds.map((id) => t.tiles[id].name).join(', '),
+    fallback: t.mediaArtist,
     play,
     pause,
   });
@@ -316,14 +323,14 @@ export function App() {
   const surprise = () => {
     const next = surpriseMix();
     const nextRolled = { bpm: rollBpm(), key: rollKey() };
-    replaceMix(next, 'Surprise mix');
+    replaceMix(next, t.surpriseMix);
     setRolled(nextRolled);
     startWith(next, nextRolled);
   };
 
   const loadPreset = (p: Preset) => {
     const next = presetMix(p);
-    replaceMix(next, `Loaded “${p.name}”`);
+    replaceMix(next, t.loaded(t.presets[p.id].name));
     setShowStarters(false);
     startWith(next);
   };
@@ -332,7 +339,7 @@ export function App() {
     const next = presetMix(p);
     const nextRolled = { ...rolled, key: p.welcomeKey };
     setRolled(nextRolled);
-    replaceMix(next, `Loaded “${p.name}”`);
+    replaceMix(next, t.loaded(t.presets[p.id].name));
     setShowStarters(false);
     startWith(next, nextRolled);
     setWelcome('leaving');
@@ -355,7 +362,7 @@ export function App() {
   const clearAll = () => {
     const tiles = { ...mix.tiles };
     for (const id of TILE_IDS) tiles[id] = { ...tiles[id], on: false };
-    replaceMix({ ...mix, tiles }, 'All tiles off');
+    replaceMix({ ...mix, tiles }, t.allTilesOff);
   };
 
   const jumpToTile = (id: TileId) => {
@@ -371,7 +378,7 @@ export function App() {
     const url = `${window.location.origin}${window.location.pathname}#${encodeMix(mix)}`;
     if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
       try {
-        await navigator.share({ title: 'Garsæ mix', url });
+        await navigator.share({ title: t.shareTitle, url });
         return;
       } catch (e) {
         if ((e as Error).name === 'AbortError') return;
@@ -379,7 +386,7 @@ export function App() {
     }
     try {
       await navigator.clipboard.writeText(url);
-      say('Link copied');
+      say(t.linkCopied);
     } catch {
       setShareUrl(url);
       setSheet('share');
@@ -393,15 +400,15 @@ export function App() {
       if (was === 'on') {
         await disableOffline();
         setOffline('off');
-        say('Offline copy removed');
+        say(t.offlineRemoved);
       } else {
         await enableOffline();
         setOffline('on');
-        say('Ready for offline use');
+        say(t.offlineReady);
       }
     } catch {
       setOffline(was);
-      say('Could not change offline mode');
+      say(t.offlineFailed);
     }
   };
 
@@ -409,43 +416,40 @@ export function App() {
   const evoPct = Math.round(mix.evolution * 100);
   const bpmPct = Math.round(((bpm - BPM_MIN) / (BPM_MAX - BPM_MIN)) * 100);
 
-  const detail = `Key of ${NOTE_NAMES[key]} · ${bpm} bpm`;
+  const detail = t.detail(NOTE_NAMES[key], bpm);
 
   // What is playing leads the mix panel; with nothing on, the starters take its place.
   const onNowRow = (
-    <div className="panel-row" role="group" aria-label="On now">
-      <h2 className="micro bracket">On now</h2>
+    <div className="panel-row" role="group" aria-label={t.onNow}>
+      <h2 className="micro bracket">{t.onNow}</h2>
       <ul className="name-list">
-        {activeIds.map((id) => {
-          const t = TILES.find((x) => x.id === id)!;
-          return (
-            <li key={id}>
-              <button type="button" className="name" onClick={() => jumpToTile(id)}>
-                {t.name}
-              </button>
-            </li>
-          );
-        })}
+        {activeIds.map((id) => (
+          <li key={id}>
+            <button type="button" className="name" onClick={() => jumpToTile(id)}>
+              {t.tiles[id].name}
+            </button>
+          </li>
+        ))}
       </ul>
       <button type="button" className="micro-link" onClick={clearAll}>
-        Clear
+        {t.clear}
       </button>
     </div>
   );
   const startersRow = (
-    <div className="panel-row" role="group" aria-label="Starter mixes">
-      <h2 className="micro bracket">Starters</h2>
+    <div className="panel-row" role="group" aria-label={t.starterMixes}>
+      <h2 className="micro bracket">{t.starters}</h2>
       <ul className="name-list">
         {PRESETS.map((p) => (
           <li key={p.id}>
-            <button type="button" className="name btn starter" title={p.hint} onClick={() => loadPreset(p)}>
-              {p.name}
+            <button type="button" className="name btn starter" title={t.presets[p.id].hint} onClick={() => loadPreset(p)}>
+              {t.presets[p.id].name}
             </button>
           </li>
         ))}
       </ul>
       {showStarters && activeCount > 0 && (
-        <button type="button" className="icon-btn small" aria-label="Hide starters" onClick={() => setShowStarters(false)}>
+        <button type="button" className="icon-btn small" aria-label={t.hideStarters} onClick={() => setShowStarters(false)}>
           <CloseIcon size={16} />
         </button>
       )}
@@ -474,17 +478,17 @@ export function App() {
 
       <div className="page" id="top">
         <h1 className="sr-only">Garsæ</h1>
-        <section className="mix-panel panel" aria-label="Mix">
+        <section className="mix-panel panel" aria-label={t.mix}>
           <div className="mix-head">
             {activeCount > 0 ? onNowRow : startersRow}
             <div className="actions">
               <button type="button" className="btn black" onClick={surprise}>
                 <ShuffleIcon size={16} />
-                Surprise me
+                {t.surpriseMe}
               </button>
               <button type="button" className="btn" onClick={() => setSheet('mixes')}>
                 <MixesIcon size={16} />
-                Mixes
+                {t.mixes}
                 {saved.length > 0 && <span className="btn-count">{saved.length}</span>}
               </button>
             </div>
@@ -498,28 +502,28 @@ export function App() {
               key={cat.id}
               className="category"
               aria-labelledby={`cat-${cat.id}`}
-              aria-describedby={cat.note ? `note-${cat.id}` : undefined}
+              aria-describedby={t.categories[cat.id].note ? `note-${cat.id}` : undefined}
             >
               <div className="category-head">
                 <h2 id={`cat-${cat.id}`} className="micro bracket">
-                  {cat.name}
+                  {t.categories[cat.id].name}
                 </h2>
-                {cat.note && (
+                {t.categories[cat.id].note && (
                   <span id={`note-${cat.id}`} className="category-note">
-                    {cat.note}
+                    {t.categories[cat.id].note}
                   </span>
                 )}
                 <span className="rule" aria-hidden="true" />
-                <span className="micro count">{onIn(cat.id) ? `${onIn(cat.id)} on` : ''}</span>
+                <span className="micro count">{onIn(cat.id) ? t.countOn(onIn(cat.id)) : ''}</span>
               </div>
               <div className="tiles">
-                {TILES.filter((t) => t.category === cat.id).map((t) => (
+                {TILES.filter((tile) => tile.category === cat.id).map((tile) => (
                   <TileCard
-                    key={t.id}
-                    meta={t}
-                    setting={mix.tiles[t.id]}
-                    onToggle={() => toggleTile(t.id)}
-                    onVolume={(v) => setTile(t.id, { volume: v })}
+                    key={tile.id}
+                    meta={tile}
+                    setting={mix.tiles[tile.id]}
+                    onToggle={() => toggleTile(tile.id)}
+                    onVolume={(v) => setTile(tile.id, { volume: v })}
                   />
                 ))}
               </div>
@@ -528,11 +532,11 @@ export function App() {
         </main>
 
         {/* Settings most mixes leave alone, below the tiles. */}
-        <section className="sound panel" aria-label="Sound">
+        <section className="sound panel" aria-label={t.sound}>
           <div className="field evolution">
             <div className="field-head">
-              <label htmlFor="evolution">Evolution</label>
-              <span className="field-value">{evolutionText(mix.evolution)}</span>
+              <label htmlFor="evolution">{t.evolution}</label>
+              <span className="field-value">{evolutionText(mix.evolution, t)}</span>
             </div>
             <input
               id="evolution"
@@ -541,7 +545,7 @@ export function App() {
               max={100}
               value={evoPct}
               style={fill(evoPct)}
-              aria-valuetext={`${evoPct}%, ${evolutionText(mix.evolution)}`}
+              aria-valuetext={`${evoPct}%, ${evolutionText(mix.evolution, t)}`}
               onChange={(e) => setMix((m) => ({ ...m, evolution: Number(e.currentTarget.value) / 100 }))}
             />
           </div>
@@ -552,33 +556,33 @@ export function App() {
             aria-expanded={showTempoKey}
             onClick={() => setShowTempoKey((v) => !v)}
           >
-            Tempo and key
+            {t.tempoAndKey}
             <ChevronIcon size={16} className={showTempoKey ? 'flip' : undefined} />
           </button>
 
           <div className={`tk${showTempoKey ? ' open' : ''}`}>
             <div className="field">
               <div className="field-head">
-                <label htmlFor="bpm">Tempo</label>
+                <label htmlFor="bpm">{t.tempo}</label>
                 <output htmlFor="bpm" className="field-value">
                   {bpm} bpm
                 </output>
               </div>
               <div className="inline">
-                <div className="segmented" role="group" aria-label="Tempo mode">
+                <div className="segmented" role="group" aria-label={t.tempoMode}>
                   <button
                     type="button"
                     aria-pressed={mix.bpm === null}
                     onClick={() => setMix((m) => ({ ...m, bpm: null }))}
                   >
-                    Auto
+                    {t.auto}
                   </button>
                   <button
                     type="button"
                     aria-pressed={mix.bpm !== null}
                     onClick={() => setMix((m) => ({ ...m, bpm }))}
                   >
-                    Set
+                    {t.setManually}
                   </button>
                 </div>
                 <input
@@ -595,7 +599,7 @@ export function App() {
 
             <div className="field">
               <div className="field-head">
-                <label htmlFor="key">Key</label>
+                <label htmlFor="key">{t.key}</label>
               </div>
               <div className="select">
                 <select
@@ -603,7 +607,9 @@ export function App() {
                   value={mix.key === null ? 'auto' : String(mix.key)}
                   onChange={(e) => setMix((m) => ({ ...m, key: e.currentTarget.value === 'auto' ? null : Number(e.currentTarget.value) }))}
                 >
-                  <option value="auto">Auto ({NOTE_NAMES[rolled.key]})</option>
+                  <option value="auto">
+                    {t.auto} ({NOTE_NAMES[rolled.key]})
+                  </option>
                   {NOTE_NAMES.map((n, i) => (
                     <option key={n} value={i}>
                       {n}
@@ -622,7 +628,7 @@ export function App() {
             Garsæ
           </span>
           <button type="button" className="micro-link" onClick={() => setSheet('about')}>
-            About and offline use
+            {t.aboutFooter}
           </button>
         </footer>
       </div>
@@ -638,7 +644,7 @@ export function App() {
               undo
                 ? () => {
                     setSaved(restoreMixes(undo));
-                    say('Restored');
+                    say(t.restored);
                   }
                 : undefined,
             );
@@ -646,7 +652,7 @@ export function App() {
           onLoad={(m) => {
             const decoded = decodeMix(m.mix);
             if (decoded) {
-              replaceMix(decoded, `Loaded “${m.name}”`);
+              replaceMix(decoded, t.loaded(m.name));
               startWith(decoded);
             }
             setSheet(null);
@@ -674,7 +680,7 @@ export function App() {
         <span>{toast?.msg}</span>
         {toast?.undo && (
           <button type="button" className="toast-undo" onClick={() => toast.undo?.()}>
-            Undo
+            {t.undo}
           </button>
         )}
       </div>

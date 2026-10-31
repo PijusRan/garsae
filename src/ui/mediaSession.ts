@@ -5,11 +5,13 @@ interface Options {
   playing: boolean;
   /** What is on, for the overlay subtitle. */
   subtitle: string;
+  /** Shown instead when nothing is on. */
+  fallback: string;
   play: () => void;
   pause: () => void;
 }
 
-export function useMediaSession({ playing, subtitle, play, pause }: Options): void {
+export function useMediaSession({ playing, subtitle, fallback, play, pause }: Options): void {
   const fns = useRef({ play, pause });
   fns.current = { play, pause };
 
@@ -22,13 +24,13 @@ export function useMediaSession({ playing, subtitle, play, pause }: Options): vo
     const ms = navigator.mediaSession;
     ms.metadata = new MediaMetadata({
       title: 'Garsæ',
-      artist: subtitle || 'Generative focus music',
+      artist: subtitle || fallback,
       artwork: [
         { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
         { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
       ],
     });
-  }, [subtitle]);
+  }, [subtitle, fallback]);
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;

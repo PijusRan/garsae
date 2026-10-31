@@ -1447,6 +1447,26 @@ input[type='range']:focus-visible {
   pointer-events: none;
 }
 
+.welcome-lang {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+}
+
+/* This sits on the brightest part of the background, so it brings its own dark ground. */
+.welcome-lang .segmented {
+  background: oklch(0 0 0 / 0.55);
+  border-color: var(--hairline-strong);
+}
+
+.welcome-lang .segmented button {
+  color: var(--text-2);
+}
+
+.welcome-lang .segmented button[aria-pressed='true'] {
+  color: var(--text);
+}
+
 .welcome-inner {
   width: min(100%, 1040px);
   margin: auto;

@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { TileMeta } from '../tiles';
 import type { TileSetting } from '../state/mix';
+import { useT } from '../i18n';
 import { EffectIcon } from './icons';
 
 interface Props {
@@ -13,15 +14,16 @@ interface Props {
 /** A tile: tap to toggle, slider for level once it is on. The filled track is the on indicator. */
 export function TileCard({ meta, setting, onToggle, onVolume }: Props) {
   const pct = Math.round(setting.volume * 100);
-  const noun = meta.effect ? 'amount' : 'volume';
+  const t = useT();
+  const { name, hint } = t.tiles[meta.id];
   return (
     <div id={`tile-${meta.id}`} className={`tile${setting.on ? ' on' : ''}`}>
       <button type="button" className="tile-toggle" aria-pressed={setting.on} onClick={onToggle}>
         <span className="tile-name">
-          {meta.name}
-          {meta.effect && <EffectIcon size={14} aria-label="Effect" />}
+          {name}
+          {meta.effect && <EffectIcon size={14} aria-label={t.effect} />}
         </span>
-        <span className="tile-hint">{meta.hint}</span>
+        <span className="tile-hint">{hint}</span>
       </button>
       <input
         className="tile-volume"
@@ -30,7 +32,7 @@ export function TileCard({ meta, setting, onToggle, onVolume }: Props) {
         max={100}
         value={pct}
         style={{ '--fill': `${pct}%` } as CSSProperties}
-        aria-label={`${meta.name} ${noun}`}
+        aria-label={meta.effect ? t.tileAmount(name) : t.tileVolume(name)}
         aria-valuetext={`${pct}%`}
         title={`${pct}%`}
         disabled={!setting.on}

@@ -2,8 +2,10 @@
 // they hold settings only, so BPM and key stay random unless a preset sets them.
 import { decodeMix, type MixState } from './mix';
 
+export type PresetId = 'deep' | 'lofi' | 'night' | 'brown' | 'groove';
+
 export interface Preset {
-  id: string;
+  id: PresetId;
   name: string;
   hint: string;
   mix: string;

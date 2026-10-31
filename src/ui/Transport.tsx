@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { useT } from '../i18n';
 import { MarkIcon, MixesIcon, MoreIcon, PauseIcon, PlayIcon, ShareIcon, VolumeIcon } from './icons';
 import { TimerControl } from './TimerControl';
 
@@ -25,10 +26,11 @@ interface Props {
  */
 export function Transport(props: Props) {
   const { playing, starting, invite, chord, detail, activeCount, volume, timerLeft } = props;
+  const t = useT();
   const pct = Math.round(volume * 100);
   return (
-    <header className="transport glass" aria-label="Player">
-      <a className="mark-link" href="#top" aria-label="Garsæ, back to top">
+    <header className="transport glass" aria-label={t.player}>
+      <a className="mark-link" href="#top" aria-label={t.backToTop}>
         <MarkIcon size={20} />
         <span className="wordmark">Garsæ</span>
       </a>
@@ -36,14 +38,14 @@ export function Transport(props: Props) {
         type="button"
         className={`play${playing ? ' playing' : ''}${invite ? ' invite' : ''}`}
         onClick={props.onToggle}
-        aria-label={playing ? 'Pause' : 'Play'}
+        aria-label={playing ? t.pause : t.play}
         aria-busy={starting}
       >
         {playing ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
-        <span className="play-label">{playing ? 'Pause' : 'Play'}</span>
+        <span className="play-label">{playing ? t.pause : t.play}</span>
       </button>
       <div className="status" aria-live="off">
-        <span className="status-main">{playing && chord ? chord : playing ? 'Starting' : activeCount === 0 ? 'Pick a sound' : invite ? 'Press play' : 'Paused'}</span>
+        <span className="status-main">{playing && chord ? chord : playing ? t.starting : activeCount === 0 ? t.pickSound : invite ? t.pressPlay : t.paused}</span>
         <span className="status-detail">{detail}</span>
       </div>
       <span className="t-sep" aria-hidden="true" />
@@ -55,14 +57,14 @@ export function Transport(props: Props) {
           max={100}
           value={pct}
           style={{ '--fill': `${pct}%` } as CSSProperties}
-          aria-label="Master volume"
+          aria-label={t.masterVolume}
           aria-valuetext={`${pct}%`}
           onChange={(e) => props.onVolume(Number(e.currentTarget.value) / 100)}
         />
       </label>
       <TimerControl left={timerLeft} onSet={props.onTimer} />
       <div className="t-actions">
-        <button type="button" className="icon-btn" onClick={props.onMixes} aria-label="Mixes" title="Mixes">
+        <button type="button" className="icon-btn" onClick={props.onMixes} aria-label={t.mixes} title={t.mixes}>
           <MixesIcon size={18} />
         </button>
         <button
@@ -70,12 +72,12 @@ export function Transport(props: Props) {
           className="icon-btn t-share"
           onClick={props.onShare}
           disabled={activeCount === 0}
-          aria-label="Share link"
-          title="Share link"
+          aria-label={t.shareLink}
+          title={t.shareLink}
         >
           <ShareIcon size={18} />
         </button>
-        <button type="button" className="icon-btn" onClick={props.onMore} aria-label="About & offline" title="About & offline">
+        <button type="button" className="icon-btn" onClick={props.onMore} aria-label={t.aboutAndOffline} title={t.aboutAndOffline}>
           <MoreIcon size={18} />
         </button>
       </div>

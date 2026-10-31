@@ -81,6 +81,14 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 - **Session timer**: 25 / 50 / 90 min. It fades out over the last 30 s, then stops. Pausing cancels it.
 - **Undo** instead of confirmations: Surprise me, loading a mix or link, Clear, and deleting or overwriting a saved mix all show an Undo toast.
 
+## Language
+- English and Lithuanian. English is the source (`src/i18n/en.ts`, with tile and starter names read from `src/tiles.ts` and `src/state/presets.ts`); `src/i18n/lt.ts` must match its shape, so a missing translation doesn't compile.
+- The app follows the browser's language until someone picks one, on the welcome screen or in About. That choice is kept in `garsae.lang`. Languages are named in themselves (English, Lietuvių).
+- A saved mix keeps the name it was saved with. Note names, chord symbols and "bpm" are not translated.
+- Avoid wording that needs Lithuanian plural forms: "Įjungta: 3" rather than a counted noun.
+- Keep tile names short enough for one line at the 164px minimum tile width.
+- The web app manifest is a static file, so the installed app's name and description stay as they are.
+
 ## Playback
 - v1: tab open is fine. Background/lock-screen playback is deferred (it needs the Media Session API and throttle-proof timing later).
 

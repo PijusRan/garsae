@@ -157,12 +157,13 @@ export function updateMix(id: string, mix: MixState): SavedMix[] {
 }
 
 /** A default name from the loudest two tiles, e.g. "Warm pad + Lo-fi hip hop". */
-export function suggestName(mix: MixState): string {
+/** `tileName` and `untitled` come from the current language. */
+export function suggestName(mix: MixState, tileName: (id: TileId) => string, untitled: string): string {
   const on = TILES.filter((t) => mix.tiles[t.id].on).sort((a, b) => mix.tiles[b.id].volume - mix.tiles[a.id].volume);
-  if (on.length === 0) return 'Untitled mix';
+  if (on.length === 0) return untitled;
   return on
     .slice(0, 2)
-    .map((t) => t.name)
+    .map((t) => tileName(t.id))
     .join(' + ');
 }
 

@@ -10,6 +10,8 @@ import {
   type MixState,
   type SavedMix,
 } from '../state/mix';
+import { useT } from '../i18n';
+import type { Strings } from '../i18n/en';
 import { PRESETS, type Preset } from '../state/presets';
 import { TILES } from '../tiles';
 import { Fingerprint } from './Fingerprint';
@@ -26,33 +28,33 @@ interface Props {
   onClose: () => void;
 }
 
-const dateFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
-
-function tileNames(encoded: string): string {
+function tileNames(encoded: string, strings: Strings): string {
   const m = decodeMix(encoded);
-  return m ? TILES.filter((t) => m.tiles[t.id].on).map((t) => t.name).join(', ') : '';
+  return m ? TILES.filter((t) => m.tiles[t.id].on).map((t) => strings.tiles[t.id].name).join(', ') : '';
 }
 
 export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: Props) {
   const [name, setName] = useState('');
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const t = useT();
+  const dateFmt = new Intl.DateTimeFormat(t.locale, { month: 'short', day: 'numeric' });
   const current = encodeMix(mix);
-  const suggested = suggestName(mix);
+  const suggested = suggestName(mix, (id) => t.tiles[id].name, t.untitledMix);
 
   const finishRename = (m: SavedMix) => {
-    if (draft.trim() && draft.trim() !== m.name) onChange(renameMix(m.id, draft), 'Renamed');
+    if (draft.trim() && draft.trim() !== m.name) onChange(renameMix(m.id, draft), t.renamed);
     setRenaming(null);
   };
 
   return (
-    <Sheet title="Mixes" onClose={onClose}>
+    <Sheet title={t.mixes} onClose={onClose}>
       <form
         className="save-row"
         onSubmit={(e) => {
           e.preventDefault();
           const finalName = name.trim() || suggested;
-          onChange(saveMix(finalName, mix), `Saved “${finalName}”`);
+          onChange(saveMix(finalName, mix), t.savedName(finalName));
           setName('');
         }}
       >
@@ -62,16 +64,16 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
           value={name}
           maxLength={40}
           onChange={(e) => setName(e.currentTarget.value)}
-          aria-label="Name for the current mix"
+          aria-label={t.saveName}
         />
         <button type="submit" className="btn primary">
-          Save
+          {t.save}
         </button>
       </form>
 
-      <h3 className="sheet-sub">Saved</h3>
+      <h3 className="sheet-sub">{t.saved}</h3>
       {saved.length === 0 ? (
-        <p className="note">No saved mixes yet. They are kept in this browser only.</p>
+        <p className="note">{t.noSavedMixes}</p>
       ) : (
         <ul className="mix-list">
           {saved.map((m) => {
@@ -84,7 +86,7 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
                     type="text"
                     value={draft}
                     maxLength={40}
-                    aria-label={`New name for ${m.name}`}
+                    aria-label={t.newNameFor(m.name)}
                     autoFocus
                     onChange={(e) => setDraft(e.currentTarget.value)}
                     onBlur={() => finishRename(m)}
@@ -103,20 +105,20 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
                     type="button"
                     className={`mix-load${isCurrent ? ' current' : ''}`}
                     onClick={() => onLoad(m)}
-                    aria-label={`Load ${m.name}: ${tileNames(m.mix)}${isCurrent ? ' (current)' : ''}`}
+                    aria-label={t.loadMix(m.name, tileNames(m.mix, t), isCurrent)}
                   >
                     <span className="mix-main">
                       <span className="mix-name">{m.name}</span>
                       <Fingerprint encoded={m.mix} />
                     </span>
-                    <span className="mix-meta">{isCurrent ? 'Current' : dateFmt.format(m.savedAt)}</span>
+                    <span className="mix-meta">{isCurrent ? t.current : dateFmt.format(m.savedAt)}</span>
                   </button>
                 )}
                 <button
                   type="button"
                   className="icon-btn"
-                  aria-label={`Rename ${m.name}`}
-                  title="Rename"
+                  aria-label={t.renameName(m.name)}
+                  title={t.rename}
                   onClick={() => {
                     setDraft(m.name);
                     setRenaming(m.id);
@@ -128,9 +130,9 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
                   <button
                     type="button"
                     className="icon-btn"
-                    aria-label={`Replace ${m.name} with the current mix`}
-                    title="Replace with current mix"
-                    onClick={() => onChange(updateMix(m.id, mix), `Updated “${m.name}”`, saved)}
+                    aria-label={t.replaceName(m.name)}
+                    title={t.replaceWithCurrent}
+                    onClick={() => onChange(updateMix(m.id, mix), t.updatedName(m.name), saved)}
                   >
                     <ReplaceIcon size={18} />
                   </button>
@@ -138,9 +140,9 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
                 <button
                   type="button"
                   className="icon-btn"
-                  aria-label={`Delete ${m.name}`}
-                  title="Delete"
-                  onClick={() => onChange(deleteMix(m.id), `Deleted “${m.name}”`, saved)}
+                  aria-label={t.deleteName(m.name)}
+                  title={t.delete}
+                  onClick={() => onChange(deleteMix(m.id), t.deletedName(m.name), saved)}
                 >
                   <CloseIcon size={18} />
                 </button>
@@ -150,14 +152,14 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
         </ul>
       )}
 
-      <h3 className="sheet-sub">Starters</h3>
+      <h3 className="sheet-sub">{t.starters}</h3>
       <ul className="mix-list">
         {PRESETS.map((p) => (
           <li key={p.id}>
             <button type="button" className={`mix-load${p.mix === current ? ' current' : ''}`} onClick={() => onPreset(p)}>
               <span className="mix-main">
-                <span className="mix-name">{p.name}</span>
-                <span className="mix-meta">{p.hint}</span>
+                <span className="mix-name">{t.presets[p.id].name}</span>
+                <span className="mix-meta">{t.presets[p.id].hint}</span>
               </span>
               <Fingerprint encoded={p.mix} />
             </button>

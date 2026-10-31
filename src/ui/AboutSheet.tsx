@@ -1,3 +1,5 @@
+import { useT } from '../i18n';
+import { LanguageSwitch } from './LanguageSwitch';
 import { Sheet } from './Sheet';
 
 interface Props {
@@ -9,51 +11,48 @@ interface Props {
 }
 
 export function AboutSheet({ offlineSupported, offline, onToggleOffline, onInstall, onClose }: Props) {
+  const t = useT();
   return (
-    <Sheet title="About & offline" onClose={onClose}>
-      <p className="note about-text">
-        Garsæ is a background player: every sound is synthesized live and never repeats. Pick a few tiles, set the level, and let it run.
-      </p>
+    <Sheet title={t.aboutAndOffline} onClose={onClose}>
+      <p className="note about-text">{t.aboutText}</p>
+      <div className="about-row">
+        <strong>{t.languageLabel}</strong>
+        <LanguageSwitch />
+      </div>
       {offlineSupported && (
         <div className="about-row">
           <div>
-            <strong>Offline use</strong>
+            <strong>{t.offlineUse}</strong>
             <p className="note">
-              {offline === 'on'
-                ? 'Available offline on this device.'
-                : offline === 'busy'
-                  ? 'Working…'
-                  : 'Not saved on this device yet.'}
+              {offline === 'on' ? t.offlineAvailable : offline === 'busy' ? t.working : t.offlineNotSaved}
             </p>
           </div>
           <button type="button" className="btn" onClick={onToggleOffline} disabled={offline === 'busy'}>
-            {offline === 'on' ? 'Remove offline copy' : 'Make available offline'}
+            {offline === 'on' ? t.removeOffline : t.makeOffline}
           </button>
         </div>
       )}
       {onInstall && (
         <div className="about-row">
           <div>
-            <strong>Install</strong>
-            <p className="note">Open Garsæ in its own window.</p>
+            <strong>{t.install}</strong>
+            <p className="note">{t.installNote}</p>
           </div>
           <button type="button" className="btn" onClick={onInstall}>
-            Install app
+            {t.installApp}
           </button>
         </div>
       )}
       <div className="about-row">
         <div>
-          <strong>Source code</strong>
-          <p className="note">See how Garsæ is built.</p>
+          <strong>{t.sourceCode}</strong>
+          <p className="note">{t.sourceNote}</p>
         </div>
         <a className="btn" href="https://github.com/PijusRan/garsae" target="_blank" rel="noreferrer">
-          View on GitHub
+          {t.viewOnGithub}
         </a>
       </div>
-      <p className="fineprint left">
-        Mixes and settings are stored in this browser only.
-      </p>
+      <p className="fineprint left">{t.storedHere}</p>
     </Sheet>
   );
 }

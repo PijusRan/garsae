@@ -1,3 +1,4 @@
+import { useT } from '../i18n';
 import { TimerIcon } from './icons';
 
 export const TIMER_CHOICES = [25, 50, 90] as const;
@@ -18,24 +19,25 @@ interface Props {
 
 /** Session timer: fades out gently and stops when time is up. */
 export function TimerControl({ left, onSet }: Props) {
+  const t = useT();
   return (
-    <label className={`timer${left !== null ? ' active' : ''}`} title="Session timer">
+    <label className={`timer${left !== null ? ' active' : ''}`} title={t.sessionTimer}>
       <TimerIcon />
-      <span className="timer-text">{left === null ? 'Timer' : formatLeft(left)}</span>
+      <span className="timer-text">{left === null ? t.timer : formatLeft(left)}</span>
       <select
-        aria-label={left === null ? 'Session timer' : `Session timer, ${formatLeft(left)} left`}
+        aria-label={left === null ? t.sessionTimer : t.timerLeftAria(formatLeft(left))}
         value={left === null ? 'off' : 'on'}
         onChange={(e) => onSet(e.currentTarget.value === 'off' ? null : Number(e.currentTarget.value))}
       >
         {left !== null && (
           <option value="on" disabled>
-            {formatLeft(left)} left
+            {t.timerLeft(formatLeft(left))}
           </option>
         )}
-        <option value="off">{left === null ? 'No timer' : 'Cancel timer'}</option>
+        <option value="off">{left === null ? t.noTimer : t.cancelTimer}</option>
         {TIMER_CHOICES.map((m) => (
           <option key={m} value={m}>
-            {m} min, then fade out
+            {t.timerChoice(m)}
           </option>
         ))}
       </select>

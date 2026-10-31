@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../i18n';
 import { Sheet } from './Sheet';
 
 interface Props {
@@ -8,12 +9,13 @@ interface Props {
 
 /** Fallback when the clipboard is blocked: the link in a field, ready to copy by hand. */
 export function ShareSheet({ url, onClose }: Props) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   return (
-    <Sheet title="Share this mix" onClose={onClose}>
-      <p className="note">Anyone with this link hears the same tiles and settings, played fresh.</p>
+    <Sheet title={t.shareTitleSheet} onClose={onClose}>
+      <p className="note">{t.shareNote}</p>
       <div className="save-row">
-        <input type="text" readOnly value={url} aria-label="Share link" onFocus={(e) => e.currentTarget.select()} />
+        <input type="text" readOnly value={url} aria-label={t.shareLink} onFocus={(e) => e.currentTarget.select()} />
         <button
           type="button"
           className="btn primary"
@@ -26,10 +28,10 @@ export function ShareSheet({ url, onClose }: Props) {
             }
           }}
         >
-          {copied ? 'Copied' : 'Copy'}
+          {copied ? t.copied : t.copy}
         </button>
       </div>
-      {!copied && <p className="note">If Copy does nothing, select the link and press Ctrl+C (⌘C on Mac).</p>}
+      {!copied && <p className="note">{t.copyHelp}</p>}
     </Sheet>
   );
 }

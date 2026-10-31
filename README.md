@@ -30,6 +30,7 @@ Endless, generative focus music in the browser. Toggle instrument tiles, mix the
 | **Share links** | The whole mix lives in the link, so there is nothing to sign up for |
 | **Session timer** | Fades the music out and stops when your time is up |
 | **Offline** | Installable, and it can download itself to run with no connection |
+| **Languages** | English and Lithuanian, following your browser until you pick one |
 
 ## Instruments
 
@@ -81,6 +82,7 @@ src/
     instruments/           pads, keys, bass, atmosphere and noise colours, effect tiles
     drums/                 synthesized drum voices, genre patterns and mutation rules
   state/mix.ts             mix model, share-link encoding, saved mixes, Surprise me
+  i18n/                    English and Lithuanian strings
   App.tsx, ui/             Preact UI and PWA helpers
 public/sw.js               service worker, only used after "Download for offline"
 ```
