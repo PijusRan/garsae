@@ -44,7 +44,6 @@ export const en = {
   timerChoice: (minutes: number) => `${minutes} min, then fade out`,
 
   mix: 'Mix',
-  tagline: 'Customizable ambient soundscapes for deep work & focus',
   saveMix: 'Save mix',
   mixSaved: 'Saved',
   clear: 'Clear',

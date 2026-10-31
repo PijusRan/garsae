@@ -475,12 +475,9 @@ export function App() {
           {activeCount === 0 ? (
             startersRow
           ) : (
-            <>
-              <p className="tagline">{t.tagline}</p>
-              <button type="button" className="micro-link" onClick={clearAll}>
-                {t.clear}
-              </button>
-            </>
+            <button type="button" className="micro-link" onClick={clearAll}>
+              {t.clear}
+            </button>
           )}
           <div className="actions">
             <button type="button" className="btn" onClick={surprise}>
