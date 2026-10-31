@@ -78,7 +78,6 @@
   --t-light-off: 280ms;
 
   --font: 'Bricolage Grotesque Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --page: 1240px;
   /* The space between tiles. Rows open up with the window, so tiles never read as one solid block. */
   --tile-gap: 14px;
   --row-gap: clamp(14px, 2.4vh, 26px);
@@ -254,17 +253,17 @@ output,
 
 /* ---------------------------------------------------------------- transport */
 
-/* A bar as wide as the page, along the top. */
+/* A bar on small screens. From 900px it joins the sidebar, and this box goes away. */
 .transport {
   position: relative;
   z-index: 20;
+  order: -1;
   flex: none;
   display: flex;
   align-items: center;
   gap: 16px;
-  width: calc(min(100%, var(--page)) - 2 * var(--gutter));
   height: 64px;
-  margin: 14px auto 0;
+  margin: 14px var(--gutter) 0;
   padding: 0 14px 0 20px;
   border-radius: var(--r-md);
 }
@@ -468,11 +467,16 @@ output,
   flex-direction: column;
 }
 
+/* Only a box of its own from 900px up. Below that its contents are laid out by .app, in the order set on each. */
+.sidebar {
+  display: contents;
+}
+
 .page {
+  order: 1;
   flex: 1;
+  min-width: 0;
   min-height: 0;
-  width: min(100%, var(--page));
-  margin: 0 auto;
   padding: 8px var(--gutter) 14px;
   display: flex;
   flex-direction: column;
@@ -503,64 +507,58 @@ output,
   box-shadow: var(--tile-edge), 0 16px 40px -24px oklch(0 0 0 / 0.9);
 }
 
-/* One slim row above the tiles: context on the left, what you can do with the mix on the right. */
+/* The actions on the mix. */
 .mix-strip {
+  order: 0;
   flex: none;
   display: flex;
   align-items: center;
   gap: 8px 16px;
   min-height: 44px;
-}
-
-/* The strip sits directly on the background's brightest part, so its text brings its own shade. */
-.mix-strip {
-  text-shadow: 0 1px 10px oklch(0 0 0 / 0.55);
+  margin: 8px var(--gutter) 0;
 }
 
 .mix-strip .micro-link {
+  margin-left: auto;
   color: var(--text);
 }
 
-.mix-strip .btn {
-  text-shadow: none;
+/* Keeps its place when there is nothing to clear, so the buttons don't move. */
+.mix-strip .micro-link:disabled {
+  visibility: hidden;
 }
 
 .mix-strip .actions {
   flex: none;
   flex-wrap: nowrap;
-  margin-left: auto;
 }
 
-.mix-strip .micro-link {
-  margin-left: auto;
-}
-
-.mix-strip .micro-link + .actions {
-  margin-left: 0;
-}
-
+/* Evolution, tempo and key: stacked, in the sidebar or in their own tab. */
 .sound {
-  flex: none;
+  order: 2;
+  flex: 0 1 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.35fr) minmax(0, 0.7fr);
-  gap: 24px;
-  align-items: center;
-  /* The same bar as the transport above, so the two frame the tiles evenly. */
-  height: 64px;
-  padding: 0 20px;
-  border-radius: var(--r-md);
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 22px;
+  margin: 0 var(--gutter) 14px;
+  padding: 18px 16px;
+  overflow: auto;
 }
 
 .field {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
   min-width: 0;
 }
 
-/* In the bar each field is one line: label, control, value. */
 .field-head {
-  display: contents;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .field-head label {
@@ -572,17 +570,9 @@ output,
 
 .field-value {
   flex: none;
-  order: 1;
   font-size: 13px;
   white-space: nowrap;
   color: var(--text-3);
-}
-
-.field.evolution input,
-.inline,
-.field .select {
-  flex: 1;
-  min-width: 0;
 }
 
 .inline {
@@ -604,7 +594,7 @@ output,
 
 /* Starters appear when nothing is on: a bracketed label, then the pills. */
 .panel-row {
-  flex: 1;
+  flex: none;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -641,23 +631,22 @@ output,
 
 /* ---------------------------------------------------------------- tiles */
 
-/* Categories are rows sharing the height: the label on the left, the tiles on the right. Adding a category
-   adds a row, and a seventh tile in a row wraps; .stage scrolls if that ever outgrows the screen. */
+/* Categories are rows sharing the height: the label above, the tiles below. Adding a category adds a row,
+   and a seventh tile in a row wraps; .stage scrolls if that ever outgrows the screen. */
 .category {
   flex: 1 1 0;
-  min-height: 56px;
-  max-height: 96px;
-  display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-  gap: var(--tile-gap);
+  min-height: 80px;
+  max-height: 122px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .category-head {
+  flex: none;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -723,6 +712,7 @@ output,
 }
 
 .tiles {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   grid-auto-rows: minmax(0, 1fr);
@@ -857,7 +847,7 @@ output,
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: clamp(16px, 1.25vw, 19px);
+  font-size: clamp(16px, 1.2vw, 19px);
   line-height: 1.2;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -1418,7 +1408,7 @@ input[type='range']:focus-visible {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 92px;
+  bottom: max(24px, env(safe-area-inset-bottom));
   z-index: 30;
   display: flex;
   align-items: center;
@@ -1458,12 +1448,18 @@ input[type='range']:focus-visible {
 /* ---------------------------------------------------------------- welcome */
 
 /* The instrument waits underneath and comes up just after the welcome screen clears, so the two never overlap. */
+.sidebar,
 .transport,
+.mix-strip,
+.sound,
 .page {
   transition: opacity 1.1s ease 0.35s;
 }
 
+.welcoming .sidebar,
 .welcoming .transport,
+.welcoming .mix-strip,
+.welcoming .sound,
 .welcoming .page {
   opacity: 0;
   pointer-events: none;
@@ -1811,54 +1807,132 @@ input[type='range']:focus-visible {
 
 /* ---------------------------------------------------------------- responsive */
 
-@media (max-width: 960px) {
+@media (max-width: 899px) {
   .t-volume,
   .t-sep {
     display: none;
   }
 }
 
-@media (min-width: 1400px) {
-  :root {
-    --page: 1360px;
+/* Wide screens: everything you control is in one column, and the rest of the window is the instrument. */
+@media (min-width: 900px) {
+  .app {
+    flex-direction: row;
+    max-width: 1840px;
+    margin: 0 auto;
+  }
+  .sidebar {
+    position: relative;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 232px;
+    height: calc(100dvh - 28px);
+    margin: 14px 0 14px 14px;
+    padding: 18px 16px;
+    border-radius: var(--r-lg);
+    overflow: hidden auto;
+  }
+  .transport {
+    display: contents;
+  }
+  .mark-link {
+    margin: 0 0 4px;
+  }
+  .play {
+    width: 100%;
+    height: 48px;
+    font-size: 15px;
+  }
+  .status {
+    flex: none;
+  }
+  .t-sep {
+    display: none;
+  }
+  .t-volume {
+    flex: none;
+    width: 100%;
+  }
+  .t-volume input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+  .timer {
+    flex: none;
+    width: 100%;
+    padding: 0;
+  }
+  .mix-strip {
+    order: 5;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    min-height: 0;
+    margin: 0;
+  }
+  .mix-strip .actions {
+    flex-direction: column;
+  }
+  .mix-strip .micro-link {
+    order: 1;
+    margin: 0 0 0 auto;
+  }
+  .actions .btn {
+    width: 100%;
+  }
+  /* Part of the sidebar's glass here, so no surface of its own. */
+  .sound {
+    order: 6;
+    flex: none;
+    gap: 14px;
+    margin: 0;
+    padding: 14px 0 0;
+    border: none;
+    border-top: 1px solid var(--hairline);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    overflow: visible;
+  }
+  .sound .inline {
+    gap: 8px;
+  }
+  .sound .segmented button {
+    padding: 0 8px;
+  }
+  /* Share and About sit beside the wordmark, where they stay reachable however short the window is. */
+  .t-actions {
+    position: absolute;
+    top: 12px;
+    right: 8px;
+  }
+  .page {
+    order: 0;
+    padding: 14px;
   }
 }
 
-@media (min-width: 1600px) {
-  :root {
-    --page: 1560px;
-  }
-}
-
-/* Laptop widths: the largest size that keeps Lithuanian names on one line. */
-@media (min-width: 1200px) and (max-width: 1399px) {
+/* Laptop widths: the largest size that keeps most Lithuanian names on one line. */
+@media (min-width: 1280px) and (max-width: 1399px) {
   .tile-name {
     font-size: 16px;
   }
-}
-
-/* Tighter tiles, so Lithuanian names mostly stay on one line. */
-@media (min-width: 900px) and (max-width: 1199px) {
-  :root {
-    --tile-gap: 10px;
-  }
-  .category {
-    grid-template-columns: 88px minmax(0, 1fr);
-  }
   .tile-toggle {
-    padding-inline: 10px;
-  }
-  .tile-name {
-    font-size: 15px;
+    padding-inline: 12px;
   }
   .tile-volume {
-    width: calc(100% - 20px);
-    margin-inline: 10px;
+    width: calc(100% - 24px);
+    margin-inline: 12px;
   }
 }
 
 /* Short windows have no room for a description under the name. */
-@media (min-width: 900px) and (max-height: 800px) {
+@media (min-width: 1280px) and (max-height: 800px) {
   .tile-hint {
     display: none;
   }
@@ -1867,8 +1941,11 @@ input[type='range']:focus-visible {
   }
 }
 
-/* Small screens show one category at a time, or the sound settings, chosen from the tabs. */
-@media (max-width: 899px) {
+/* No room for six tiles across: tabs show one category at a time. */
+@media (max-width: 1279px) {
+  .stage {
+    justify-content: flex-start;
+  }
   .tab-strip {
     flex: none;
     display: flex;
@@ -1906,8 +1983,6 @@ input[type='range']:focus-visible {
     color: var(--accent);
   }
   .category:not(.active),
-  .sound:not(.active),
-  .sound-open .stage,
   .category-head {
     display: none;
   }
@@ -1921,7 +1996,7 @@ input[type='range']:focus-visible {
     height: 100%;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-rows: repeat(2, minmax(88px, 140px));
-    align-content: center;
+    align-content: start;
   }
   .tile-name {
     font-size: 18px;
@@ -1930,32 +2005,32 @@ input[type='range']:focus-visible {
     grid-column: 1 / -1;
     padding-left: 0;
   }
-  .sound {
-    flex: 0 1 auto;
-    grid-template-columns: 1fr;
-    align-content: start;
-    gap: 22px;
-    height: auto;
-    padding: 18px 16px;
-    border-radius: var(--r-lg);
-    overflow: auto;
+}
+
+/* The sidebar holds the sound settings here, so the Sound tab has nothing to show. A window widened
+   while that tab was open falls back to the first category. */
+@media (min-width: 900px) and (max-width: 1279px) {
+  .tab-sound {
+    display: none !important;
   }
-  /* There is room here to stack each field: label and value, then the control. */
-  .field {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
+  .sound-open .category:first-child {
+    display: block;
   }
-  .field-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
+}
+
+/* No sidebar: the sound settings are a tab, and take the tiles' place. */
+@media (max-width: 899px) {
+  .sound:not(.active),
+  .sound-open .stage {
+    display: none;
   }
-  .field.evolution input,
-  .inline,
-  .field .select {
+  .page.sound-open {
     flex: none;
+    padding-bottom: 8px;
+  }
+  /* Takes up the slack the tiles leave, so a player at the bottom stays there. */
+  .sound.active {
+    margin-bottom: auto;
   }
 }
 
@@ -1976,9 +2051,11 @@ input[type='range']:focus-visible {
   .page {
     padding-bottom: 8px;
   }
+  .sound {
+    margin-bottom: 8px;
+  }
   .transport {
-    order: 1;
-    width: auto;
+    order: 3;
     height: 68px;
     margin: 0 10px max(10px, env(safe-area-inset-bottom));
     gap: 6px;
@@ -2025,7 +2102,6 @@ input[type='range']:focus-visible {
   .mix-strip .actions {
     flex: 1 1 100%;
     flex-wrap: wrap;
-    margin-left: 0;
   }
   .actions .btn {
     flex: 1 1 auto;
@@ -2035,7 +2111,6 @@ input[type='range']:focus-visible {
     display: none;
   }
   .panel-row {
-    flex: 1 1 100%;
     flex-direction: column;
     align-items: flex-start;
   }

@@ -44,13 +44,13 @@ try {
   const status = await page.$eval('.status', (el) => el.textContent);
   await page.screenshot({ path: 'smoke-output/desktop-playing.png' });
 
-  // The app is one screen: the page never scrolls, and the player and sound bar stay on it.
+  // The app is one screen: the page never scrolls, and the sidebar stays on it.
   const barVisible = await page.evaluate(() => {
     const onScreen = (s) => {
       const r = document.querySelector(s).getBoundingClientRect();
       return r.top >= 0 && r.bottom <= window.innerHeight && r.height > 0;
     };
-    return document.documentElement.scrollHeight <= window.innerHeight && onScreen('.transport') && onScreen('.sound');
+    return document.documentElement.scrollHeight <= window.innerHeight && onScreen('.sidebar') && onScreen('.play') && onScreen('.sound');
   });
 
   // After clicking a tile, Space pauses the music and does not toggle the tile.

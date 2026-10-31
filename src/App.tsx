@@ -446,39 +446,35 @@ export function App() {
   return (
     <div className={`app${playing ? ' is-playing' : ''}${welcome === 'open' ? ' welcoming' : ''}`}>
       <Background playing={playing} getLevels={getLevels} musicKey={previewKey ?? key} bpm={bpm} evolution={mix.evolution} />
-      <Transport
-        playing={playing}
-        starting={starting}
-        invite={invitePlay}
-        chord={chord}
-        detail={detail}
-        activeCount={activeCount}
-        volume={volume}
-        timerLeft={timerLeft}
-        fading={fading}
-        getLevels={getLevels}
-        onToggle={pressPlay}
-        onVolume={setVolume}
-        onTimer={setTimer}
-        onShare={() => void share()}
-        onMore={() => setSheet('about')}
-      />
+      {/* One set of markup. Wide screens show this as a column; on small ones it dissolves into the page. */}
+      <aside className="sidebar glass">
+        <Transport
+          playing={playing}
+          starting={starting}
+          invite={invitePlay}
+          chord={chord}
+          detail={detail}
+          activeCount={activeCount}
+          volume={volume}
+          timerLeft={timerLeft}
+          fading={fading}
+          getLevels={getLevels}
+          onToggle={pressPlay}
+          onVolume={setVolume}
+          onTimer={setTimer}
+          onShare={() => void share()}
+          onMore={() => setSheet('about')}
+        />
 
-      <div className={`page${tab === 'sound' ? ' sound-open' : ''}`}>
-        <h1 className="sr-only">Garsæ</h1>
         <section className="mix-strip" aria-label={t.mix}>
           {/* Phones keep the player at the bottom, so the brand gets its place up here. */}
           <span className="strip-brand">
             <LiveMark size={22} risen={playing && !fading} fading={fading} getLevels={getLevels} />
             <span className="wordmark">Garsæ</span>
           </span>
-          {activeCount === 0 ? (
-            startersRow
-          ) : (
-            <button type="button" className="micro-link" onClick={clearAll}>
-              {t.clear}
-            </button>
-          )}
+          <button type="button" className="micro-link" disabled={activeCount === 0} onClick={clearAll}>
+            {t.clear}
+          </button>
           <div className="actions">
             <button type="button" className="btn" onClick={surprise}>
               <ShuffleIcon size={16} />
@@ -496,50 +492,7 @@ export function App() {
           </div>
         </section>
 
-        <div className="tab-strip" role="group" aria-label={t.sound}>
-          {CATEGORIES.map((cat) => (
-            <button key={cat.id} type="button" aria-pressed={tab === cat.id} onClick={() => setTab(cat.id)}>
-              {t.categories[cat.id].name}
-              {onIn(cat.id) > 0 && <span className="tab-count">{onIn(cat.id)}</span>}
-            </button>
-          ))}
-          <button type="button" aria-pressed={tab === 'sound'} onClick={() => setTab('sound')}>
-            {t.sound}
-          </button>
-        </div>
-
-        <main className="stage">
-          {CATEGORIES.map((cat) => (
-            <section
-              key={cat.id}
-              className={`category${tab === cat.id ? ' active' : ''}`}
-              aria-labelledby={`cat-${cat.id}`}
-            >
-              <div className="category-head">
-                <h2 id={`cat-${cat.id}`} className="micro bracket">
-                  {t.categories[cat.id].name}
-                </h2>
-                <span className="micro count">{onIn(cat.id) ? t.countOn(onIn(cat.id)) : ''}</span>
-              </div>
-              <div className="tiles">
-                {TILES.filter((tile) => tile.category === cat.id).map((tile) => (
-                  <TileCard
-                    key={tile.id}
-                    meta={tile}
-                    setting={mix.tiles[tile.id]}
-                    playing={playing}
-                    meter={meters[tile.id]}
-                    onToggle={() => toggleTile(tile.id)}
-                    onVolume={(v) => setTile(tile.id, { volume: v })}
-                  />
-                ))}
-                {t.categories[cat.id].note && <p className="category-note">{t.categories[cat.id].note}</p>}
-              </div>
-            </section>
-          ))}
-        </main>
-
-        {/* Settings most mixes leave alone: a bar along the bottom, or their own tab on small screens. */}
+        {/* Settings most mixes leave alone: in the sidebar, or their own tab on small screens. */}
         <section className={`sound panel${tab === 'sound' ? ' active' : ''}`} aria-label={t.sound}>
           <div className="field evolution">
             <div className="field-head">
@@ -617,6 +570,54 @@ export function App() {
             </div>
           </div>
         </section>
+      </aside>
+
+      <div className={`page${tab === 'sound' ? ' sound-open' : ''}`}>
+        <h1 className="sr-only">Garsæ</h1>
+        {activeCount === 0 && startersRow}
+
+        <div className="tab-strip" role="group" aria-label={t.sound}>
+          {CATEGORIES.map((cat) => (
+            <button key={cat.id} type="button" aria-pressed={tab === cat.id} onClick={() => setTab(cat.id)}>
+              {t.categories[cat.id].name}
+              {onIn(cat.id) > 0 && <span className="tab-count">{onIn(cat.id)}</span>}
+            </button>
+          ))}
+          <button type="button" className="tab-sound" aria-pressed={tab === 'sound'} onClick={() => setTab('sound')}>
+            {t.sound}
+          </button>
+        </div>
+
+        <main className="stage">
+          {CATEGORIES.map((cat) => (
+            <section
+              key={cat.id}
+              className={`category${tab === cat.id ? ' active' : ''}`}
+              aria-labelledby={`cat-${cat.id}`}
+            >
+              <div className="category-head">
+                <h2 id={`cat-${cat.id}`} className="micro bracket">
+                  {t.categories[cat.id].name}
+                </h2>
+                <span className="micro count">{onIn(cat.id) ? t.countOn(onIn(cat.id)) : ''}</span>
+              </div>
+              <div className="tiles">
+                {TILES.filter((tile) => tile.category === cat.id).map((tile) => (
+                  <TileCard
+                    key={tile.id}
+                    meta={tile}
+                    setting={mix.tiles[tile.id]}
+                    playing={playing}
+                    meter={meters[tile.id]}
+                    onToggle={() => toggleTile(tile.id)}
+                    onVolume={(v) => setTile(tile.id, { volume: v })}
+                  />
+                ))}
+                {t.categories[cat.id].note && <p className="category-note">{t.categories[cat.id].note}</p>}
+              </div>
+            </section>
+          ))}
+        </main>
       </div>
 
       {sheet === 'mixes' && (
