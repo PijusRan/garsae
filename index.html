@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="dark" />
+    <style>
+      html {
+        background: #000;
+        color-scheme: dark;
+      }
+    </style>
     <meta name="description" content="Endless generative focus music. Pick instruments, mix them, and work." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -13,7 +20,20 @@
     <title>Garsæ</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static first paint, replaced as soon as the app mounts. -->
+      <div class="app">
+        <div class="transport glass" aria-hidden="true">
+          <span class="mark-link">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4.88 13.5A6.5 6.5 0 1 1 15.12 13.5" />
+              <path d="M1.75 13.5h16.5" />
+            </svg>
+            <span class="wordmark">Garsæ</span>
+          </span>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
