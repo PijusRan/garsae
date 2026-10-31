@@ -31,33 +31,30 @@ function softClipCurve(): Float32Array<ArrayBuffer> {
 }
 
 /**
- * Keeps everything below `freq` in the middle, so bass stays solid on mono speakers and headphones alike
- * and the limiter isn't pushed by low end that only exists on one side. Mid/side: the side signal is high-passed.
+ * Keeps everything below `freq` in the middle, so bass stays solid on mono speakers and the limiter isn't pushed
+ * by low end on one side. A Linkwitz-Riley crossover: the highs of each side add back to the mono lows with no
+ * change in level, and both channels get the same phase shift, so the stereo image above the crossover is untouched.
  */
 function monoBass(ctx: BaseAudioContext, freq: number): { input: AudioNode; output: AudioNode } {
   const input = new GainNode(ctx, { channelCount: 2, channelCountMode: 'explicit', channelInterpretation: 'speakers' });
   const split = new ChannelSplitterNode(ctx, { numberOfOutputs: 2 });
   const merge = new ChannelMergerNode(ctx, { numberOfInputs: 2 });
   input.connect(split);
+  const Q = Math.SQRT1_2;
+  const twoPole = (type: BiquadFilterType, from: AudioNode, fromOutput = 0): AudioNode => {
+    const a = new BiquadFilterNode(ctx, { type, frequency: freq, Q });
+    const b = new BiquadFilterNode(ctx, { type, frequency: freq, Q });
+    from.connect(a, fromOutput);
+    return a.connect(b);
+  };
   const mid = new GainNode(ctx, { gain: 0.5 });
-  const sideIn = new GainNode(ctx, { gain: 0.5 });
-  const invertR = new GainNode(ctx, { gain: -1 });
   split.connect(mid, 0);
   split.connect(mid, 1);
-  split.connect(sideIn, 0);
-  split.connect(invertR, 1).connect(sideIn);
-  // Two stages make a 24 dB slope, so the change is well clear of the mids.
-  const hp1 = new BiquadFilterNode(ctx, { type: 'highpass', frequency: freq, Q: 0.54 });
-  const hp2 = new BiquadFilterNode(ctx, { type: 'highpass', frequency: freq, Q: 1.31 });
-  const side = new GainNode(ctx);
-  const sideInverted = new GainNode(ctx, { gain: -1 });
-  sideIn.connect(hp1).connect(hp2).connect(side);
-  side.connect(sideInverted);
-  // left = mid + side, right = mid - side
-  mid.connect(merge, 0, 0);
-  side.connect(merge, 0, 0);
-  mid.connect(merge, 0, 1);
-  sideInverted.connect(merge, 0, 1);
+  const lows = twoPole('lowpass', mid);
+  for (const side of [0, 1]) {
+    twoPole('highpass', split, side).connect(merge, 0, side);
+    lows.connect(merge, 0, side);
+  }
   return { input, output: merge };
 }
 
