@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pijusran.github.io/garsae/"><img src="https://img.shields.io/badge/open-the%20app-fa7641?style=for-the-badge" alt="Open the app"></a>
+  <a href="https://garsae.ranonis.lt/"><img src="https://img.shields.io/badge/open-the%20app-fa7641?style=for-the-badge" alt="Open the app"></a>
   <a href="https://github.com/PijusRan/garsae/actions/workflows/deploy.yml"><img src="https://img.shields.io/github/actions/workflow/status/PijusRan/garsae/deploy.yml?branch=main&style=for-the-badge&label=deploy" alt="Deploy status"></a>
 </p>
 
