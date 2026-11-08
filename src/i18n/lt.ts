@@ -61,7 +61,7 @@ export const lt: Strings = {
     bass: { name: 'Bosas' },
     drums: { name: 'Mušamieji' },
     texture: { name: 'Tekstūra' },
-    effects: { name: 'Efektai', note: 'Jie keičia visą miksą, o ne prideda garsą.' },
+    effects: { name: 'Efektai', note: 'Keičia visą miksą, o ne prideda garsą' },
   },
 
   description: 'Nesibaigianti generatyvinė muzika susikaupti. Pasirinkite instrumentus, sumaišykite ir dirbkite.',
@@ -158,7 +158,7 @@ export const lt: Strings = {
   copyHelp: 'Jei kopijuoti nepavyksta, pažymėkite nuorodą ir spauskite Ctrl+C („Mac“ kompiuteryje ⌘C).',
 
   aboutText:
-    'Garsæ yra foninis grotuvas: kiekvienas garsas sintezuojamas gyvai ir niekada nesikartoja. Pasirinkite kelis garsus, nustatykite lygį ir leiskite jiems skambėti.',
+    'Įjunkite kelis garsus, nustatykite jų lygius ir palikite Garsæ skambėti, kol dirbate. Kiekvienas garsas yra mažas sintezatorius, grojantis tais pačiais lėtai kintančiais akordais, todėl niekas nesikartoja.',
   offlineUse: 'Naudojimas neprisijungus',
   offlineAvailable: 'Šiame įrenginyje veikia neprisijungus.',
   working: 'Vykdoma…',
@@ -168,13 +168,11 @@ export const lt: Strings = {
   install: 'Įdiegimas',
   installNote: 'Atidarykite Garsæ atskirame lange.',
   installApp: 'Įdiegti programėlę',
-  sourceCode: 'Pirminis kodas',
-  sourceNote: 'Pažiūrėkite, kaip sukurta Garsæ.',
-  viewOnGithub: 'Žiūrėti „GitHub“',
-  storedHere: 'Miksai ir nustatymai laikomi tik šioje naršyklėje.',
+  storedHere: 'Miksai ir nustatymai lieka šioje naršyklėje.',
+  sourceLink: 'Pirminis kodas yra „GitHub“.',
 
   welcomeTitle: 'Pasirinkite, ko klausytis dirbant',
-  welcomeSub: 'Garsæ kiekvieną garsą sintezuoja gyvai jūsų naršyklėje, todėl miksas gali skambėti visą dieną ir nesikartoti.',
+  welcomeSub: 'Kiekvienas garsas sintezuojamas jūsų naršyklėje grojant, todėl miksas gali skambėti visą dieną.',
   welcomeBuild: 'Susikurti savo',
   welcomeBuildHint: 'Pradėti nuo tuščio',
 };

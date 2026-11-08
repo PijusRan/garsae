@@ -87,7 +87,7 @@ export const CATEGORIES: { id: Category; name: string; note?: string }[] = [
   { id: 'bass', name: 'Bass' },
   { id: 'drums', name: 'Drums' },
   { id: 'texture', name: 'Texture' },
-  { id: 'effects', name: 'Effects', note: 'These shape the whole mix rather than add a sound.' },
+  { id: 'effects', name: 'Effects', note: 'Change the whole mix instead of adding a sound' },
 ];
 
 export const isTileId = (s: string): s is TileId => (TILE_IDS as readonly string[]).includes(s);

@@ -609,6 +609,7 @@ export function App() {
                   {t.categories[cat.id].name}
                 </h2>
                 <span className="label count">{onIn(cat.id) ? t.countOn(onIn(cat.id)) : ''}</span>
+                {t.categories[cat.id].note && <p className="category-note">{t.categories[cat.id].note}</p>}
               </div>
               <div className="tiles">
                 {TILES.filter((tile) => tile.category === cat.id).map((tile) => (
@@ -622,7 +623,6 @@ export function App() {
                     onVolume={(v) => setTile(tile.id, { volume: v })}
                   />
                 ))}
-                {t.categories[cat.id].note && <p className="category-note">{t.categories[cat.id].note}</p>}
               </div>
             </section>
           ))}

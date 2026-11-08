@@ -113,7 +113,7 @@ export const en = {
   copyHelp: 'If Copy does nothing, select the link and press Ctrl+C (⌘C on Mac).',
 
   aboutText:
-    'Garsæ is a background player: every sound is synthesized live and never repeats. Pick a few tiles, set the level, and let it run.',
+    'Turn on a few tiles, set their levels, and leave Garsæ running while you work. Each tile is a small synthesizer playing over the same slowly changing chords, so nothing loops.',
   offlineUse: 'Offline use',
   offlineAvailable: 'Available offline on this device.',
   working: 'Working…',
@@ -123,13 +123,11 @@ export const en = {
   install: 'Install',
   installNote: 'Open Garsæ in its own window.',
   installApp: 'Install app',
-  sourceCode: 'Source code',
-  sourceNote: 'See how Garsæ is built.',
-  viewOnGithub: 'View on GitHub',
-  storedHere: 'Mixes and settings are stored in this browser only.',
+  storedHere: 'Mixes and settings stay in this browser.',
+  sourceLink: 'The source code is on GitHub.',
 
   welcomeTitle: 'Choose something to work to',
-  welcomeSub: 'Garsæ synthesizes every sound live in your browser, so a mix can play all day without looping.',
+  welcomeSub: 'Every sound is synthesized in your browser as it plays, so a mix can run all day.',
   welcomeBuild: 'Build my own',
   welcomeBuildHint: 'Start with nothing on',
 };

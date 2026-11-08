@@ -87,6 +87,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 - A saved mix keeps the name it was saved with. Note names, chord symbols and "bpm" are not translated.
 - Avoid wording that needs Lithuanian plural forms: "Įjungta: 3" rather than a counted noun.
 - Keep tile names short enough for one line at the 164px minimum tile width.
+- Plain copy: say each thing once (how the sound is made belongs on the welcome screen, how to use it in About), no taglines, no "No X, no Y" lists, no colons joining two clauses. A category note sits beside its label, never on its own in the grid.
 - The web app manifest is a static file, so the installed app's name and description stay as they are.
 
 ## Playback

@@ -601,12 +601,15 @@ output,
   color: var(--accent);
 }
 
+/* A short aside after the label, for a category that works differently (effects). */
 .category-note {
-  grid-column: 3 / -1;
-  align-self: center;
+  min-width: 0;
   margin: 0;
-  padding-left: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
+  line-height: 1.2;
   color: var(--text-3);
 }
 
@@ -1339,9 +1342,20 @@ input[type='range']:focus-visible {
 
 .fineprint {
   margin: 8px 0 0;
-  font-size: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  font-size: 13px;
   line-height: 1.5;
   color: var(--text-3);
+}
+
+.fineprint a {
+  color: var(--text-2);
+  text-underline-offset: 3px;
+}
+
+.fineprint a:hover {
+  color: var(--text);
 }
 
 /* ---------------------------------------------------------------- toast */
@@ -1848,28 +1862,28 @@ input[type='range']:focus-visible {
   .tab-strip button[aria-pressed='true'] .tab-count {
     color: #8a3d1c;
   }
+  /* The tab names the category, so the head only stays to carry a note. */
   .category:not(.active),
-  .category-head {
+  .category-head:not(:has(.category-note)),
+  .category-head .label {
     display: none;
   }
+  .category-head {
+    margin-bottom: 4px;
+  }
   .category {
-    display: block;
+    display: flex;
     flex: 1;
     min-height: 0;
     max-height: none;
   }
   .tiles {
-    height: 100%;
     grid-template-columns: repeat(var(--tab-cols), minmax(0, 1fr));
     grid-auto-rows: minmax(88px, 140px);
     align-content: start;
   }
   .tile-name {
     font-size: 16px;
-  }
-  .category-note {
-    grid-column: 1 / -1;
-    padding-left: 0;
   }
 }
 
@@ -1880,7 +1894,7 @@ input[type='range']:focus-visible {
     display: none !important;
   }
   .sound-open .category:first-child {
-    display: block;
+    display: flex;
   }
 }
 

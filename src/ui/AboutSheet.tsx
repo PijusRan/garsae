@@ -14,7 +14,7 @@ export function AboutSheet({ offlineSupported, offline, onToggleOffline, onInsta
   const t = useT();
   return (
     <Sheet title={t.aboutAndOffline} onClose={onClose}>
-      <p className="note about-text">{t.aboutText}</p>
+      <p className="about-text">{t.aboutText}</p>
       <div className="about-row">
         <strong>{t.languageLabel}</strong>
         <LanguageSwitch />
@@ -43,16 +43,12 @@ export function AboutSheet({ offlineSupported, offline, onToggleOffline, onInsta
           </button>
         </div>
       )}
-      <div className="about-row">
-        <div>
-          <strong>{t.sourceCode}</strong>
-          <p className="note">{t.sourceNote}</p>
-        </div>
-        <a className="btn" href="https://github.com/PijusRan/garsae" target="_blank" rel="noreferrer">
-          {t.viewOnGithub}
+      <p className="fineprint">
+        {t.storedHere}{' '}
+        <a href="https://github.com/PijusRan/garsae" target="_blank" rel="noreferrer">
+          {t.sourceLink}
         </a>
-      </div>
-      <p className="fineprint left">{t.storedHere}</p>
+      </p>
     </Sheet>
   );
 }
