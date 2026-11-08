@@ -452,7 +452,7 @@ export function App() {
 
   return (
     <div className={`app${playing ? ' is-playing' : ''}${welcome === 'open' ? ' welcoming' : ''}`}>
-      <Background playing={playing} getLevels={getLevels} musicKey={previewKey ?? key} bpm={bpm} evolution={mix.evolution} />
+      <Background musicKey={previewKey ?? key} bpm={bpm} evolution={mix.evolution} />
       {/* One set of markup. Wide screens show this as a column; on small ones it dissolves into the page. */}
       <aside className="sidebar glass">
         <Transport
