@@ -661,20 +661,6 @@ output,
   transform: scale(0.985);
 }
 
-/* The category's colour along the left edge: dim at rest, full when the tile is on. */
-.tile::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--cat);
-  opacity: 0.35;
-  pointer-events: none;
-  transition: opacity var(--t-press) var(--ease-out);
-}
-
 .tile:hover {
   border-color: var(--hairline-strong);
   background-color: var(--panel-2);
@@ -683,10 +669,6 @@ output,
 .tile.on {
   border-color: color-mix(in oklch, var(--cat) 45%, transparent);
   background-color: color-mix(in srgb, var(--cat-deep) 85%, transparent);
-}
-
-.tile.on::before {
-  opacity: 1;
 }
 
 /* The toggle fills the tile, so the tile draws the focus ring. */
