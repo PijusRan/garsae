@@ -437,7 +437,7 @@ export function App() {
 
   const startersRow = (
     <div className="panel-row" role="group" aria-label={t.starterMixes}>
-      <h2 className="micro bracket">{t.starters}</h2>
+      <h2 className="label">{t.starters}</h2>
       <ul className="name-list">
         {PRESETS.map((p) => (
           <li key={p.id}>
@@ -479,7 +479,7 @@ export function App() {
             <LiveMark size={22} risen={playing && !fading} fading={fading} getLevels={getLevels} />
             <span className="wordmark">Garsæ</span>
           </span>
-          <button type="button" className="micro-link" disabled={activeCount === 0} onClick={clearAll}>
+          <button type="button" className="text-link" disabled={activeCount === 0} onClick={clearAll}>
             {t.clear}
           </button>
           <div className="actions">
@@ -604,10 +604,10 @@ export function App() {
               aria-labelledby={`cat-${cat.id}`}
             >
               <div className="category-head">
-                <h2 id={`cat-${cat.id}`} className="micro bracket">
+                <h2 id={`cat-${cat.id}`} className="label">
                   {t.categories[cat.id].name}
                 </h2>
-                <span className="micro count">{onIn(cat.id) ? t.countOn(onIn(cat.id)) : ''}</span>
+                <span className="label count">{onIn(cat.id) ? t.countOn(onIn(cat.id)) : ''}</span>
               </div>
               <div className="tiles">
                 {TILES.filter((tile) => tile.category === cat.id).map((tile) => (

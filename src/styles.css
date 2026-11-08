@@ -176,37 +176,25 @@ output,
   color: var(--text-3);
 }
 
-/* Micro labels: the only uppercase in the app. Small, tracked, quiet. */
-.micro {
+/* Section labels: plain sentence case, a step quieter than the content they name. */
+.label {
   margin: 0;
-  font-size: 11px;
-  font-weight: 450;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1.2;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
-.bracket::before {
-  content: '[\2009';
-}
-
-.bracket::after {
-  content: '\2009]';
-}
-
-.micro-link {
+.text-link {
   padding: 6px 2px;
   border: none;
   background: none;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 13px;
   color: var(--text-3);
   transition: color var(--t-hover) var(--ease-out);
 }
 
-.micro-link:hover {
+.text-link:hover {
   color: var(--text);
 }
 
@@ -523,13 +511,13 @@ output,
   margin: 8px var(--gutter) 0;
 }
 
-.mix-strip .micro-link {
+.mix-strip .text-link {
   margin-left: auto;
-  color: var(--text);
+  color: var(--text-2);
 }
 
 /* Keeps its place when there is nothing to clear, so the buttons don't move. */
-.mix-strip .micro-link:disabled {
+.mix-strip .text-link:disabled {
   visibility: hidden;
 }
 
@@ -597,7 +585,7 @@ output,
   gap: 8px;
 }
 
-/* Starters appear when nothing is on: a bracketed label, then the pills. */
+/* Starters appear when nothing is on: a label, then the buttons. */
 .panel-row {
   flex: none;
   min-width: 0;
@@ -606,7 +594,7 @@ output,
   gap: 4px 16px;
 }
 
-.panel-row .micro {
+.panel-row .label {
   flex: none;
 }
 
@@ -656,11 +644,12 @@ output,
   min-width: 0;
 }
 
-.category-head .micro {
+.category-head .label {
   white-space: nowrap;
 }
 
 .category-head .count {
+  font-weight: 450;
   color: var(--accent);
 }
 
@@ -1264,11 +1253,9 @@ input[type='range']:focus-visible {
 
 .sheet-sub {
   margin: 24px 0 6px;
-  font-size: 11px;
-  font-weight: 450;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
 }
 
 .save-row {
@@ -1443,9 +1430,8 @@ input[type='range']:focus-visible {
   padding: 0 10px;
   border: none;
   background: none;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--accent);
 }
 
@@ -1761,7 +1747,7 @@ input[type='range']:focus-visible {
   .mix-strip .actions {
     flex-direction: column;
   }
-  .mix-strip .micro-link {
+  .mix-strip .text-link {
     order: 1;
     margin: 0 0 0 auto;
   }
