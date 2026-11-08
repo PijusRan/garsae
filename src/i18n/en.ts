@@ -19,7 +19,7 @@ export const en = {
     { name: string; note?: string }
   >,
 
-  description: 'Endless generative focus music. Pick instruments, mix them, and work.',
+  description: 'Background music for working, synthesized in your browser as it plays.',
   mediaArtist: 'Generative focus music',
 
   player: 'Player',
@@ -33,7 +33,7 @@ export const en = {
   masterVolume: 'Master volume',
   mixes: 'Mixes',
   shareLink: 'Share link',
-  aboutAndOffline: 'About & offline',
+  about: 'About Garsæ',
 
   sessionTimer: 'Session timer',
   timer: 'Timer',
@@ -49,7 +49,7 @@ export const en = {
   clear: 'Clear',
   starters: 'Starters',
   starterMixes: 'Starter mixes',
-  surpriseMe: 'Surprise me',
+  surpriseMe: 'Random mix',
   countOn: (count: number) => `${count} on`,
 
   effect: 'Effect',
@@ -78,7 +78,7 @@ export const en = {
   timerOff: 'Timer off',
   fadingOutIn: (minutes: number) => `Fading out in ${minutes} min`,
   pickSoundFirst: 'Pick a sound first',
-  surpriseMix: 'Surprise mix',
+  surpriseMix: 'Random mix',
   allTilesOff: 'All tiles off',
   loaded: (name: string) => `Loaded “${name}”`,
   shareTitle: 'Garsæ mix',
@@ -113,19 +113,16 @@ export const en = {
   copyHelp: 'If Copy does nothing, select the link and press Ctrl+C (⌘C on Mac).',
 
   aboutText:
-    'Garsæ is a background player: every sound is synthesized live and never repeats. Pick a few tiles, set the level, and let it run.',
-  offlineUse: 'Offline use',
+    'Garsæ is background music for working. Each instrument is a small synthesizer following one shared chord progression, so the music is written as it plays and never loops.',
+  offlineUse: 'Offline',
   offlineAvailable: 'Available offline on this device.',
   working: 'Working…',
   offlineNotSaved: 'Not saved on this device yet.',
   removeOffline: 'Remove offline copy',
-  makeOffline: 'Make available offline',
-  install: 'Install',
-  installNote: 'Open Garsæ in its own window.',
-  installApp: 'Install app',
-  sourceCode: 'Source code',
-  sourceNote: 'See how Garsæ is built.',
-  viewOnGithub: 'View on GitHub',
+  makeOffline: 'Save for offline use',
+  install: 'App',
+  installApp: 'Install as an app',
+  sourceCode: 'Source',
   storedHere: 'Mixes and settings are stored in this browser only.',
 
   welcomeSub: 'Background music for working, played by synthesizers in your browser. It is composed as it plays, so it never loops.',

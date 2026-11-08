@@ -77,7 +77,7 @@ export function Transport(props: Props) {
         >
           <ShareIcon size={18} />
         </button>
-        <button type="button" className="icon-btn" onClick={props.onMore} aria-label={t.aboutAndOffline} title={t.aboutAndOffline}>
+        <button type="button" className="icon-btn" onClick={props.onMore} aria-label={t.about} title={t.about}>
           <MoreIcon size={18} />
         </button>
       </div>

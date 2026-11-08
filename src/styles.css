@@ -1282,31 +1282,64 @@ input[type='range']:focus-visible {
 }
 
 .about-text {
-  margin: 12px 0 16px;
+  margin: 12px 0 18px;
   font-size: 14px;
   line-height: 1.55;
   color: var(--text-2);
 }
 
-.about-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 0;
+/* Settings as a two-column list: the label, then the state and its action. */
+.about-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0 20px;
+  margin: 0;
   border-top: 1px solid var(--hairline);
 }
 
-.about-row strong {
+.about-list dt,
+.about-list dd {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 13px;
+}
+
+.about-list dt {
   font-weight: 500;
 }
 
-.about-row .note {
-  margin-top: 2px;
+.about-list dd {
+  margin: 0;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  color: var(--text-2);
+}
+
+/* An action that reads as text: underlined, in the accent. */
+.text-btn {
+  padding: 4px 0;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--accent) 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.text-btn:hover:not(:disabled) {
+  text-decoration-color: var(--accent);
+}
+
+.text-btn:disabled {
+  opacity: 0.5;
 }
 
 .fineprint {
-  margin: 8px 0 0;
+  margin: 14px 0 0;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-3);

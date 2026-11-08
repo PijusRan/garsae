@@ -52,7 +52,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 
 ## Tempo
 - Manual BPM range: **60-130**.
-- If BPM/key are not set: **random on start within the calm range 60-90 BPM** and a random key. "Surprise me" re-rolls them in the same range.
+- If BPM/key are not set: **random on start within the calm range 60-90 BPM** and a random key. "Random mix" re-rolls them in the same range.
 - All instruments and drum genres follow the single global BPM.
 
 ## Drums
@@ -69,7 +69,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 
 ## Session features (v1)
 - **Save/load mixes** locally (browser storage, no account).
-- **"Surprise me"**: random instruments, drum genres, volumes, BPM and key, with guardrails for a balanced, calm result.
+- **"Random mix"**: random instruments, drum genres, volumes, BPM and key, with guardrails for a balanced, calm result.
 - **Share by link**: mix state is encoded in the URL, with no backend.
 - Saved mixes and share links store **settings only, never a random seed**, so the music is different on every play. Stored settings:
   - instrument tiles on/off and their volumes
@@ -79,7 +79,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
   - BPM and key, **only if the user set them**. If they were left random, they stay random when the link is opened.
 - **Starter mixes**: five curated presets, offered on the first visit and in the Mixes sheet.
 - **Session timer**: 25 / 50 / 90 min. It fades out over the last 30 s, then stops. Pausing cancels it.
-- **Undo** instead of confirmations: Surprise me, loading a mix or link, Clear, and deleting or overwriting a saved mix all show an Undo toast.
+- **Undo** instead of confirmations: Random mix, loading a mix or link, Clear, and deleting or overwriting a saved mix all show an Undo toast.
 
 ## Language
 - English and Lithuanian. English is the source (`src/i18n/en.ts`, with tile and starter names read from `src/tiles.ts` and `src/state/presets.ts`); `src/i18n/lt.ts` must match its shape, so a missing translation doesn't compile.
@@ -95,8 +95,8 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 ## UI
 The app is **one screen**: the page never scrolls, and adding sounds shouldn't need layout work. From 900px wide, a **sidebar** holds everything you control and the rest of the window is the instrument. No hero: the page opens straight onto the instrument. A first visit opens once on a **welcome** panel instead, and share links skip it. It is not a hero: a plain panel with the wordmark, the language switch, one sentence on what Garsæ is, and the five starters as a list, each row naming the instruments it plays (with their category dots), then a row to start from an empty mix. No display type, no staggered entrance; it just fades in. Hovering or focusing a starter glides the background to that starter's colours, and picking one plays it in that key while the welcome fades and the instrument comes up underneath.
 - The **sidebar**, top to bottom: the living mark and wordmark with Share and About beside them, a large labelled **Play / Pause**, chord with key and tempo, master volume (after the limiter), the session timer, the mix actions, then the sound settings. Each action lives in one place. One set of markup serves every width: under 900px `.sidebar` and its contents dissolve into the page, and the same **transport** becomes a glass bar, along the top on tablets and at the bottom on phones, in thumb reach, with Play an icon-only circle there.
-- Picking a whole mix (a starter, Surprise me or a saved mix) while stopped also starts playback. Play with nothing on says "Pick a sound first" instead of playing silence.
-- The **mix actions** are Surprise me, **Save mix** and Mixes, plus Clear. Save mix saves in one click under the suggested name, with Undo; it shows Saved when the current mix is already kept, and renaming stays in the Mixes sheet. **Starters** appear above the tiles when nothing is on, and are always in the Mixes sheet. Phones show the mark and wordmark above the actions, because their transport is at the bottom.
+- Picking a whole mix (a starter, Random mix or a saved mix) while stopped also starts playback. Play with nothing on says "Pick a sound first" instead of playing silence.
+- The **mix actions** are Random mix, **Save mix** and Mixes, plus Clear. Save mix saves in one click under the suggested name, with Undo; it shows Saved when the current mix is already kept, and renaming stays in the Mixes sheet. **Starters** appear above the tiles when nothing is on, and are always in the Mixes sheet. Phones show the mark and wordmark above the actions, because their transport is at the bottom.
 - Tiles are **grouped by category** into rows sharing the height, under a bracketed micro label (`[ PADS ]`) with an "N on" count: tile height tops out around 100px, with clear space between them (14px across, more between rows on tall windows). Tap to toggle, slider for level. A new category is one more row, and a seventh tile wraps. If rows ever outgrow the window they scroll inside `.stage`.
 - The **sound settings** (Evolution, tempo and key) sit in the sidebar with no surface of their own, since it is already glass.
 - Under 1280px wide six tiles no longer fit, so **tabs** show one category at a time, each with a count of what is on. Under 900px the sound settings are a tab too. Only CSS decides all this. Below 540px tall the tiles scroll with the rest of the page area, and the sidebar scrolls on its own, so browser zoom loses nothing.
@@ -186,5 +186,5 @@ Sources: [binaural meta-analysis](https://pubmed.ncbi.nlm.nih.gov/35842538/), [S
 - **Mutation timing:** what "every few bars" means exactly, and how the Evolution slider maps to mutation rate and size.
 - **Generators:** how each pad / bass / arp generator works in detail (note choice, rhythm, density).
 - **Drum genres:** what defines "Ambient pulse" musically.
-- **"Surprise me" guardrails:** e.g. max number of active tiles, volume balance rules, whether to avoid stacking busy drum genres.
+- **"Random mix" guardrails:** e.g. max number of active tiles, volume balance rules, whether to avoid stacking busy drum genres.
 - **Focus presets:** what Light vs Strong mean in modulation depth and rate.

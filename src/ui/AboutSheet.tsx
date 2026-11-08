@@ -10,49 +10,48 @@ interface Props {
   onClose: () => void;
 }
 
+const SOURCE = 'https://github.com/PijusRan/garsae';
+
+/** What Garsæ is, then a short list of settings: a label on the left, the state and its action on the right. */
 export function AboutSheet({ offlineSupported, offline, onToggleOffline, onInstall, onClose }: Props) {
   const t = useT();
   return (
-    <Sheet title={t.aboutAndOffline} onClose={onClose}>
-      <p className="note about-text">{t.aboutText}</p>
-      <div className="about-row">
-        <strong>{t.languageLabel}</strong>
-        <LanguageSwitch />
-      </div>
-      {offlineSupported && (
-        <div className="about-row">
-          <div>
-            <strong>{t.offlineUse}</strong>
-            <p className="note">
-              {offline === 'on' ? t.offlineAvailable : offline === 'busy' ? t.working : t.offlineNotSaved}
-            </p>
-          </div>
-          <button type="button" className="btn" onClick={onToggleOffline} disabled={offline === 'busy'}>
-            {offline === 'on' ? t.removeOffline : t.makeOffline}
-          </button>
-        </div>
-      )}
-      {onInstall && (
-        <div className="about-row">
-          <div>
-            <strong>{t.install}</strong>
-            <p className="note">{t.installNote}</p>
-          </div>
-          <button type="button" className="btn" onClick={onInstall}>
-            {t.installApp}
-          </button>
-        </div>
-      )}
-      <div className="about-row">
-        <div>
-          <strong>{t.sourceCode}</strong>
-          <p className="note">{t.sourceNote}</p>
-        </div>
-        <a className="btn" href="https://github.com/PijusRan/garsae" target="_blank" rel="noreferrer">
-          {t.viewOnGithub}
-        </a>
-      </div>
-      <p className="fineprint left">{t.storedHere}</p>
+    <Sheet title={t.about} onClose={onClose}>
+      <p className="about-text">{t.aboutText}</p>
+      <dl className="about-list">
+        <dt>{t.languageLabel}</dt>
+        <dd>
+          <LanguageSwitch />
+        </dd>
+        {offlineSupported && (
+          <>
+            <dt>{t.offlineUse}</dt>
+            <dd>
+              <span>{offline === 'on' ? t.offlineAvailable : offline === 'busy' ? t.working : t.offlineNotSaved}</span>
+              <button type="button" className="text-btn" onClick={onToggleOffline} disabled={offline === 'busy'}>
+                {offline === 'on' ? t.removeOffline : t.makeOffline}
+              </button>
+            </dd>
+          </>
+        )}
+        {onInstall && (
+          <>
+            <dt>{t.install}</dt>
+            <dd>
+              <button type="button" className="text-btn" onClick={onInstall}>
+                {t.installApp}
+              </button>
+            </dd>
+          </>
+        )}
+        <dt>{t.sourceCode}</dt>
+        <dd>
+          <a className="text-btn" href={SOURCE} target="_blank" rel="noreferrer">
+            github.com/PijusRan/garsae
+          </a>
+        </dd>
+      </dl>
+      <p className="fineprint">{t.storedHere}</p>
     </Sheet>
   );
 }
