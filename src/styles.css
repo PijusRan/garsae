@@ -36,18 +36,14 @@
   --text-2: #c4c1b5;
   --text-3: #8e8e8e;
 
-  /* Light: peach is the accent, coral its glow, ember the deepest note. Used only for what is on,
-     filled tracks, focus, the active timer and the current mix. */
+  /* Peach is the accent. Used only for what is on, focus, the active timer and the current mix. */
   --accent: #ffc5a8;
-  --coral: #fa7641;
-  --ember: #ff3c00;
-  --accent-glow: oklch(0.7 0.17 45 / 0.35);
+  --accent-ring: oklch(0.7 0.17 45 / 0.35);
 
   /* Sliders take the background's colour, not the accent: cream into its two brightest stops. The
      background sets these per mix (ui/Background.tsx); these are C at a middling tempo. */
   --slider-mid: #6e9dff;
   --slider-end: #2a62d8;
-  --slider-glow: color-mix(in oklch, var(--slider-end) 45%, transparent);
 
   /* Category marks: warm, same lightness and chroma, hue only. Small marks, never fills. */
   --cat-pads: oklch(0.78 0.06 60);
@@ -61,21 +57,17 @@
   --r-lg: 12px;
   --r-pill: 999px;
 
-  /* Frosted glass for tiles and panels: a translucent tint over a backdrop blur, under a sheen that
-     catches the light at the top left. */
-  --glass-tint: oklch(0.12 0.004 60 / 0.42);
-  --glass-sheen: linear-gradient(160deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.015) 45%, oklch(1 0 0 / 0.035));
-  --glass-blur: blur(16px) saturate(150%);
-  /* The lit top edge and shaded bottom edge of a glass tile. */
-  --tile-edge: inset 0 1px 0 oklch(1 0 0 / 0.12), inset 0 -1px 0 oklch(0 0 0 / 0.25);
-  --shadow-float: 0 1px 2px oklch(0 0 0 / 0.4), 0 20px 50px -16px oklch(0 0 0 / 0.8);
+  /* Opaque surfaces: flat warm near-blacks with a hairline edge. No blur, sheen or glow. */
+  --panel: oklch(0.15 0.005 60);
+  --panel-2: oklch(0.19 0.005 60);
+  --panel-3: oklch(0.23 0.005 60);
+  /* Only layers that float over the page (sheets, the toast) cast a shadow. */
+  --shadow-float: 0 12px 32px oklch(0 0 0 / 0.6);
 
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-press: 120ms;
   --t-hover: 200ms;
   --t-sheet: 320ms;
-  --t-light-on: 520ms;
-  --t-light-off: 280ms;
 
   --font: 'Bricolage Grotesque Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   /* The space between tiles. Rows open up with the window, so tiles never read as one solid block. */
@@ -231,20 +223,16 @@ output,
   height: 100%;
 }
 
-/* ---------------------------------------------------------------- glass (floating layers only) */
+/* ---------------------------------------------------------------- surfaces */
 
 .glass {
-  background: oklch(0.16 0.004 60 / 0.55);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
+  background: var(--panel);
   border: 1px solid var(--hairline-strong);
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.05), var(--shadow-float);
 }
 
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass {
-    background: oklch(0.16 0.004 60);
-  }
+.sheet.glass,
+.toast.glass {
+  box-shadow: var(--shadow-float);
 }
 
 /* ---------------------------------------------------------------- transport */
@@ -335,7 +323,6 @@ output,
   color: #000;
   transition:
     transform var(--t-press) var(--ease-out),
-    box-shadow var(--t-hover) var(--ease-out),
     background var(--t-hover) var(--ease-out);
 }
 
@@ -345,36 +332,13 @@ output,
 
 @media (hover: hover) {
   .play:not(.playing):hover {
-    box-shadow: 0 0 22px -2px var(--accent-glow);
+    background: #fff;
   }
 }
 
-/* Playing: the button turns to light and a slow halo breathes around it. */
+/* Playing: the button takes the accent. */
 .play.playing {
   background: var(--accent);
-  box-shadow: 0 0 18px -2px var(--accent-glow);
-}
-
-.play.playing::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--accent);
-  opacity: 0;
-  pointer-events: none;
-  animation: halo 3.2s ease-out infinite;
-}
-
-@keyframes halo {
-  0% {
-    opacity: 0.55;
-    transform: scale(0.92);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.4);
-  }
 }
 
 .play[aria-busy='true'] {
@@ -388,7 +352,7 @@ output,
 
 @keyframes invite {
   50% {
-    box-shadow: 0 0 0 6px var(--accent-glow);
+    box-shadow: 0 0 0 6px var(--accent-ring);
   }
 }
 
@@ -495,12 +459,8 @@ output,
 .panel {
   padding: 16px 20px;
   border-radius: var(--r-lg);
-  border: 1px solid oklch(1 0 0 / 0.1);
-  background-color: var(--glass-tint);
-  background-image: var(--glass-sheen);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--tile-edge), 0 16px 40px -24px oklch(0 0 0 / 0.9);
+  border: 1px solid var(--hairline-strong);
+  background: var(--panel);
 }
 
 /* The actions on the mix. */
@@ -725,20 +685,13 @@ output,
   flex-direction: column;
   min-height: 0;
   border-radius: var(--r-md);
-  /* Frosted glass: the background shows through, blurred, under a sheen that
-     catches the light at the top left and a bright upper edge. */
-  background-color: var(--glass-tint);
-  background-image: var(--glass-sheen);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid oklch(1 0 0 / 0.1);
-  box-shadow: var(--tile-edge), 0 12px 30px -20px oklch(0 0 0 / 0.9);
-  /* Lets the light line sit under the slider without falling behind the tile. */
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  /* Keeps the wave behind the name without falling behind the tile. */
   isolation: isolate;
   transition:
     background-color var(--t-press) var(--ease-out),
     border-color var(--t-hover) var(--ease-out),
-    box-shadow var(--t-hover) var(--ease-out),
     transform var(--t-press) var(--ease-out);
 }
 
@@ -752,64 +705,18 @@ output,
   pointer-events: none;
 }
 
-/* The light that rises in a tile when it is on: a coral glow that swells up from
-   below the edge, and a cream line that opens out from the centre. Switching off
-   runs it back down, a little quicker. */
-.tile::before,
-.tile::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  opacity: 0;
-  transition:
-    opacity var(--t-light-off) var(--ease-out),
-    transform var(--t-light-off) var(--ease-out);
-}
-
-.tile::before {
-  inset: 0;
-  background: radial-gradient(90% 70% at 50% 115%, oklch(0.7 0.17 42 / 0.32), transparent 70%);
-  transform: translateY(40%);
-}
-
-.tile::after {
-  z-index: -1;
-  left: 15%;
-  right: 15%;
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(to right, transparent, oklch(0.88 0.08 50 / 0.9), transparent);
-  transform: scaleX(0);
-}
-
-.tile.on::before,
-.tile.on::after {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity var(--t-light-on) var(--ease-out),
-    transform var(--t-light-on) var(--ease-out);
-}
-
 .tile:has(.tile-toggle:active) {
   transform: scale(0.985);
 }
 
 .tile:hover {
-  border-color: oklch(1 0 0 / 0.16);
-  background-color: oklch(0.16 0.004 60 / 0.42);
+  border-color: var(--hairline-strong);
+  background-color: var(--panel-2);
 }
 
 .tile.on {
-  border-color: oklch(0.88 0.08 50 / 0.3);
-  box-shadow: var(--tile-edge), 0 18px 40px -24px var(--accent-glow);
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .tile,
-  .panel {
-    background-color: oklch(0.12 0.004 60 / 0.9);
-  }
+  border-color: oklch(0.88 0.08 50 / 0.45);
+  background-color: var(--panel-2);
 }
 
 /* The toggle fills the tile, so the tile draws the focus ring. */
@@ -895,7 +802,7 @@ output,
 
 /* ---------------------------------------------------------------- controls */
 
-/* Buttons are pills. Secondary: a dark gradient with a hairline. */
+/* Buttons are pills. Secondary: a flat dark fill with a hairline. */
 .btn {
   position: relative;
   display: inline-flex;
@@ -906,15 +813,13 @@ output,
   padding: 0 18px;
   border-radius: var(--r-pill);
   border: 1px solid var(--hairline);
-  background: linear-gradient(oklch(0.27 0.004 60), oklch(0.15 0.003 60));
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06);
+  background: var(--panel-2);
   font-size: 13px;
   font-weight: 450;
   white-space: nowrap;
   transition:
     background var(--t-hover) var(--ease-out),
     border-color var(--t-hover) var(--ease-out),
-    box-shadow var(--t-hover) var(--ease-out),
     transform var(--t-press) var(--ease-out);
 }
 
@@ -925,7 +830,7 @@ a.btn {
 
 .btn:hover:not(:disabled) {
   border-color: var(--hairline-strong);
-  background: linear-gradient(oklch(0.31 0.004 60), oklch(0.18 0.003 60));
+  background: var(--panel-3);
 }
 
 .btn:active:not(:disabled),
@@ -939,12 +844,11 @@ a.btn {
   opacity: 0.4;
 }
 
-/* Primary: black, ringed by a faint glass halo, with a warm glow on hover. */
+/* Primary: black with a hairline. */
 .btn.black,
 .btn.primary {
   background: #000;
-  border-color: oklch(1 0 0 / 0.12);
-  box-shadow: 0 0 0 4px oklch(1 0 0 / 0.06);
+  border-color: var(--hairline-strong);
   color: var(--text);
 }
 
@@ -952,9 +856,6 @@ a.btn {
 .btn.primary:hover:not(:disabled) {
   background: #000;
   border-color: oklch(0.88 0.08 50 / 0.45);
-  box-shadow:
-    0 0 0 4px oklch(1 0 0 / 0.06),
-    0 0 24px -6px var(--accent-glow);
 }
 
 .btn svg {
@@ -981,7 +882,6 @@ a.btn {
 .btn.ghost {
   background: transparent;
   border-color: transparent;
-  box-shadow: none;
   color: var(--text-2);
 }
 
@@ -1061,7 +961,7 @@ a.btn {
   padding: 0 34px 0 16px;
   border-radius: var(--r-pill);
   border: 1px solid var(--hairline);
-  background: linear-gradient(oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.04));
+  background: var(--panel-2);
   font-size: 13px;
   cursor: pointer;
   transition: border-color var(--t-hover) var(--ease-out);
@@ -1169,7 +1069,7 @@ input[type='range']::-webkit-slider-thumb {
   border: none;
   background: var(--text);
   box-shadow: 0 0 0 3px #000;
-  transition: box-shadow var(--t-hover) var(--ease-out);
+  transition: background var(--t-hover) var(--ease-out);
 }
 
 input[type='range']::-moz-range-thumb {
@@ -1182,15 +1082,11 @@ input[type='range']::-moz-range-thumb {
 }
 
 input[type='range']:hover::-webkit-slider-thumb {
-  box-shadow:
-    0 0 0 3px #000,
-    0 0 14px 2px var(--slider-glow);
+  background: #fff;
 }
 
 input[type='range']:hover::-moz-range-thumb {
-  box-shadow:
-    0 0 0 3px #000,
-    0 0 14px 2px var(--slider-glow);
+  background: #fff;
 }
 
 input[type='range']:focus-visible {
@@ -1266,8 +1162,8 @@ input[type='range']:focus-visible {
   margin: 14px 0;
   padding: 4px;
   border-radius: var(--r-pill);
-  background: linear-gradient(oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.04));
-  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08);
+  background: var(--panel-2);
+  box-shadow: inset 0 0 0 1px var(--hairline);
 }
 
 .save-row input,
@@ -1522,7 +1418,6 @@ input[type='range']:focus-visible {
   stroke-width: 1;
   stroke-linecap: round;
   overflow: visible;
-  filter: drop-shadow(0 0 16px var(--accent-glow));
 }
 
 .welcome-ring {
@@ -1623,7 +1518,7 @@ input[type='range']:focus-visible {
   gap: 8px;
 }
 
-/* A starter is built like a tile, and the same light rises in it when it is under the pointer. */
+/* A starter is built like a tile. */
 .welcome-pick {
   position: relative;
   overflow: hidden;
@@ -1638,79 +1533,21 @@ input[type='range']:focus-visible {
   text-align: left;
   border-radius: var(--r-md);
   border: 1px solid oklch(1 0 0 / 0.1);
-  background-color: var(--glass-tint);
-  background-image: var(--glass-sheen);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--tile-edge), 0 12px 30px -20px oklch(0 0 0 / 0.9);
+  background: var(--panel);
   transition:
     border-color var(--t-hover) var(--ease-out),
     box-shadow var(--t-hover) var(--ease-out),
     transform var(--t-press) var(--ease-out);
 }
 
-.welcome-pick::before,
-.welcome-pick::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  opacity: 0;
-  transition:
-    opacity var(--t-light-off) var(--ease-out),
-    transform var(--t-light-off) var(--ease-out);
-}
-
-.welcome-pick::before {
-  inset: 0;
-  z-index: -1;
-  background: radial-gradient(90% 70% at 50% 115%, oklch(0.7 0.17 42 / 0.32), transparent 70%);
-  transform: translateY(40%);
-}
-
-.welcome-pick::after {
-  left: 15%;
-  right: 15%;
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(to right, transparent, oklch(0.88 0.08 50 / 0.9), transparent);
-  transform: scaleX(0);
-}
-
 .welcome-pick:focus-visible {
   outline: none;
-  border-color: oklch(0.82 0.09 50 / 0.7);
-}
-
-.welcome-pick:focus-visible::before,
-.welcome-pick:focus-visible::after {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity var(--t-light-on) var(--ease-out),
-    transform var(--t-light-on) var(--ease-out);
+  border-color: var(--accent);
 }
 
 .welcome-pick:hover {
   border-color: oklch(0.82 0.09 50 / 0.7);
-}
-
-.welcome-pick:hover::before,
-.welcome-pick:hover::after {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity var(--t-light-on) var(--ease-out),
-    transform var(--t-light-on) var(--ease-out);
-}
-
-/* One card is lit at a time: the pointer takes the light from the focused card. */
-.welcome-picks:hover .welcome-pick:focus-visible:not(:hover) {
-  border-color: oklch(1 0 0 / 0.1);
-}
-
-.welcome-picks:hover .welcome-pick:focus-visible:not(:hover)::before,
-.welcome-picks:hover .welcome-pick:focus-visible:not(:hover)::after {
-  opacity: 0;
+  background: var(--panel-2);
 }
 
 .welcome-pick:active {
@@ -1877,7 +1714,7 @@ input[type='range']:focus-visible {
   .actions .btn {
     width: 100%;
   }
-  /* Part of the sidebar's glass here, so no surface of its own. */
+  /* Part of the sidebar here, so no surface of its own. */
   .sound {
     order: 6;
     flex: none;
@@ -1888,9 +1725,6 @@ input[type='range']:focus-visible {
     border-top: 1px solid var(--hairline);
     border-radius: 0;
     background: none;
-    box-shadow: none;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
     overflow: visible;
   }
   .sound .inline {
@@ -1966,8 +1800,7 @@ input[type='range']:focus-visible {
     /* Every tab is a visible button, not a word: a filled pill with an edge. */
     border: 1px solid var(--hairline-strong);
     border-radius: var(--r-pill);
-    background: linear-gradient(oklch(0.27 0.004 60 / 0.85), oklch(0.15 0.003 60 / 0.85));
-    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06);
+    background: var(--panel-2);
     font-size: 13px;
     font-weight: 450;
     color: var(--text);
@@ -2161,6 +1994,6 @@ input[type='range']:focus-visible {
   }
   /* The invite ring is a still ring instead of a pulse. */
   .invite {
-    box-shadow: 0 0 0 5px var(--accent-glow);
+    box-shadow: 0 0 0 5px var(--accent-ring);
   }
 }

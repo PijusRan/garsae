@@ -25,7 +25,7 @@ interface Props {
 
 /**
  * The one persistent control surface: a bar stuck to the top of the page on wide screens,
- * at the bottom (within thumb reach) on phones. The only glass layer that is always on screen.
+ * at the bottom (within thumb reach) on phones.
  */
 export function Transport(props: Props) {
   const { playing, starting, invite, chord, detail, activeCount, volume, timerLeft } = props;

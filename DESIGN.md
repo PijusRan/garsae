@@ -108,7 +108,7 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 **Colour**
 - Ground is pure black (`--bg`). Surfaces are white at low alpha (2.5-10%) over near-black, so the background light shows through them. Edges are white hairlines at 8% and 14%.
 - Text is warm cream `--text` `#f9f7e9`, then `--text-2` `#c4c1b5` and grey `--text-3` `#8e8e8e`.
-- **Light is the accent**: peach `--accent` `#ffc5a8`, coral `--coral` `#fa7641` for glows, ember `--ember` for the deepest note. It marks only: on state (the light rising in on tiles, "N on" counts), focus rings, the active timer, the current mix, the play button while playing, and the first-press invite ring around Play (a first visit or an opened share link; still, not pulsing, under reduced motion). No other hues, except the category marks and the sliders, which follow the background.
+- **One accent**: peach `--accent` `#ffc5a8`. It marks only: on state (the light rising in on tiles, "N on" counts), focus rings, the active timer, the current mix, the play button while playing, and the first-press invite ring around Play (a first visit or an opened share link; still, not pulsing, under reduced motion). No other hues, except the category marks and the sliders, which follow the background.
 - Category marks keep one lightness and chroma, varying hue only. They appear only as 6px dots (mix fingerprints in the Mixes sheet).
 
 **Type**
@@ -118,16 +118,16 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 - Tabular numerals for anything that counts.
 
 **Surfaces and glass**
-- Glass is for the sidebar (or the transport, without it), sheets, the toast and the tiles. Tiles are frosted: a 42% dark tint over a 16px backdrop blur, a diagonal sheen that catches the light at the top left, a lit top edge and a shaded bottom edge (`--tile-edge`). Without backdrop-filter they fall back to a near-opaque tint. Never glass inside other glass, such as glass tiles inside the Sound panel.
+- **No glass, sheen or glow.** Surfaces are opaque, flat warm near-blacks (`--panel`, `--panel-2` for hover and on, `--panel-3`) with a hairline edge. Nothing blurs what is behind it. Only layers that float over the page, sheets and the toast, cast a plain shadow.
 - The background is **Grainient** from React Bits (`src/ui/Grainient.tsx`, vendored with its MIT + Commons Clause notice; wrapped by `src/ui/Background.tsx`): a slow, domain-warped grainy gradient whose colours come from the mix (`src/ui/palette.ts`), always near-black at the bottom and lit towards the top. **Key sets the hue**, walked around the circle of fifths so related keys get neighbouring hues (C is cobalt, G violet, A crimson, A♭ green); **tempo sets the vividness** (slow mixes deeper and muted, fast ones more saturated and a little brighter); **evolution sets the hue spread** across the gradient (a static mix is one hue, a shifting one sweeps across its neighbours). Colours are built in OKLCH and fitted into sRGB by lowering chroma, so no key clips. A new mix glides to its colours over a few seconds (instantly under reduced motion). Sliders take the same colours (`--slider-mid`, `--slider-end`, cream into the two brightest stops, registered with `@property` so they glide too) rather than the peach accent. Paused, it is dimmer (75% opacity) and barely flows; while music plays it brightens over a couple of seconds and flows faster with the mix's loudness (read from an analyser after the limiter, so the volume knob doesn't change it). Pointer stirring and click swirls are off, and its grain is static: the background never reacts to the pointer. It renders at 1x pixel ratio (the gradient field at half of that) and at about 30 fps, mounts after the first paint so the shaders never delay the UI, fades in on load, creates a fresh canvas on every mount (a lost WebGL context never comes back, and StrictMode mounts twice in development), and stands still under reduced motion.
 - Film grain (an SVG noise overlay) sits over everything.
 
 **Shape and depth**
 - Buttons, the segmented control, selects, the save field and the toast are pills. Surfaces are small-radius rectangles: 6 (icon buttons), 8 (tiles, transport), 12 (panel, sheets).
-- **Primary** (`.btn.black` / `.btn.primary`): black pill, faint white hairline, a 4px glass halo, and a warm glow on hover. **Secondary**: a dark vertical gradient pill with a hairline. Ghost for the rest. Press scales to 0.97. Nothing lifts on hover; the idle Play button only gains a soft glow.
-- On tiles keep the glass and add a peach rim, light rising from the bottom edge (a radial coral glow plus a 1px cream line), and a soft coral shadow beneath.
+- **Primary** (`.btn.black` / `.btn.primary`): black pill with a hairline. **Secondary**: a flat `--panel-2` pill with a hairline. Ghost for the rest. Press scales to 0.97. Nothing lifts or glows on hover; fills step one shade lighter.
+- The Play button is a solid cream pill, solid peach while playing. No halo.
 - **Tile waves:** a tile that is on and playing draws its own sound as a soft frequency silhouette rising from the bottom edge, in low-opacity peach behind the name (`src/ui/TileWave.tsx`). It is a shape, not a meter: smoothed, one shared 24 fps loop, normalised to the tile's own peak and scaled by its slider. It falls flat on pause, stops with the tab hidden, and is absent under reduced motion. Effect tiles make no sound of their own, so they have none.
-- Sliders: a 2px track lit cream into the background's two brightest colours up to the value, and a cream thumb with a black ring that glows on hover. 44px tall on touch.
+- Sliders: a 2px track lit cream into the background's two brightest colours up to the value, and a cream thumb with a black ring that turns white on hover. 44px tall on touch.
 - Tiles show only their name, centred. On hover or keyboard focus the name rises and the description slides in beneath it (transforms only, so tiles never resize); touch screens, which cannot hover, show names only. The effect mark sits beside the name.
 
 **Icons and controls**
@@ -136,7 +136,7 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 
 **Motion**
 - `cubic-bezier(.2,.8,.2,1)`. 120ms for press and toggle, 200ms for hover, 320ms for sheets. Everything respects `prefers-reduced-motion`.
-- **Tile on/off:** turning a tile on, the coral glow swells up from below its bottom edge and the cream line opens out from the centre (520ms), then the slider fades up into place just behind it. Turning off runs the light back down and the line closes to the centre, quicker (280ms). A pressed tile dips to 98.5%. These are transitions, not keyframes, so tiles already on when the page loads don't animate.
+- **Tile on/off:** the fill and edge change at press speed, then the slider fades up into place. A pressed tile dips to 98.5%. These are transitions, not keyframes, so tiles already on when the page loads don't animate.
 
 ## PWA details
 - **Offline:** user-controlled. An in-app "download for offline use" option caches the app (it's small, since all audio is synthesized). Not forced by default.
