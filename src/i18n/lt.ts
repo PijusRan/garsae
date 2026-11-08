@@ -97,7 +97,6 @@ export const lt: Strings = {
   surpriseMe: 'Nustebink mane',
   countOn: (count) => `Įjungta: ${count}`,
 
-  effect: 'Efektas',
   tileAmount: (name) => `${name}: stiprumas`,
   tileVolume: (name) => `${name}: garsumas`,
 

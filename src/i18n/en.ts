@@ -52,7 +52,6 @@ export const en = {
   surpriseMe: 'Surprise me',
   countOn: (count: number) => `${count} on`,
 
-  effect: 'Effect',
   tileAmount: (name: string) => `${name} amount`,
   tileVolume: (name: string) => `${name} volume`,
 

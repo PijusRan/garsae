@@ -2,7 +2,6 @@ import { useRef, type CSSProperties } from 'react';
 import type { TileMeta } from '../tiles';
 import type { TileSetting } from '../state/mix';
 import { useT } from '../i18n';
-import { EffectIcon } from './icons';
 import { TileWave } from './TileWave';
 
 interface Props {
@@ -26,10 +25,7 @@ export function TileCard({ meta, setting, playing, meter, onToggle, onVolume }: 
     <div id={`tile-${meta.id}`} className={`tile${setting.on ? ' on' : ''}`}>
       {hasBeenOn.current && !meta.effect && <TileWave live={setting.on && playing} volume={setting.volume} meter={meter} />}
       <button type="button" className="tile-toggle" aria-pressed={setting.on} title={hint} onClick={onToggle}>
-        <span className="tile-name">
-          {name}
-          {meta.effect && <EffectIcon size={14} aria-label={t.effect} />}
-        </span>
+        <span className="tile-name">{name}</span>
         <span className="tile-hint">{hint}</span>
       </button>
       <input

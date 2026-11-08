@@ -117,13 +117,6 @@ export const ChevronIcon = (p: IconProps) => (
   </Icon>
 );
 
-export const EffectIcon = (p: IconProps) => (
-  <Icon {...p}>
-    <path d="M2.75 10c1.5-4 3-4 4.5 0s3 4 4.5 0 3-4 4.5 0" />
-    <path d="M17.25 6.5v7" />
-  </Icon>
-);
-
 /** The Garsae mark: an eclipse ring setting behind a horizon. */
 export const MarkIcon = (p: IconProps) => (
   <Icon {...p}>

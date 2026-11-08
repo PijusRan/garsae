@@ -790,9 +790,6 @@ output,
 }
 
 .tile-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   font-size: clamp(16px, 1.2vw, 19px);
   line-height: 1.2;
   font-weight: 500;
@@ -803,11 +800,6 @@ output,
 
 .tile.on .tile-name {
   color: var(--text);
-}
-
-.tile-name svg {
-  flex: none;
-  color: var(--text-3);
 }
 
 .tile-hint {
