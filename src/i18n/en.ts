@@ -128,11 +128,9 @@ export const en = {
   viewOnGithub: 'View on GitHub',
   storedHere: 'Mixes and settings are stored in this browser only.',
 
-  welcomeLine1: 'Focus music',
-  welcomeLine2: 'that never repeats.',
-  welcomeSub: 'Every note is synthesized live in your browser. No samples, no account.',
-  welcomePick: 'Pick a mix to begin',
-  welcomeBuild: 'Or build my own mix',
+  welcomeSub: 'Background music for working, played by synthesizers in your browser. It is composed as it plays, so it never loops.',
+  welcomePick: 'Starting mixes',
+  welcomeBuild: 'Start from an empty mix',
 };
 
 export type Strings = typeof en;
