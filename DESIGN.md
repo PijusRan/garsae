@@ -108,8 +108,8 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 **Colour**
 - Ground is pure black (`--bg`). Surfaces are white at low alpha (2.5-10%) over near-black, so the background light shows through them. Edges are white hairlines at 8% and 14%.
 - Text is warm cream `--text` `#f9f7e9`, then `--text-2` `#c4c1b5` and grey `--text-3` `#8e8e8e`.
-- **Light is the accent**: peach `--accent` `#ffc5a8`, coral `--coral` `#fa7641` for glows, ember `--ember` for the deepest note. It marks only: on state (the light rising in on tiles, "N on" counts), focus rings, the active timer, the current mix, the play button while playing, and the first-press invite ring around Play (a first visit or an opened share link; still, not pulsing, under reduced motion). No other hues, except the category marks and the sliders, which follow the background.
-- Category marks keep one lightness and chroma, varying hue only. They appear only as 6px dots (mix fingerprints in the Mixes sheet).
+- **Light is the accent**: peach `--accent` `#ffc5a8`, coral `--coral` `#fa7641` for glows, ember `--ember` for the deepest note. It marks only: on state (the light rising in on tiles, "N on" counts), focus rings, the active timer, the current mix, the play button while playing, and the first-press invite ring around Play (a first visit or an opened share link; still, not pulsing, under reduced motion). No other hues, except the sliders, which follow the background.
+- The Mixes sheet says what a mix is in words: a saved mix lists its tiles under its name, a starter its description. No coloured dots.
 
 **Type**
 - Bricolage Grotesque (variable with the optical-size axis, self-hosted through `@fontsource-variable/bricolage-grotesque/opsz.css`, so it works offline). Chosen over Inter, which felt generic; it keeps the same optical-size setup, so small text stays plain and large text gets its more characterful display shapes.

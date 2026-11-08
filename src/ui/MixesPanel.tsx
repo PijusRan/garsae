@@ -14,7 +14,6 @@ import { useT } from '../i18n';
 import type { Strings } from '../i18n/en';
 import { PRESETS, type Preset } from '../state/presets';
 import { TILES } from '../tiles';
-import { Fingerprint } from './Fingerprint';
 import { CloseIcon, EditIcon, ReplaceIcon } from './icons';
 import { Sheet } from './Sheet';
 
@@ -109,7 +108,7 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
                   >
                     <span className="mix-main">
                       <span className="mix-name">{m.name}</span>
-                      <Fingerprint encoded={m.mix} />
+                      <span className="mix-tiles">{tileNames(m.mix, t)}</span>
                     </span>
                     <span className="mix-meta">{isCurrent ? t.current : dateFmt.format(m.savedAt)}</span>
                   </button>
@@ -159,9 +158,9 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
             <button type="button" className={`mix-load${p.mix === current ? ' current' : ''}`} onClick={() => onPreset(p)}>
               <span className="mix-main">
                 <span className="mix-name">{t.presets[p.id].name}</span>
-                <span className="mix-meta">{t.presets[p.id].hint}</span>
+                <span className="mix-tiles">{t.presets[p.id].hint}</span>
               </span>
-              <Fingerprint encoded={p.mix} />
+              {p.mix === current && <span className="mix-meta">{t.current}</span>}
             </button>
           </li>
         ))}

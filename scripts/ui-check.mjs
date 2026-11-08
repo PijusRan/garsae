@@ -84,12 +84,12 @@ try {
   await new Promise((r) => setTimeout(r, 200));
   const afterStarter = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
 
-  // Saving shows the mix as current, with one fingerprint dot per tile.
+  // Saving shows the mix as current, with its tiles named under it.
   await page.evaluate(() => [...document.querySelectorAll('.actions .btn')].find((b) => b.textContent.startsWith('Mixes')).click());
   await page.waitForSelector('[role=dialog]');
   await page.click('.save-row button[type=submit]');
   await new Promise((r) => setTimeout(r, 200));
-  const savedRow = await page.$eval('.mix-list .mix-load', (b) => ({ name: b.querySelector('.mix-name').textContent, current: b.classList.contains('current'), dots: b.querySelectorAll('.mark').length }));
+  const savedRow = await page.$eval('.mix-list .mix-load', (b) => ({ name: b.querySelector('.mix-name').textContent, current: b.classList.contains('current'), tiles: b.querySelector('.mix-tiles').textContent }));
   await page.keyboard.press('Escape');
 
   // The session timer starts a countdown; master volume is remembered.
@@ -139,7 +139,7 @@ try {
   });
 
   console.log({ welcomed, stillPlayingDuringFade, timerStopped, timerToast, startersShown, afterStarter, savedRow, timerText, storedVolume, barVisible, tileToggledBySpace: tilesAfter !== before + 1, pausedBySpace: !afterSpace, undoRestores: onBefore === onRestored, dialogGone, playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, errors });
-  const phase3Ok = welcomed && startersShown && afterStarter === 'Brown noise' && savedRow.current && savedRow.dots === 1 && /\d:\d\d/.test(timerText) && storedVolume === '0.4' && stillPlayingDuringFade && timerStopped;
+  const phase3Ok = welcomed && startersShown && afterStarter === 'Brown noise' && savedRow.current && savedRow.tiles === 'Brown noise' && /\d:\d\d/.test(timerText) && storedVolume === '0.4' && stillPlayingDuringFade && timerStopped;
   if (!phase3Ok || !playing || bellsOn !== 'true' || !barVisible || afterSpace || onBefore !== onRestored || !dialogGone || overflow || errors.length) process.exitCode = 1;
 } finally {
   await browser.close();

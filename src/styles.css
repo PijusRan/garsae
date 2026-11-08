@@ -49,13 +49,6 @@
   --slider-end: #2a62d8;
   --slider-glow: color-mix(in oklch, var(--slider-end) 45%, transparent);
 
-  /* Category marks: warm, same lightness and chroma, hue only. Small marks, never fills. */
-  --cat-pads: oklch(0.78 0.06 60);
-  --cat-bass: oklch(0.78 0.06 250);
-  --cat-drums: oklch(0.78 0.06 30);
-  --cat-texture: oklch(0.78 0.06 140);
-  --cat-effects: oklch(0.78 0.06 95);
-
   --r-sm: 6px;
   --r-md: 8px;
   --r-lg: 12px;
@@ -402,26 +395,6 @@ output,
 .t-actions {
   display: flex;
 }
-
-.fingerprint {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.mark {
-  flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-3);
-}
-
-.mark.cat-pads { background: var(--cat-pads); }
-.mark.cat-bass { background: var(--cat-bass); }
-.mark.cat-drums { background: var(--cat-drums); }
-.mark.cat-texture { background: var(--cat-texture); }
-.mark.cat-effects { background: var(--cat-effects); }
 
 /* ---------------------------------------------------------------- page */
 
@@ -1308,7 +1281,7 @@ input[type='range']:focus-visible {
 .mix-main {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -1320,7 +1293,17 @@ input[type='range']:focus-visible {
   letter-spacing: -0.015em;
 }
 
+/* What a mix is made of, in words: its tiles, or a starter's description. */
+.mix-tiles {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
 .mix-meta {
+  flex: none;
   font-size: 13px;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
