@@ -1,7 +1,6 @@
-import { useId, useRef } from 'react';
+import { useId, useRef, type CSSProperties } from 'react';
 import { useT } from '../i18n';
-import { PRESETS, presetMix, type Preset } from '../state/presets';
-import { TILE_BY_ID, TILE_IDS } from '../tiles';
+import { PRESETS, type Preset } from '../state/presets';
 import { LanguageSwitch } from './LanguageSwitch';
 import { useModal } from './Sheet';
 
@@ -13,16 +12,11 @@ interface Props {
   onBuild: () => void;
 }
 
-/** What each starter plays, in catalogue order. */
-const PRESET_TILES = PRESETS.map((p) => {
-  const mix = presetMix(p);
-  return TILE_IDS.filter((id) => mix.tiles[id].on).map((id) => TILE_BY_ID[id]);
-});
+const delay = (ms: number) => ({ '--d': `${ms}ms` }) as CSSProperties;
 
 /**
- * The opening of a first visit, once only: what Garsæ is, then the starters as a list, each with the
- * instruments it plays. Choosing one plays it while this fades away and the instrument comes up underneath.
- * Share links skip it.
+ * The opening of a first visit, once only: the live background, full-bleed type and the starters. Choosing one
+ * plays it while this fades away and the instrument comes up underneath. Share links skip it.
  */
 export function Welcome({ leaving, onPreview, onPick, onBuild }: Props) {
   const t = useT();
@@ -32,18 +26,31 @@ export function Welcome({ leaving, onPreview, onPick, onBuild }: Props) {
 
   return (
     <section ref={ref} className={`welcome${leaving ? ' leaving' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div className="welcome-lang welcome-rise" style={delay(1800)}>
+        <LanguageSwitch />
+      </div>
       <div className="welcome-inner">
-        <header className="welcome-head">
-          <h2 id={titleId} className="welcome-title">
-            Garsæ
-          </h2>
-          <LanguageSwitch />
-        </header>
-        <p className="welcome-sub">{t.welcomeSub}</p>
-        <h3 className="micro welcome-label">{t.welcomePick}</h3>
+        <svg className="welcome-mark" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path className="welcome-ring" pathLength={1} d="M4.88 13.5A6.5 6.5 0 1 1 15.12 13.5" />
+          <path className="welcome-horizon" d="M1.75 13.5h16.5" />
+        </svg>
+        <h2 id={titleId} className="welcome-title">
+          <span className="welcome-line">
+            <span style={delay(500)}>{t.welcomeLine1}</span>
+          </span>{' '}
+          <span className="welcome-line">
+            <span style={delay(640)}>{t.welcomeLine2}</span>
+          </span>
+        </h2>
+        <p className="welcome-sub welcome-rise" style={delay(1000)}>
+          {t.welcomeSub}
+        </p>
+        <p className="micro bracket welcome-rise" style={delay(1200)}>
+          {t.welcomePick}
+        </p>
         <ul className="welcome-picks">
           {PRESETS.map((p, i) => (
-            <li key={p.id}>
+            <li key={p.id} className="welcome-rise" style={delay(1280 + i * 80)}>
               <button
                 type="button"
                 className="welcome-pick"
@@ -53,23 +60,14 @@ export function Welcome({ leaving, onPreview, onPick, onBuild }: Props) {
                 onClick={() => onPick(p)}
               >
                 <span className="welcome-pick-name">{t.presets[p.id].name}</span>
-                <span className="welcome-pick-tiles">
-                  {PRESET_TILES[i].map((tile) => (
-                    <span key={tile.id} className={`welcome-pick-tile cat-${tile.category}`}>
-                      <span className="mark" aria-hidden="true" />
-                      {t.tiles[tile.id].name}
-                    </span>
-                  ))}
-                </span>
+                <span className="welcome-pick-hint">{t.presets[p.id].hint}</span>
               </button>
             </li>
           ))}
-          <li>
-            <button type="button" className="welcome-pick welcome-skip" onClick={onBuild}>
-              <span className="welcome-pick-name">{t.welcomeBuild}</span>
-            </button>
-          </li>
         </ul>
+        <button type="button" className="welcome-skip welcome-rise" style={delay(1800)} onClick={onBuild}>
+          {t.welcomeBuild}
+        </button>
       </div>
     </section>
   );

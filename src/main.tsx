@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { I18nProvider } from './i18n';
 import { initPwa } from './ui/pwa';
-import '@fontsource-variable/ibm-plex-sans/wght.css';
+import '@fontsource-variable/bricolage-grotesque/opsz.css';
 import './styles.css';
 
 initPwa();

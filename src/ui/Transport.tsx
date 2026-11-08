@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 import { useT } from '../i18n';
 import { MoreIcon, PauseIcon, PlayIcon, ShareIcon, VolumeIcon } from './icons';
+import type { AudioLevels } from './Background';
+import { LiveMark } from './LiveMark';
 import { TimerControl } from './TimerControl';
 
 interface Props {
@@ -12,6 +14,8 @@ interface Props {
   activeCount: number;
   volume: number;
   timerLeft: number | null;
+  fading: boolean;
+  getLevels: () => AudioLevels | null;
   onToggle: () => void;
   onVolume: (v: number) => void;
   onTimer: (minutes: number | null) => void;
@@ -21,7 +25,7 @@ interface Props {
 
 /**
  * The one persistent control surface: a bar stuck to the top of the page on wide screens,
- * at the bottom (within thumb reach) on phones.
+ * at the bottom (within thumb reach) on phones. The only glass layer that is always on screen.
  */
 export function Transport(props: Props) {
   const { playing, starting, invite, chord, detail, activeCount, volume, timerLeft } = props;
@@ -30,6 +34,7 @@ export function Transport(props: Props) {
   return (
     <header className="transport glass" aria-label={t.player}>
       <span className="mark-link">
+        <LiveMark size={24} risen={playing && !props.fading} fading={props.fading} getLevels={props.getLevels} />
         <span className="wordmark">Garsæ</span>
       </span>
       <button
@@ -72,7 +77,7 @@ export function Transport(props: Props) {
         >
           <ShareIcon size={18} />
         </button>
-        <button type="button" className="icon-btn" onClick={props.onMore} aria-label={t.about} title={t.about}>
+        <button type="button" className="icon-btn" onClick={props.onMore} aria-label={t.aboutAndOffline} title={t.aboutAndOffline}>
           <MoreIcon size={18} />
         </button>
       </div>

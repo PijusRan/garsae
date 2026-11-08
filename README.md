@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.png" alt="Garsæ: background music for working, synthesized in your browser as it plays." width="100%">
+  <img src="docs/images/banner.png" alt="Garsæ: endless generative focus music, synthesized live in your browser." width="100%">
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
 Endless, generative focus music in the browser. Toggle instrument tiles, mix their levels, and let it run in the background. Every sound is synthesized live with the Web Audio API, so nothing repeats. See [DESIGN.md](DESIGN.md) for the full design.
 
 <p align="center">
-  <img src="docs/images/desktop.png" alt="Garsæ on desktop, playing felt piano, sub bass, brushes and vinyl crackle, with the controls in the sidebar" width="76%">
+  <img src="docs/images/desktop.png" alt="Garsæ on desktop, playing a felt piano mix with the controls in the sidebar" width="76%">
   &nbsp;
   <img src="docs/images/phone.png" alt="Garsæ on a phone, with the player floating at the bottom" width="20%">
 </p>

@@ -28,9 +28,10 @@ import type { Strings } from './i18n/en';
 import { AboutSheet } from './ui/AboutSheet';
 import { Welcome } from './ui/Welcome';
 import { Background, levelReader, type AudioLevels } from './ui/Background';
+import { LiveMark } from './ui/LiveMark';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
-import { CheckIcon, ChevronIcon, CloseIcon, MixesIcon, SaveIcon, ShuffleIcon } from './ui/icons';
+import { CheckIcon, ChevronIcon, MixesIcon, SaveIcon, ShuffleIcon } from './ui/icons';
 import { ShareSheet } from './ui/ShareSheet';
 import { Transport } from './ui/Transport';
 import { TileCard } from './ui/TileCard';
@@ -268,6 +269,7 @@ export function App() {
   };
 
   const timerLeft = timerEnd === null ? null : Math.max(0, timerEnd - now);
+  const fading = timerLeft !== null && timerLeft <= TIMER_FADE_MS;
 
   const activeIds = TILE_IDS.filter((id) => mix.tiles[id].on);
   const activeCount = activeIds.length;
@@ -435,7 +437,7 @@ export function App() {
 
   const startersRow = (
     <div className="panel-row" role="group" aria-label={t.starterMixes}>
-      <h2 className="micro">{t.starters}</h2>
+      <h2 className="micro bracket">{t.starters}</h2>
       <ul className="name-list">
         {PRESETS.map((p) => (
           <li key={p.id}>
@@ -462,6 +464,8 @@ export function App() {
           activeCount={activeCount}
           volume={volume}
           timerLeft={timerLeft}
+          fading={fading}
+          getLevels={getLevels}
           onToggle={pressPlay}
           onVolume={setVolume}
           onTimer={setTimer}
@@ -470,11 +474,19 @@ export function App() {
         />
 
         <section className="mix-strip" aria-label={t.mix}>
-          {/* Phones keep the player at the bottom, so the wordmark gets its place up here. */}
+          {/* Phones keep the player at the bottom, so the brand gets its place up here. */}
           <span className="strip-brand">
+            <LiveMark size={22} risen={playing && !fading} fading={fading} getLevels={getLevels} />
             <span className="wordmark">Garsæ</span>
           </span>
+          <button type="button" className="micro-link" disabled={activeCount === 0} onClick={clearAll}>
+            {t.clear}
+          </button>
           <div className="actions">
+            <button type="button" className="btn" onClick={surprise}>
+              <ShuffleIcon size={16} />
+              {t.surpriseMe}
+            </button>
             <button type="button" className="btn primary" disabled={activeCount === 0 || isSaved} onClick={saveCurrent}>
               {isSaved ? <CheckIcon size={16} /> : <SaveIcon size={16} />}
               {isSaved ? t.mixSaved : t.saveMix}
@@ -484,15 +496,7 @@ export function App() {
               {t.mixes}
               {saved.length > 0 && <span className="btn-count">{saved.length}</span>}
             </button>
-            <button type="button" className="btn" onClick={surprise}>
-              <ShuffleIcon size={16} />
-              {t.surpriseMe}
-            </button>
           </div>
-          <button type="button" className="micro-link clear" disabled={activeCount === 0} onClick={clearAll}>
-            <CloseIcon size={16} />
-            {t.clear}
-          </button>
         </section>
 
         {/* Settings most mixes leave alone: in the sidebar, or their own tab on small screens. */}
@@ -595,12 +599,12 @@ export function App() {
           {CATEGORIES.map((cat) => (
             <section
               key={cat.id}
-              className={`category cat-${cat.id}${tab === cat.id ? ' active' : ''}`}
+              className={`category${tab === cat.id ? ' active' : ''}`}
               style={categoryGrid(cat.id)}
               aria-labelledby={`cat-${cat.id}`}
             >
               <div className="category-head">
-                <h2 id={`cat-${cat.id}`} className="micro">
+                <h2 id={`cat-${cat.id}`} className="micro bracket">
                   {t.categories[cat.id].name}
                 </h2>
                 <span className="micro count">{onIn(cat.id) ? t.countOn(onIn(cat.id)) : ''}</span>

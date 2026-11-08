@@ -36,49 +36,48 @@
   --text-2: #c4c1b5;
   --text-3: #8e8e8e;
 
-  /* Peach is the accent. Used only for what is on, focus, the active timer and the current mix. */
+  /* Light: peach is the accent, coral its glow, ember the deepest note. Used only for what is on,
+     filled tracks, focus, the active timer and the current mix. */
   --accent: #ffc5a8;
-  --accent-ring: oklch(0.7 0.17 45 / 0.35);
+  --coral: #fa7641;
+  --ember: #ff3c00;
+  --accent-glow: oklch(0.7 0.17 45 / 0.35);
 
   /* Sliders take the background's colour, not the accent: cream into its two brightest stops. The
      background sets these per mix (ui/Background.tsx); these are C at a middling tempo. */
   --slider-mid: #6e9dff;
   --slider-end: #2a62d8;
+  --slider-glow: color-mix(in oklch, var(--slider-end) 45%, transparent);
 
-  /* Category colours: one lightness and chroma, hues spread apart. --cat marks (labels, the tile edge,
-     sliders, waves); --cat-deep is the fill of a tile that is on. Hex, because canvas reads them. */
-  --cat-pads: #e4b572;
-  --cat-pads-deep: #33230a;
-  --cat-bass: #8cc3fc;
-  --cat-bass-deep: #14283c;
-  --cat-drums: #f8a49d;
-  --cat-drums-deep: #3a1d1b;
-  --cat-texture: #8ed09c;
-  --cat-texture-deep: #152d1a;
-  --cat-effects: #d2acee;
-  --cat-effects-deep: #2d2037;
+  /* Category marks: warm, same lightness and chroma, hue only. Small marks, never fills. */
+  --cat-pads: oklch(0.78 0.06 60);
+  --cat-bass: oklch(0.78 0.06 250);
+  --cat-drums: oklch(0.78 0.06 30);
+  --cat-texture: oklch(0.78 0.06 140);
+  --cat-effects: oklch(0.78 0.06 95);
 
   --r-sm: 6px;
   --r-md: 8px;
   --r-lg: 12px;
   --r-pill: 999px;
 
-  /* One material, taken as-is from apple.com's dark navigation bar: a flat 80% tint over a blur that
-     keeps the colour behind it (saturate 180%). No sheen, no lit edges, no glow. --panel-2 and -3 are
-     the same tint a step lighter, for hover and pressed states. */
-  --panel: rgb(22 22 23 / 0.8);
-  --panel-2: rgb(44 44 46 / 0.8);
-  --panel-3: rgb(58 58 60 / 0.8);
-  --material: saturate(180%) blur(20px);
-  /* Only layers that float over the page (sheets, the toast) cast a shadow. */
-  --shadow-float: 0 12px 32px oklch(0 0 0 / 0.6);
+  /* Frosted glass for tiles and panels: a translucent tint over a backdrop blur, under a sheen that
+     catches the light at the top left. */
+  --glass-tint: oklch(0.12 0.004 60 / 0.42);
+  --glass-sheen: linear-gradient(160deg, oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.015) 45%, oklch(1 0 0 / 0.035));
+  --glass-blur: blur(16px) saturate(150%);
+  /* The lit top edge and shaded bottom edge of a glass tile. */
+  --tile-edge: inset 0 1px 0 oklch(1 0 0 / 0.12), inset 0 -1px 0 oklch(0 0 0 / 0.25);
+  --shadow-float: 0 1px 2px oklch(0 0 0 / 0.4), 0 20px 50px -16px oklch(0 0 0 / 0.8);
 
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-press: 120ms;
   --t-hover: 200ms;
   --t-sheet: 320ms;
+  --t-light-on: 520ms;
+  --t-light-off: 280ms;
 
-  --font: 'IBM Plex Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font: 'Bricolage Grotesque Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   /* The space between tiles. Rows open up with the window, so tiles never read as one solid block. */
   --tile-gap: 14px;
   --row-gap: clamp(10px, calc(var(--vh) * 2), 24px);
@@ -100,8 +99,10 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
+  font-optical-sizing: auto;
   font-size: 15px;
   line-height: 1.45;
+  letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
@@ -175,24 +176,33 @@ output,
   color: var(--text-3);
 }
 
-/* Section labels: small sentence-case text, a step quieter than the content they name. */
+/* Micro labels: the only uppercase in the app. Small, tracked, quiet. */
 .micro {
   margin: 0;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 450;
   line-height: 1.2;
-  color: var(--text-2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.bracket::before {
+  content: '[\2009';
+}
+
+.bracket::after {
+  content: '\2009]';
 }
 
 .micro-link {
   padding: 6px 2px;
   border: none;
   background: none;
-  font-size: 13px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-3);
-  text-decoration: underline;
-  text-decoration-color: var(--hairline-strong);
-  text-underline-offset: 3px;
   transition: color var(--t-hover) var(--ease-out);
 }
 
@@ -230,33 +240,20 @@ output,
   height: 100%;
 }
 
-/* ---------------------------------------------------------------- surfaces */
-
-.glass,
-.panel,
-.tile,
-.welcome-inner {
-  -webkit-backdrop-filter: var(--material);
-  backdrop-filter: var(--material);
-}
+/* ---------------------------------------------------------------- glass (floating layers only) */
 
 .glass {
-  background: var(--panel);
+  background: oklch(0.16 0.004 60 / 0.55);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
   border: 1px solid var(--hairline-strong);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.05), var(--shadow-float);
 }
 
-/* Without backdrop blur the tint alone would be too thin to read on, so it goes solid. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root {
-    --panel: rgb(22 22 23);
-    --panel-2: rgb(44 44 46);
-    --panel-3: rgb(58 58 60);
+  .glass {
+    background: oklch(0.16 0.004 60);
   }
-}
-
-.sheet.glass,
-.toast.glass {
-  box-shadow: var(--shadow-float);
 }
 
 /* ---------------------------------------------------------------- transport */
@@ -288,7 +285,42 @@ output,
 .wordmark {
   font-size: 19px;
   font-weight: 500;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.03em;
+}
+
+/* The mark at rest is the logo. Playing, the eclipse rises clear of its horizon and glows with the music. */
+.live-mark {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+}
+
+.live-mark svg {
+  position: relative;
+  overflow: visible;
+}
+
+.live-mark-sun {
+  transition: transform 2.4s var(--ease-out);
+}
+
+.live-mark.risen .live-mark-sun {
+  transform: translateY(-2.5px);
+}
+
+/* Sets over the timer's last 30 seconds, along with the music. */
+.live-mark.fading .live-mark-sun {
+  transition: transform 30s linear;
+}
+
+.live-mark-glow {
+  position: absolute;
+  inset: -55%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, oklch(0.7 0.17 45 / 0.75), transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
 }
 
 .strip-brand {
@@ -312,6 +344,7 @@ output,
   color: #000;
   transition:
     transform var(--t-press) var(--ease-out),
+    box-shadow var(--t-hover) var(--ease-out),
     background var(--t-hover) var(--ease-out);
 }
 
@@ -321,13 +354,36 @@ output,
 
 @media (hover: hover) {
   .play:not(.playing):hover {
-    background: #fff;
+    box-shadow: 0 0 22px -2px var(--accent-glow);
   }
 }
 
-/* Playing: the button takes the accent. */
+/* Playing: the button turns to light and a slow halo breathes around it. */
 .play.playing {
   background: var(--accent);
+  box-shadow: 0 0 18px -2px var(--accent-glow);
+}
+
+.play.playing::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  animation: halo 3.2s ease-out infinite;
+}
+
+@keyframes halo {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
 }
 
 .play[aria-busy='true'] {
@@ -341,7 +397,7 @@ output,
 
 @keyframes invite {
   50% {
-    box-shadow: 0 0 0 6px var(--accent-ring);
+    box-shadow: 0 0 0 6px var(--accent-glow);
   }
 }
 
@@ -394,19 +450,19 @@ output,
   gap: 4px;
 }
 
-.cat-pads { --cat: var(--cat-pads); --cat-deep: var(--cat-pads-deep); }
-.cat-bass { --cat: var(--cat-bass); --cat-deep: var(--cat-bass-deep); }
-.cat-drums { --cat: var(--cat-drums); --cat-deep: var(--cat-drums-deep); }
-.cat-texture { --cat: var(--cat-texture); --cat-deep: var(--cat-texture-deep); }
-.cat-effects { --cat: var(--cat-effects); --cat-deep: var(--cat-effects-deep); }
-
 .mark {
   flex: none;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--cat, var(--text-3));
+  background: var(--text-3);
 }
+
+.mark.cat-pads { background: var(--cat-pads); }
+.mark.cat-bass { background: var(--cat-bass); }
+.mark.cat-drums { background: var(--cat-drums); }
+.mark.cat-texture { background: var(--cat-texture); }
+.mark.cat-effects { background: var(--cat-effects); }
 
 /* ---------------------------------------------------------------- page */
 
@@ -448,8 +504,12 @@ output,
 .panel {
   padding: 16px 20px;
   border-radius: var(--r-lg);
-  border: 1px solid var(--hairline-strong);
-  background: var(--panel);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--tile-edge), 0 16px 40px -24px oklch(0 0 0 / 0.9);
 }
 
 /* The actions on the mix. */
@@ -468,17 +528,12 @@ output,
   color: var(--text);
 }
 
-.mix-strip .micro-link svg {
-  display: none;
-}
-
 /* Keeps its place when there is nothing to clear, so the buttons don't move. */
 .mix-strip .micro-link:disabled {
   visibility: hidden;
 }
 
 .mix-strip .actions {
-  order: 1;
   flex: none;
   flex-wrap: nowrap;
 }
@@ -542,7 +597,7 @@ output,
   gap: 8px;
 }
 
-/* Starters appear when nothing is on: a label, then the pills. */
+/* Starters appear when nothing is on: a bracketed label, then the pills. */
 .panel-row {
   flex: none;
   min-width: 0;
@@ -603,12 +658,10 @@ output,
 
 .category-head .micro {
   white-space: nowrap;
-  color: var(--cat);
 }
 
 .category-head .count {
-  font-weight: 400;
-  color: var(--text-3);
+  color: var(--accent);
 }
 
 .category-note {
@@ -618,6 +671,50 @@ output,
   padding-left: 8px;
   font-size: 13px;
   color: var(--text-3);
+}
+
+/* At rest a tile's name sits centred in the space the name and description share. On hover (or keyboard
+   focus) it rises to make room and the description slides in beneath it; both move back on leave. Only
+   transforms move, so tiles never change size. */
+@media (hover: hover) {
+  .tile-name,
+  .tile-hint {
+    transition:
+      transform 280ms var(--ease-out),
+      opacity 180ms var(--ease-out);
+  }
+
+  .tile-name {
+    transform: translateY(var(--hint-shift));
+  }
+
+  .tile-hint {
+    opacity: 0;
+    transform: translateY(calc(var(--hint-shift) * 0.6));
+  }
+
+  .tile:hover .tile-name,
+  .tile:has(.tile-toggle:focus-visible) .tile-name {
+    transform: none;
+  }
+
+  .tile:hover .tile-hint,
+  .tile:has(.tile-toggle:focus-visible) .tile-hint {
+    opacity: 1;
+    transform: none;
+    /* The name starts moving first, then the description follows it in. */
+    transition-delay: 70ms;
+  }
+}
+
+@media (hover: none) {
+  .tile-hint {
+    display: none;
+  }
+  /* Without the description line, the name needs less room above the slider. */
+  .tile .tile-toggle {
+    min-height: 44px;
+  }
 }
 
 .tiles {
@@ -637,13 +734,20 @@ output,
   flex-direction: column;
   min-height: 0;
   border-radius: var(--r-md);
-  background: var(--panel);
-  border: 1px solid var(--hairline);
-  /* Keeps the wave behind the name without falling behind the tile. */
+  /* Frosted glass: the background shows through, blurred, under a sheen that
+     catches the light at the top left and a bright upper edge. */
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  box-shadow: var(--tile-edge), 0 12px 30px -20px oklch(0 0 0 / 0.9);
+  /* Lets the light line sit under the slider without falling behind the tile. */
   isolation: isolate;
   transition:
     background-color var(--t-press) var(--ease-out),
     border-color var(--t-hover) var(--ease-out),
+    box-shadow var(--t-hover) var(--ease-out),
     transform var(--t-press) var(--ease-out);
 }
 
@@ -657,18 +761,64 @@ output,
   pointer-events: none;
 }
 
+/* The light that rises in a tile when it is on: a coral glow that swells up from
+   below the edge, and a cream line that opens out from the centre. Switching off
+   runs it back down, a little quicker. */
+.tile::before,
+.tile::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity var(--t-light-off) var(--ease-out),
+    transform var(--t-light-off) var(--ease-out);
+}
+
+.tile::before {
+  inset: 0;
+  background: radial-gradient(90% 70% at 50% 115%, oklch(0.7 0.17 42 / 0.32), transparent 70%);
+  transform: translateY(40%);
+}
+
+.tile::after {
+  z-index: -1;
+  left: 15%;
+  right: 15%;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, oklch(0.88 0.08 50 / 0.9), transparent);
+  transform: scaleX(0);
+}
+
+.tile.on::before,
+.tile.on::after {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--t-light-on) var(--ease-out),
+    transform var(--t-light-on) var(--ease-out);
+}
+
 .tile:has(.tile-toggle:active) {
   transform: scale(0.985);
 }
 
 .tile:hover {
-  border-color: var(--hairline-strong);
-  background-color: var(--panel-2);
+  border-color: oklch(1 0 0 / 0.16);
+  background-color: oklch(0.16 0.004 60 / 0.42);
 }
 
 .tile.on {
-  border-color: color-mix(in oklch, var(--cat) 45%, transparent);
-  background-color: color-mix(in srgb, var(--cat-deep) 85%, transparent);
+  border-color: oklch(0.88 0.08 50 / 0.3);
+  box-shadow: var(--tile-edge), 0 18px 40px -24px var(--accent-glow);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tile,
+  .panel {
+    background-color: oklch(0.12 0.004 60 / 0.9);
+  }
 }
 
 /* The toggle fills the tile, so the tile draws the focus ring. */
@@ -682,6 +832,8 @@ output,
 }
 
 .tile-toggle {
+  /* Half the description line plus the gap: how far the name drops to sit centred at rest. */
+  --hint-shift: 10px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -704,7 +856,7 @@ output,
   font-size: clamp(16px, 1.2vw, 19px);
   line-height: 1.2;
   font-weight: 500;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   color: var(--text-2);
   transition: color var(--t-press) var(--ease-out);
 }
@@ -719,13 +871,9 @@ output,
 }
 
 .tile-hint {
-  font-size: 13px;
-  line-height: 17px;
+  font-size: 13.5px;
+  line-height: 18px;
   color: var(--text-3);
-}
-
-.tile.on .tile-hint {
-  color: var(--text-2);
 }
 
 .tile-volume {
@@ -754,20 +902,9 @@ output,
   pointer-events: none;
 }
 
-/* A tile's slider is lit in its category's colour. */
-.tile input.tile-volume::-webkit-slider-runnable-track {
-  background:
-    linear-gradient(var(--cat), var(--cat)) 0 0 / var(--fill, 0%) 100% no-repeat,
-    var(--surface-well);
-}
-
-.tile input.tile-volume::-moz-range-progress {
-  background: var(--cat);
-}
-
 /* ---------------------------------------------------------------- controls */
 
-/* Buttons are pills. Secondary: a flat dark fill with a hairline. */
+/* Buttons are pills. Secondary: a dark gradient with a hairline. */
 .btn {
   position: relative;
   display: inline-flex;
@@ -778,13 +915,15 @@ output,
   padding: 0 18px;
   border-radius: var(--r-pill);
   border: 1px solid var(--hairline);
-  background: var(--panel-2);
+  background: linear-gradient(oklch(0.27 0.004 60), oklch(0.15 0.003 60));
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06);
   font-size: 13px;
   font-weight: 450;
   white-space: nowrap;
   transition:
     background var(--t-hover) var(--ease-out),
     border-color var(--t-hover) var(--ease-out),
+    box-shadow var(--t-hover) var(--ease-out),
     transform var(--t-press) var(--ease-out);
 }
 
@@ -795,7 +934,7 @@ a.btn {
 
 .btn:hover:not(:disabled) {
   border-color: var(--hairline-strong);
-  background: var(--panel-3);
+  background: linear-gradient(oklch(0.31 0.004 60), oklch(0.18 0.003 60));
 }
 
 .btn:active:not(:disabled),
@@ -809,20 +948,22 @@ a.btn {
   opacity: 0.4;
 }
 
-/* Primary: the accent as text and edge, on the same flat fill. */
+/* Primary: black, ringed by a faint glass halo, with a warm glow on hover. */
 .btn.black,
 .btn.primary {
-  border-color: color-mix(in oklch, var(--accent) 45%, transparent);
-  color: var(--accent);
+  background: #000;
+  border-color: oklch(1 0 0 / 0.12);
+  box-shadow: 0 0 0 4px oklch(1 0 0 / 0.06);
+  color: var(--text);
 }
 
 .btn.black:hover:not(:disabled),
 .btn.primary:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-
-.btn.primary svg {
-  color: var(--accent);
+  background: #000;
+  border-color: oklch(0.88 0.08 50 / 0.45);
+  box-shadow:
+    0 0 0 4px oklch(1 0 0 / 0.06),
+    0 0 24px -6px var(--accent-glow);
 }
 
 .btn svg {
@@ -849,6 +990,7 @@ a.btn {
 .btn.ghost {
   background: transparent;
   border-color: transparent;
+  box-shadow: none;
   color: var(--text-2);
 }
 
@@ -928,7 +1070,7 @@ a.btn {
   padding: 0 34px 0 16px;
   border-radius: var(--r-pill);
   border: 1px solid var(--hairline);
-  background: var(--panel-2);
+  background: linear-gradient(oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.04));
   font-size: 13px;
   cursor: pointer;
   transition: border-color var(--t-hover) var(--ease-out);
@@ -1036,7 +1178,7 @@ input[type='range']::-webkit-slider-thumb {
   border: none;
   background: var(--text);
   box-shadow: 0 0 0 3px #000;
-  transition: background var(--t-hover) var(--ease-out);
+  transition: box-shadow var(--t-hover) var(--ease-out);
 }
 
 input[type='range']::-moz-range-thumb {
@@ -1049,11 +1191,15 @@ input[type='range']::-moz-range-thumb {
 }
 
 input[type='range']:hover::-webkit-slider-thumb {
-  background: #fff;
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 14px 2px var(--slider-glow);
 }
 
 input[type='range']:hover::-moz-range-thumb {
-  background: #fff;
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 14px 2px var(--slider-glow);
 }
 
 input[type='range']:focus-visible {
@@ -1113,14 +1259,16 @@ input[type='range']:focus-visible {
   margin: 0;
   font-size: 22px;
   font-weight: 500;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.03em;
 }
 
 .sheet-sub {
   margin: 24px 0 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 450;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
 }
 
 .save-row {
@@ -1129,8 +1277,8 @@ input[type='range']:focus-visible {
   margin: 14px 0;
   padding: 4px;
   border-radius: var(--r-pill);
-  background: var(--panel-2);
-  box-shadow: inset 0 0 0 1px var(--hairline);
+  background: linear-gradient(oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.04));
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08);
 }
 
 .save-row input,
@@ -1231,64 +1379,31 @@ input[type='range']:focus-visible {
 }
 
 .about-text {
-  margin: 12px 0 18px;
+  margin: 12px 0 16px;
   font-size: 14px;
   line-height: 1.55;
   color: var(--text-2);
 }
 
-/* Settings as a two-column list: the label, then the state and its action. */
-.about-list {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 0 20px;
-  margin: 0;
+.about-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
   border-top: 1px solid var(--hairline);
 }
 
-.about-list dt,
-.about-list dd {
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--hairline);
-  font-size: 13px;
-}
-
-.about-list dt {
+.about-row strong {
   font-weight: 500;
 }
 
-.about-list dd {
-  margin: 0;
-  flex-wrap: wrap;
-  gap: 2px 12px;
-  color: var(--text-2);
-}
-
-/* An action that reads as text: underlined, in the accent. */
-.text-btn {
-  padding: 4px 0;
-  border: none;
-  background: none;
-  font-size: 13px;
-  color: var(--accent);
-  text-decoration: underline;
-  text-decoration-color: color-mix(in oklch, var(--accent) 40%, transparent);
-  text-underline-offset: 3px;
-}
-
-.text-btn:hover:not(:disabled) {
-  text-decoration-color: var(--accent);
-}
-
-.text-btn:disabled {
-  opacity: 0.5;
+.about-row .note {
+  margin-top: 2px;
 }
 
 .fineprint {
-  margin: 14px 0 0;
+  margin: 8px 0 0;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-3);
@@ -1328,8 +1443,9 @@ input[type='range']:focus-visible {
   padding: 0 10px;
   border: none;
   background: none;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--accent);
 }
 
@@ -1367,140 +1483,299 @@ input[type='range']:focus-visible {
   display: flex;
   overflow: auto;
   padding: 32px 20px;
-  animation: fade 0.6s ease both;
-  transition: opacity 0.45s ease;
+  /* A pool of shade keeps the type readable whatever colours the background takes. */
+  background: radial-gradient(90% 70% at 50% 42%, oklch(0 0 0 / 0.5), transparent 75%);
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease-in;
 }
 
 .welcome.leaving {
   opacity: 0;
+  transform: scale(1.03);
   pointer-events: none;
 }
 
-/* A plain panel holding what Garsæ is and the list of starters. */
-.welcome-inner {
-  width: min(100%, 640px);
-  margin: auto;
-  padding: 28px 28px 20px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--hairline-strong);
-  background: var(--panel);
+.welcome-lang {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
 }
 
-.welcome-head {
+/* This sits on the brightest part of the background, so it brings its own dark ground. */
+.welcome-lang .segmented {
+  background: oklch(0 0 0 / 0.55);
+  border-color: var(--hairline-strong);
+}
+
+.welcome-lang .segmented button {
+  color: var(--text-2);
+}
+
+.welcome-lang .segmented button[aria-pressed='true'] {
+  color: var(--text);
+}
+
+.welcome-inner {
+  width: min(100%, 1040px);
+  margin: auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  text-align: center;
+}
+
+/* The mark draws itself: the eclipse closes around, the horizon opens from the centre, and it settles. */
+.welcome-mark {
+  width: 76px;
+  height: 76px;
+  margin-bottom: 20px;
+  stroke: var(--text);
+  stroke-width: 1;
+  stroke-linecap: round;
+  overflow: visible;
+  filter: drop-shadow(0 0 16px var(--accent-glow));
+}
+
+.welcome-ring {
+  stroke-dasharray: 1;
+  animation:
+    welcome-draw 1.5s var(--ease-out) both,
+    welcome-set 2.6s var(--ease-out) both;
+}
+
+.welcome-horizon {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: welcome-open 1.1s var(--ease-out) 0.3s both;
+}
+
+@keyframes welcome-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes welcome-set {
+  from {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes welcome-open {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
 }
 
 .welcome-title {
   margin: 0;
-  font-size: 28px;
+  font-size: clamp(42px, 8.4vw, 92px);
   font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.015em;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
   color: var(--text);
 }
 
+/* Each line rises out of its own mask. The padding leaves room for descenders. */
+.welcome-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+
+.welcome-line > span {
+  display: block;
+  animation: welcome-line 1.2s var(--ease-out) var(--d) both;
+}
+
+@keyframes welcome-line {
+  from {
+    transform: translateY(112%);
+  }
+}
+
+.welcome-rise {
+  animation: welcome-rise 0.9s var(--ease-out) var(--d) both;
+}
+
+@keyframes welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
 .welcome-sub {
-  margin: 12px 0 28px;
-  max-width: 52ch;
-  font-size: 16px;
+  margin: 20px 0 40px;
+  max-width: 62ch;
+  font-size: clamp(15px, 1.8vw, 18px);
   line-height: 1.5;
+  text-wrap: balance;
   color: var(--text-2);
 }
 
-.welcome-label {
-  margin: 0 0 8px;
+.welcome-inner > .micro {
+  margin: 0 0 12px;
+  color: var(--text-2);
 }
 
 .welcome-picks {
   list-style: none;
-  margin: 0 -12px;
-  padding: 0;
-}
-
-.welcome-picks li + li {
-  border-top: 1px solid var(--hairline);
-}
-
-/* One row per starter: its name, then the instruments it plays. */
-.welcome-pick {
   width: 100%;
+  margin: 0;
+  padding: 0;
   display: grid;
-  grid-template-columns: 9.5em minmax(0, 1fr);
-  align-items: baseline;
-  gap: 4px 16px;
-  padding: 12px;
-  border: none;
-  border-radius: var(--r-sm);
-  background: none;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+/* A starter is built like a tile, and the same light rises in it when it is under the pointer. */
+.welcome-pick {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  width: 100%;
+  height: 100%;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
   text-align: left;
+  border-radius: var(--r-md);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--tile-edge), 0 12px 30px -20px oklch(0 0 0 / 0.9);
   transition:
-    background var(--t-press) var(--ease-out),
+    border-color var(--t-hover) var(--ease-out),
+    box-shadow var(--t-hover) var(--ease-out),
     transform var(--t-press) var(--ease-out);
 }
 
-.welcome-pick:hover,
-.welcome-pick:focus-visible {
-  background: var(--panel-3);
+.welcome-pick::before,
+.welcome-pick::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity var(--t-light-off) var(--ease-out),
+    transform var(--t-light-off) var(--ease-out);
+}
+
+.welcome-pick::before {
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(90% 70% at 50% 115%, oklch(0.7 0.17 42 / 0.32), transparent 70%);
+  transform: translateY(40%);
+}
+
+.welcome-pick::after {
+  left: 15%;
+  right: 15%;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, oklch(0.88 0.08 50 / 0.9), transparent);
+  transform: scaleX(0);
 }
 
 .welcome-pick:focus-visible {
-  outline-offset: 0;
+  outline: none;
+  border-color: oklch(0.82 0.09 50 / 0.7);
+}
+
+.welcome-pick:focus-visible::before,
+.welcome-pick:focus-visible::after {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--t-light-on) var(--ease-out),
+    transform var(--t-light-on) var(--ease-out);
+}
+
+.welcome-pick:hover {
+  border-color: oklch(0.82 0.09 50 / 0.7);
+}
+
+.welcome-pick:hover::before,
+.welcome-pick:hover::after {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--t-light-on) var(--ease-out),
+    transform var(--t-light-on) var(--ease-out);
+}
+
+/* One card is lit at a time: the pointer takes the light from the focused card. */
+.welcome-picks:hover .welcome-pick:focus-visible:not(:hover) {
+  border-color: oklch(1 0 0 / 0.1);
+}
+
+.welcome-picks:hover .welcome-pick:focus-visible:not(:hover)::before,
+.welcome-picks:hover .welcome-pick:focus-visible:not(:hover)::after {
+  opacity: 0;
 }
 
 .welcome-pick:active {
-  transform: scale(0.99);
+  transform: scale(0.985);
 }
 
 .welcome-pick-name {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
+  letter-spacing: -0.02em;
   color: var(--text);
 }
 
-.welcome-pick-tiles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 14px;
+.welcome-pick-hint {
   font-size: 13px;
+  line-height: 1.35;
   color: var(--text-2);
 }
 
-.welcome-pick-tile {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.welcome-pick.welcome-skip {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.welcome-skip .welcome-pick-name {
-  font-weight: 450;
+.welcome-skip {
+  margin-top: 20px;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  font-size: 14px;
   color: var(--text-2);
+  transition: color var(--t-hover) var(--ease-out);
 }
 
-.welcome-skip:hover .welcome-pick-name {
+.welcome-skip:hover {
   color: var(--text);
 }
 
-@media (max-width: 640px) {
-  .welcome {
-    padding: 12px;
-  }
-  .welcome-inner {
-    padding: 20px 18px 12px;
+@media (max-width: 860px) {
+  .welcome-picks {
+    grid-template-columns: 1fr;
   }
   .welcome-pick {
-    grid-template-columns: minmax(0, 1fr);
+    min-height: 60px;
+    gap: 2px;
+    padding: 10px 14px;
+    justify-content: center;
+  }
+  .welcome-mark {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 14px;
   }
   .welcome-sub {
-    margin-bottom: 20px;
-    font-size: 15px;
+    margin: 14px 0 24px;
+  }
+  .welcome-skip {
+    margin-top: 8px;
   }
 }
 
@@ -1604,61 +1879,17 @@ input[type='range']:focus-visible {
     min-height: 0;
     margin: 0;
   }
-  /* The mix actions are a plain list here: icon and label rows, no pills. */
   .mix-strip .actions {
-    order: 0;
     flex-direction: column;
-    gap: 0;
-    margin: 0 -10px;
-  }
-  .mix-strip .actions .btn,
-  .mix-strip .micro-link {
-    width: auto;
-    height: 36px;
-    justify-content: flex-start;
-    gap: 10px;
-    padding: 0 10px;
-    border: none;
-    border-radius: var(--r-sm);
-    background: none;
-    font-size: 14px;
-    color: var(--text);
-  }
-  .mix-strip .actions .btn:hover:not(:disabled),
-  .mix-strip .micro-link:hover:not(:disabled) {
-    background: var(--panel-2);
-  }
-  .mix-strip .actions .btn.primary {
-    color: var(--accent);
-  }
-  .mix-strip .actions .btn svg,
-  .mix-strip .micro-link svg {
-    display: block;
-    margin: 0;
-    color: var(--text-3);
-  }
-  .mix-strip .actions .btn.primary svg {
-    color: var(--accent);
-  }
-  .mix-strip .btn-count {
-    margin: 0 0 0 auto;
-    background: none;
-    color: var(--text-3);
   }
   .mix-strip .micro-link {
     order: 1;
-    display: flex;
-    align-items: center;
-    margin: 0 -10px;
-    text-decoration: none;
-    color: var(--text-2);
+    margin: 0 0 0 auto;
   }
-  /* Nothing to clear: it stays, dimmed, so the list keeps its shape. */
-  .mix-strip .micro-link:disabled {
-    visibility: visible;
-    opacity: 0.4;
+  .actions .btn {
+    width: 100%;
   }
-  /* Part of the sidebar here, so no surface of its own. */
+  /* Part of the sidebar's glass here, so no surface of its own. */
   .sound {
     order: 6;
     flex: none;
@@ -1669,6 +1900,7 @@ input[type='range']:focus-visible {
     border-top: 1px solid var(--hairline);
     border-radius: 0;
     background: none;
+    box-shadow: none;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     overflow: visible;
@@ -1705,11 +1937,14 @@ input[type='range']:focus-visible {
   }
 }
 
-/* Very short windows have no room for a description under the name, and less space to give between tiles. */
+/* Short windows have no room for a description under the name, and less space to give between tiles. */
 /* .short and .shorter are set in index.html from the window's height after the app's zoom. */
 @media (min-width: 1280px) {
-  .shorter .tile-hint {
+  .short .tile-hint {
     display: none;
+  }
+  .short .tile-toggle {
+    --hint-shift: 0px;
   }
   :root.shorter {
     --tile-gap: 10px;
@@ -1743,7 +1978,8 @@ input[type='range']:focus-visible {
     /* Every tab is a visible button, not a word: a filled pill with an edge. */
     border: 1px solid var(--hairline-strong);
     border-radius: var(--r-pill);
-    background: var(--panel-2);
+    background: linear-gradient(oklch(0.27 0.004 60 / 0.85), oklch(0.15 0.003 60 / 0.85));
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06);
     font-size: 13px;
     font-weight: 450;
     color: var(--text);
@@ -1937,6 +2173,6 @@ input[type='range']:focus-visible {
   }
   /* The invite ring is a still ring instead of a pulse. */
   .invite {
-    box-shadow: 0 0 0 5px var(--accent-ring);
+    box-shadow: 0 0 0 5px var(--accent-glow);
   }
 }

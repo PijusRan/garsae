@@ -19,7 +19,7 @@ export const en = {
     { name: string; note?: string }
   >,
 
-  description: 'Background music for working, synthesized in your browser as it plays.',
+  description: 'Endless generative focus music. Pick instruments, mix them, and work.',
   mediaArtist: 'Generative focus music',
 
   player: 'Player',
@@ -33,7 +33,7 @@ export const en = {
   masterVolume: 'Master volume',
   mixes: 'Mixes',
   shareLink: 'Share link',
-  about: 'About Garsæ',
+  aboutAndOffline: 'About & offline',
 
   sessionTimer: 'Session timer',
   timer: 'Timer',
@@ -113,21 +113,26 @@ export const en = {
   copyHelp: 'If Copy does nothing, select the link and press Ctrl+C (⌘C on Mac).',
 
   aboutText:
-    'Garsæ is background music for working. Each instrument is a small synthesizer following one shared chord progression, so the music is written as it plays and never loops.',
-  offlineUse: 'Offline',
+    'Garsæ is a background player: every sound is synthesized live and never repeats. Pick a few tiles, set the level, and let it run.',
+  offlineUse: 'Offline use',
   offlineAvailable: 'Available offline on this device.',
   working: 'Working…',
   offlineNotSaved: 'Not saved on this device yet.',
   removeOffline: 'Remove offline copy',
-  makeOffline: 'Save for offline use',
-  install: 'App',
-  installApp: 'Install as an app',
-  sourceCode: 'Source',
+  makeOffline: 'Make available offline',
+  install: 'Install',
+  installNote: 'Open Garsæ in its own window.',
+  installApp: 'Install app',
+  sourceCode: 'Source code',
+  sourceNote: 'See how Garsæ is built.',
+  viewOnGithub: 'View on GitHub',
   storedHere: 'Mixes and settings are stored in this browser only.',
 
-  welcomeSub: 'Background music for working, played by synthesizers in your browser. It is composed as it plays, so it never loops.',
-  welcomePick: 'Starting mixes',
-  welcomeBuild: 'Start from an empty mix',
+  welcomeLine1: 'Focus music',
+  welcomeLine2: 'that never repeats.',
+  welcomeSub: 'Every note is synthesized live in your browser. No samples, no account.',
+  welcomePick: 'Pick a mix to begin',
+  welcomeBuild: 'Or build my own mix',
 };
 
 export type Strings = typeof en;
