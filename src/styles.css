@@ -176,33 +176,24 @@ output,
   color: var(--text-3);
 }
 
-/* Micro labels: the only uppercase in the app. Small, tracked, quiet. */
+/* Section labels: small sentence-case text, a step quieter than the content they name. */
 .micro {
   margin: 0;
-  font-size: 11px;
-  font-weight: 450;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1.2;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-.bracket::before {
-  content: '[\2009';
-}
-
-.bracket::after {
-  content: '\2009]';
+  color: var(--text-2);
 }
 
 .micro-link {
   padding: 6px 2px;
   border: none;
   background: none;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 13px;
   color: var(--text-3);
+  text-decoration: underline;
+  text-decoration-color: var(--hairline-strong);
+  text-underline-offset: 3px;
   transition: color var(--t-hover) var(--ease-out);
 }
 
@@ -597,7 +588,7 @@ output,
   gap: 8px;
 }
 
-/* Starters appear when nothing is on: a bracketed label, then the pills. */
+/* Starters appear when nothing is on: a label, then the pills. */
 .panel-row {
   flex: none;
   min-width: 0;
@@ -1264,11 +1255,9 @@ input[type='range']:focus-visible {
 
 .sheet-sub {
   margin: 24px 0 6px;
-  font-size: 11px;
-  font-weight: 450;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
 }
 
 .save-row {
@@ -1443,9 +1432,8 @@ input[type='range']:focus-visible {
   padding: 0 10px;
   border: none;
   background: none;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--accent);
 }
 

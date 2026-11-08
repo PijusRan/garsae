@@ -114,7 +114,7 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 **Type**
 - Bricolage Grotesque (variable with the optical-size axis, self-hosted through `@fontsource-variable/bricolage-grotesque/opsz.css`, so it works offline). Chosen over Inter, which felt generic; it keeps the same optical-size setup, so small text stays plain and large text gets its more characterful display shapes.
 - Display text is weight 500 with tight tracking: sheet titles and the wordmark -0.03em, tile and mix names -0.02em. Body 13-15px.
-- **Micro labels** are the only uppercase: 11px, +0.06em tracking, grey, optionally in brackets (`.micro`, `.bracket`). Used for section labels, scale ends, Clear and Undo.
+- **No uppercase, no brackets, no letter-spaced labels.** Section labels (`.micro`) are 13px, weight 500, sentence case, in `--text-2`. Clear is a plain underlined text button; Undo in the toast is an accent text button.
 - Tabular numerals for anything that counts.
 
 **Surfaces and glass**

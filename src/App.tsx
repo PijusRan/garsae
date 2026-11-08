@@ -437,7 +437,7 @@ export function App() {
 
   const startersRow = (
     <div className="panel-row" role="group" aria-label={t.starterMixes}>
-      <h2 className="micro bracket">{t.starters}</h2>
+      <h2 className="micro">{t.starters}</h2>
       <ul className="name-list">
         {PRESETS.map((p) => (
           <li key={p.id}>
@@ -604,7 +604,7 @@ export function App() {
               aria-labelledby={`cat-${cat.id}`}
             >
               <div className="category-head">
-                <h2 id={`cat-${cat.id}`} className="micro bracket">
+                <h2 id={`cat-${cat.id}`} className="micro">
                   {t.categories[cat.id].name}
                 </h2>
                 <span className="micro count">{onIn(cat.id) ? t.countOn(onIn(cat.id)) : ''}</span>

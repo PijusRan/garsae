@@ -45,7 +45,7 @@ export function Welcome({ leaving, onPreview, onPick, onBuild }: Props) {
         <p className="welcome-sub welcome-rise" style={delay(1000)}>
           {t.welcomeSub}
         </p>
-        <p className="micro bracket welcome-rise" style={delay(1200)}>
+        <p className="micro welcome-rise" style={delay(1200)}>
           {t.welcomePick}
         </p>
         <ul className="welcome-picks">
