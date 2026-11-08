@@ -37,7 +37,7 @@ export const TILES: TileMeta[] = [
   { id: 'pad', category: 'pads', name: 'Warm pad', hint: 'Drifting chords', defaultVolume: 0.65, level: 0.987, reverb: 0.45 },
   { id: 'bells', category: 'pads', name: 'Glass bells', hint: 'Sparse notes', defaultVolume: 0.5, level: 3.02, reverb: 0.7 },
   { id: 'arp', category: 'pads', name: 'Soft arpeggio', hint: 'Soft mallet phrases', defaultVolume: 0.5, level: 4.18, reverb: 0.4 },
-  { id: 'drone', category: 'pads', name: 'Drone', hint: 'Steady root and fifth', defaultVolume: 0.5, level: 0.814, reverb: 0.3 },
+  { id: 'drone', category: 'pads', name: 'Drone', hint: 'Steady root and fifth', defaultVolume: 0.5, level: 0.53, reverb: 0.3 },
   { id: 'epiano', category: 'pads', name: 'Electric piano', hint: 'Mellow chord comping', defaultVolume: 0.5, level: 1.88, reverb: 0.3 },
   { id: 'choir', category: 'pads', name: 'Choir', hint: 'Soft, wordless voices', defaultVolume: 0.5, level: 2.83, reverb: 0.55 },
   { id: 'piano', category: 'pads', name: 'Felt piano', hint: 'Quiet hammers, sparse notes', defaultVolume: 0.5, level: 1.29, reverb: 0.4 },

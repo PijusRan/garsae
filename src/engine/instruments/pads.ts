@@ -293,57 +293,86 @@ export function createArp(core: Core): Instrument {
 
 // ---------------------------------------------------------------- drone
 
+/**
+ * The drone's voices, as frequency ratios over the root. Just intonation, so the fifth and
+ * octaves lock with the root instead of beating against it. Each upper voice swells and
+ * fades on its own slow cycle (14-32 s, about a breath's pace), so the colour shifts while
+ * the root underneath never moves.
+ */
+const DRONE_VOICES: { ratio: number; gain: number; pan: number; breath: number }[] = [
+  { ratio: 0.5, gain: 0.07, pan: 0, breath: 0 },
+  { ratio: 1, gain: 0.16, pan: 0, breath: 0 },
+  { ratio: 1.5, gain: 0.08, pan: -0.3, breath: 0.043 },
+  { ratio: 2, gain: 0.07, pan: 0.3, breath: 0.061 },
+  { ratio: 3, gain: 0.025, pan: 0.1, breath: 0.031 },
+];
+
+/** A soft, flute-like organ tone: mostly fundamental, with a few quiet harmonics for warmth. */
+const DRONE_HARMONICS = [0, 1, 0.3, 0.1, 0.04, 0.015];
+
+/**
+ * A calm root-and-fifth drone in the tenor register, built to sit still: no detuned saws,
+ * no pitch drift, no chorus wobble and nothing in the sub-bass rumble. All of those read as
+ * tension. What moves is only the slow breathing of the upper voices.
+ */
 export function createDrone(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const { filter, setEvolution } = movingFilter(core, 1100, 450, 0.03, 0.9);
-  const chorus = createChorus(ctx, { wet: 0.8, rate: 0.23, depth: 0.0025 });
-  const drift = createDrift(ctx, 5, 0.07);
-  filter.connect(chorus.input);
-  chorus.output.connect(out);
-  let oscs: { osc: OscillatorNode; interval: number }[] = [];
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2200, Q: 0.5 });
+  lp.connect(out);
+  const wave = ctx.createPeriodicWave(new Float32Array(DRONE_HARMONICS.length), Float32Array.from(DRONE_HARMONICS));
+  let voices: { osc: OscillatorNode; ratio: number; depth?: GainNode; breath: number; gain: number }[] = [];
+  let sources: AudioScheduledSourceNode[] = [];
   let nodes: AudioNode[] = [];
+  let evolution = core.evolution;
 
-  const baseMidi = (root: number) => placeInRange(root, 36);
-  const layout: { interval: number; detune: number; type: OscillatorType; gain: number; pan: number }[] = [
-    { interval: 0, detune: -5, type: 'sawtooth', gain: 0.07, pan: -0.3 },
-    { interval: 0, detune: 5, type: 'sawtooth', gain: 0.07, pan: 0.3 },
-    { interval: 7, detune: 3, type: 'triangle', gain: 0.07, pan: -0.15 },
-    { interval: 12, detune: -3, type: 'triangle', gain: 0.06, pan: 0.15 },
-    { interval: -12, detune: 0, type: 'sine', gain: 0.1, pan: 0 },
-  ];
+  const rootFreq = (root: number) => midiToFreq(placeInRange(root, 45));
+  /** How far each upper voice swells, as a fraction of its level. More Evolution, more movement. */
+  const breathDepth = (e: number) => 0.2 + 0.3 * movementDepth(e);
 
   return {
     output: out,
-    setEvolution,
+    setEvolution(e) {
+      evolution = e;
+      for (const v of voices) if (v.depth) glide(ctx, v.depth.gain, v.gain * breathDepth(e), 2);
+    },
     activate(t) {
-      const base = baseMidi(core.root);
-      for (const l of layout) {
-        const osc = new OscillatorNode(ctx, { type: l.type, frequency: midiToFreq(base + l.interval), detune: l.detune });
-        const g = new GainNode(ctx, { gain: l.gain });
-        const p = new StereoPannerNode(ctx, { pan: l.pan });
-        osc.connect(g).connect(p).connect(filter);
-        // The sine an octave down stays put; the rest wander slightly, so the drone breathes.
-        if (l.type !== 'sine') drift.connect(osc.detune);
+      const f0 = rootFreq(core.root);
+      for (const v of DRONE_VOICES) {
+        const osc = new OscillatorNode(ctx, { frequency: f0 * v.ratio });
+        // The lowest voice is a plain sine: warmth without a rumble.
+        if (v.ratio >= 1) osc.setPeriodicWave(wave);
+        const g = new GainNode(ctx, { gain: v.gain });
+        const p = new StereoPannerNode(ctx, { pan: v.pan });
+        osc.connect(g).connect(p).connect(lp);
         osc.start(t);
-        oscs.push({ osc, interval: l.interval });
+        sources.push(osc);
         nodes.push(g, p);
+        let depth: GainNode | undefined;
+        if (v.breath > 0) {
+          const lfo = new OscillatorNode(ctx, { frequency: v.breath * rand(0.9, 1.1) });
+          depth = new GainNode(ctx, { gain: v.gain * breathDepth(evolution) });
+          lfo.connect(depth).connect(g.gain);
+          lfo.start(t);
+          sources.push(lfo);
+          nodes.push(depth);
+        }
+        voices.push({ osc, ratio: v.ratio, depth, breath: v.breath, gain: v.gain });
       }
     },
     deactivate() {
-      for (const { osc } of oscs) {
-        osc.stop();
-        osc.disconnect();
+      for (const s of sources) {
+        s.stop();
+        s.disconnect();
       }
       for (const n of nodes) n.disconnect();
-      // The drift only feeds this drone's oscillators, so unhook it from all of them.
-      drift.disconnect();
-      oscs = [];
+      voices = [];
+      sources = [];
       nodes = [];
     },
     setKey(root) {
-      const base = baseMidi(root);
-      for (const { osc, interval } of oscs) glide(ctx, osc.frequency, midiToFreq(base + interval), 1.2);
+      const f0 = rootFreq(root);
+      for (const v of voices) glide(ctx, v.osc.frequency, f0 * v.ratio, 1.2);
     },
   };
 }
