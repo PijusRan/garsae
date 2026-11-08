@@ -320,7 +320,7 @@ output,
   flex: none;
   width: 92px;
   height: 40px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-md);
   border: 1px solid var(--hairline-strong);
   display: inline-flex;
   align-items: center;
@@ -340,38 +340,9 @@ output,
   transform: scale(0.97);
 }
 
-@media (hover: hover) {
-  .play:not(.playing):hover {
-    box-shadow: 0 0 22px -2px var(--accent-glow);
-  }
-}
-
-/* Playing: the button turns to light and a slow halo breathes around it. */
+/* Playing: the button turns to light. The living mark is what moves, so the button stays still. */
 .play.playing {
   background: var(--accent);
-  box-shadow: 0 0 18px -2px var(--accent-glow);
-}
-
-.play.playing::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--accent);
-  opacity: 0;
-  pointer-events: none;
-  animation: halo 3.2s ease-out infinite;
-}
-
-@keyframes halo {
-  0% {
-    opacity: 0.55;
-    transform: scale(0.92);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.4);
-  }
 }
 
 .play[aria-busy='true'] {
@@ -513,7 +484,11 @@ output,
 
 .mix-strip .text-link {
   margin-left: auto;
-  color: var(--text-2);
+  color: var(--text);
+}
+
+.mix-strip .text-link svg {
+  display: none;
 }
 
 /* Keeps its place when there is nothing to clear, so the buttons don't move. */
@@ -893,7 +868,7 @@ output,
 
 /* ---------------------------------------------------------------- controls */
 
-/* Buttons are pills. Secondary: a dark gradient with a hairline. */
+/* Buttons are small-radius rectangles. Secondary: a flat dark tint with a hairline, readable on any background. */
 .btn {
   position: relative;
   display: inline-flex;
@@ -901,11 +876,10 @@ output,
   justify-content: center;
   gap: 8px;
   height: 38px;
-  padding: 0 18px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--hairline);
-  background: linear-gradient(oklch(0.27 0.004 60), oklch(0.15 0.003 60));
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06);
+  padding: 0 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--hairline-strong);
+  background: oklch(0.2 0.004 60 / 0.6);
   font-size: 13px;
   font-weight: 450;
   white-space: nowrap;
@@ -922,8 +896,7 @@ a.btn {
 }
 
 .btn:hover:not(:disabled) {
-  border-color: var(--hairline-strong);
-  background: linear-gradient(oklch(0.31 0.004 60), oklch(0.18 0.003 60));
+  background: oklch(0.26 0.004 60 / 0.7);
 }
 
 .btn:active:not(:disabled),
@@ -937,22 +910,15 @@ a.btn {
   opacity: 0.4;
 }
 
-/* Primary: black, ringed by a faint glass halo, with a warm glow on hover. */
-.btn.black,
+/* Primary: cream, like Play. One per view at most. */
 .btn.primary {
-  background: #000;
-  border-color: oklch(1 0 0 / 0.12);
-  box-shadow: 0 0 0 4px oklch(1 0 0 / 0.06);
-  color: var(--text);
+  background: var(--text);
+  border-color: var(--text);
+  color: #000;
 }
 
-.btn.black:hover:not(:disabled),
 .btn.primary:hover:not(:disabled) {
-  background: #000;
-  border-color: oklch(0.88 0.08 50 / 0.45);
-  box-shadow:
-    0 0 0 4px oklch(1 0 0 / 0.06),
-    0 0 24px -6px var(--accent-glow);
+  background: #fff;
 }
 
 .btn svg {
@@ -967,9 +933,9 @@ a.btn {
   place-items: center;
   min-width: 20px;
   height: 20px;
-  margin-right: -8px;
+  margin-right: -6px;
   padding: 0 6px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-sm);
   background: oklch(1 0 0 / 0.09);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -1024,7 +990,7 @@ a.btn {
   display: inline-flex;
   flex: none;
   padding: 3px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-md);
   border: 1px solid var(--hairline);
   background: oklch(1 0 0 / 0.04);
 }
@@ -1033,7 +999,7 @@ a.btn {
   height: 26px;
   padding: 0 12px;
   border: none;
-  border-radius: var(--r-pill);
+  border-radius: 5px;
   background: none;
   font-size: 12px;
   color: var(--text-3);
@@ -1043,9 +1009,8 @@ a.btn {
 }
 
 .segmented button[aria-pressed='true'] {
-  background: #000;
+  background: oklch(1 0 0 / 0.14);
   color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--hairline-strong);
 }
 
 .select {
@@ -1056,10 +1021,10 @@ a.btn {
   appearance: none;
   width: 100%;
   height: 38px;
-  padding: 0 34px 0 16px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--hairline);
-  background: linear-gradient(oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.04));
+  padding: 0 34px 0 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--hairline-strong);
+  background: oklch(1 0 0 / 0.06);
   font-size: 13px;
   cursor: pointer;
   transition: border-color var(--t-hover) var(--ease-out);
@@ -1263,9 +1228,9 @@ input[type='range']:focus-visible {
   gap: 8px;
   margin: 14px 0;
   padding: 4px;
-  border-radius: var(--r-pill);
-  background: linear-gradient(oklch(1 0 0 / 0.08), oklch(1 0 0 / 0.04));
-  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08);
+  border-radius: var(--r-md);
+  background: oklch(1 0 0 / 0.06);
+  box-shadow: inset 0 0 0 1px var(--hairline-strong);
 }
 
 .save-row input,
@@ -1273,8 +1238,8 @@ input[type='range']:focus-visible {
   flex: 1;
   min-width: 0;
   height: 40px;
-  padding: 0 14px;
-  border-radius: var(--r-pill);
+  padding: 0 10px;
+  border-radius: var(--r-sm);
   border: none;
   background: transparent;
   font-size: 13px;
@@ -1290,7 +1255,7 @@ input[type='range']:focus-visible {
 
 .save-row .btn {
   height: 40px;
-  box-shadow: none;
+  border-radius: var(--r-sm);
 }
 
 .save-row input::placeholder {
@@ -1407,8 +1372,8 @@ input[type='range']:focus-visible {
   align-items: center;
   gap: 14px;
   min-height: 44px;
-  padding: 0 20px;
-  border-radius: var(--r-pill);
+  padding: 0 16px;
+  border-radius: var(--r-md);
   font-size: 13px;
   opacity: 0;
   pointer-events: none;
@@ -1731,28 +1696,58 @@ input[type='range']:focus-visible {
     width: auto;
     min-width: 0;
   }
-  .timer {
+  /* Timer and the mix actions are one list of quiet rows: an icon and a word, lit on hover. Play is the
+     only filled button in the sidebar. */
+  .timer,
+  .mix-strip .btn,
+  .mix-strip .text-link {
     flex: none;
-    width: 100%;
-    padding: 0;
+    width: calc(100% + 16px);
+    height: 36px;
+    margin: 0 -8px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    border: none;
+    border-radius: var(--r-sm);
+    background: none;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .timer svg,
+  .mix-strip .btn svg,
+  .mix-strip .text-link svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    color: var(--text-3);
+  }
+  .mix-strip .btn:hover:not(:disabled),
+  .mix-strip .text-link:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+  .mix-strip .btn-count {
+    margin: 0 0 0 auto;
   }
   .mix-strip {
     order: 5;
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 2px;
     min-height: 0;
-    margin: 0;
+    /* Follows straight on from the Timer row. */
+    margin: -12px 0 0;
   }
   .mix-strip .actions {
     flex-direction: column;
+    gap: 2px;
   }
   .mix-strip .text-link {
     order: 1;
-    margin: 0 0 0 auto;
-  }
-  .actions .btn {
-    width: 100%;
   }
   /* Part of the sidebar's glass here, so no surface of its own. */
   .sound {
@@ -1840,11 +1835,10 @@ input[type='range']:focus-visible {
     gap: 6px;
     height: 40px;
     padding: 0 16px;
-    /* Every tab is a visible button, not a word: a filled pill with an edge. */
+    /* Every tab is a visible button, not a word: a tinted rectangle with an edge. */
     border: 1px solid var(--hairline-strong);
-    border-radius: var(--r-pill);
-    background: linear-gradient(oklch(0.27 0.004 60 / 0.85), oklch(0.15 0.003 60 / 0.85));
-    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06);
+    border-radius: var(--r-md);
+    background: oklch(0.2 0.004 60 / 0.6);
     font-size: 13px;
     font-weight: 450;
     color: var(--text);
@@ -1971,9 +1965,6 @@ input[type='range']:focus-visible {
   }
   .play-label {
     display: none;
-  }
-  .play.playing::after {
-    border-radius: 50%;
   }
   .status {
     flex: 1;

@@ -31,7 +31,7 @@ import { Background, levelReader, type AudioLevels } from './ui/Background';
 import { LiveMark } from './ui/LiveMark';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
-import { CheckIcon, ChevronIcon, MixesIcon, SaveIcon, ShuffleIcon } from './ui/icons';
+import { CheckIcon, ChevronIcon, CloseIcon, MixesIcon, SaveIcon, ShuffleIcon } from './ui/icons';
 import { ShareSheet } from './ui/ShareSheet';
 import { Transport } from './ui/Transport';
 import { TileCard } from './ui/TileCard';
@@ -480,6 +480,7 @@ export function App() {
             <span className="wordmark">Garsæ</span>
           </span>
           <button type="button" className="text-link" disabled={activeCount === 0} onClick={clearAll}>
+            <CloseIcon size={16} />
             {t.clear}
           </button>
           <div className="actions">
@@ -487,7 +488,7 @@ export function App() {
               <ShuffleIcon size={16} />
               {t.surpriseMe}
             </button>
-            <button type="button" className="btn primary" disabled={activeCount === 0 || isSaved} onClick={saveCurrent}>
+            <button type="button" className="btn" disabled={activeCount === 0 || isSaved} onClick={saveCurrent}>
               {isSaved ? <CheckIcon size={16} /> : <SaveIcon size={16} />}
               {isSaved ? t.mixSaved : t.saveMix}
             </button>
