@@ -508,12 +508,17 @@ output,
   color: var(--text);
 }
 
+.mix-strip .micro-link svg {
+  display: none;
+}
+
 /* Keeps its place when there is nothing to clear, so the buttons don't move. */
 .mix-strip .micro-link:disabled {
   visibility: hidden;
 }
 
 .mix-strip .actions {
+  order: 1;
   flex: none;
   flex-wrap: nowrap;
 }
@@ -862,18 +867,20 @@ a.btn {
   opacity: 0.4;
 }
 
-/* Primary: black with a hairline. */
+/* Primary: the accent as text and edge, on the same flat fill. */
 .btn.black,
 .btn.primary {
-  background: #000;
-  border-color: var(--hairline-strong);
-  color: var(--text);
+  border-color: color-mix(in oklch, var(--accent) 45%, transparent);
+  color: var(--accent);
 }
 
 .btn.black:hover:not(:disabled),
 .btn.primary:hover:not(:disabled) {
-  background: #000;
-  border-color: oklch(0.88 0.08 50 / 0.45);
+  border-color: var(--accent);
+}
+
+.btn.primary svg {
+  color: var(--accent);
 }
 
 .btn svg {
@@ -1655,15 +1662,59 @@ input[type='range']:focus-visible {
     min-height: 0;
     margin: 0;
   }
+  /* The mix actions are a plain list here: icon and label rows, no pills. */
   .mix-strip .actions {
+    order: 0;
     flex-direction: column;
+    gap: 0;
+    margin: 0 -10px;
+  }
+  .mix-strip .actions .btn,
+  .mix-strip .micro-link {
+    width: auto;
+    height: 36px;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--r-sm);
+    background: none;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .mix-strip .actions .btn:hover:not(:disabled),
+  .mix-strip .micro-link:hover:not(:disabled) {
+    background: var(--panel-2);
+  }
+  .mix-strip .actions .btn.primary {
+    color: var(--accent);
+  }
+  .mix-strip .actions .btn svg,
+  .mix-strip .micro-link svg {
+    display: block;
+    margin: 0;
+    color: var(--text-3);
+  }
+  .mix-strip .actions .btn.primary svg {
+    color: var(--accent);
+  }
+  .mix-strip .btn-count {
+    margin: 0 0 0 auto;
+    background: none;
+    color: var(--text-3);
   }
   .mix-strip .micro-link {
     order: 1;
-    margin: 0 0 0 auto;
+    display: flex;
+    align-items: center;
+    margin: 0 -10px;
+    text-decoration: none;
+    color: var(--text-2);
   }
-  .actions .btn {
-    width: 100%;
+  /* Nothing to clear: it stays, dimmed, so the list keeps its shape. */
+  .mix-strip .micro-link:disabled {
+    visibility: visible;
+    opacity: 0.4;
   }
   /* Part of the sidebar here, so no surface of its own. */
   .sound {

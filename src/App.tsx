@@ -31,7 +31,7 @@ import { Background, levelReader, type AudioLevels } from './ui/Background';
 import { LiveMark } from './ui/LiveMark';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
-import { CheckIcon, ChevronIcon, MixesIcon, SaveIcon, ShuffleIcon } from './ui/icons';
+import { CheckIcon, ChevronIcon, CloseIcon, MixesIcon, SaveIcon, ShuffleIcon } from './ui/icons';
 import { ShareSheet } from './ui/ShareSheet';
 import { Transport } from './ui/Transport';
 import { TileCard } from './ui/TileCard';
@@ -479,14 +479,7 @@ export function App() {
             <LiveMark size={22} risen={playing && !fading} fading={fading} getLevels={getLevels} />
             <span className="wordmark">Garsæ</span>
           </span>
-          <button type="button" className="micro-link" disabled={activeCount === 0} onClick={clearAll}>
-            {t.clear}
-          </button>
           <div className="actions">
-            <button type="button" className="btn" onClick={surprise}>
-              <ShuffleIcon size={16} />
-              {t.surpriseMe}
-            </button>
             <button type="button" className="btn primary" disabled={activeCount === 0 || isSaved} onClick={saveCurrent}>
               {isSaved ? <CheckIcon size={16} /> : <SaveIcon size={16} />}
               {isSaved ? t.mixSaved : t.saveMix}
@@ -496,7 +489,15 @@ export function App() {
               {t.mixes}
               {saved.length > 0 && <span className="btn-count">{saved.length}</span>}
             </button>
+            <button type="button" className="btn" onClick={surprise}>
+              <ShuffleIcon size={16} />
+              {t.surpriseMe}
+            </button>
           </div>
+          <button type="button" className="micro-link clear" disabled={activeCount === 0} onClick={clearAll}>
+            <CloseIcon size={16} />
+            {t.clear}
+          </button>
         </section>
 
         {/* Settings most mixes leave alone: in the sidebar, or their own tab on small screens. */}
