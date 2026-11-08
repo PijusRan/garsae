@@ -1778,6 +1778,32 @@ input[type='range']:focus-visible {
     order: 0;
     padding: 14px;
   }
+  /* In the sidebar's free space, below everything else. Solid, since it already sits on the sidebar's glass. */
+  .sidebar .toast {
+    position: sticky;
+    left: auto;
+    bottom: 0;
+    order: 7;
+    flex: none;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: auto;
+    padding: 8px 4px 8px 12px;
+    line-height: 1.35;
+    background: oklch(0.24 0.004 60);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    transform: translateY(8px);
+  }
+  .sidebar .toast.show {
+    transform: none;
+  }
+  .sidebar .toast-undo {
+    flex: none;
+    height: 32px;
+    margin: 0;
+  }
 }
 
 /* Laptop widths: the largest size that keeps most Lithuanian names on one line. */

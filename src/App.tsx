@@ -578,6 +578,16 @@ export function App() {
             </div>
           </div>
         </section>
+
+        {/* Wide screens show this in the free space at the foot of the sidebar, so it never covers a tile. */}
+        <div className={`toast glass${toast ? ' show' : ''}`} role="status" aria-live="polite">
+          <span>{toast?.msg}</span>
+          {toast?.undo && (
+            <button type="button" className="toast-undo" onClick={() => toast.undo?.()}>
+              {t.undo}
+            </button>
+          )}
+        </div>
       </aside>
 
       <div className={`page${tab === 'sound' ? ' sound-open' : ''}`}>
@@ -671,15 +681,6 @@ export function App() {
           onClose={() => setSheet(null)}
         />
       )}
-
-      <div className={`toast glass${toast ? ' show' : ''}`} role="status" aria-live="polite">
-        <span>{toast?.msg}</span>
-        {toast?.undo && (
-          <button type="button" className="toast-undo" onClick={() => toast.undo?.()}>
-            {t.undo}
-          </button>
-        )}
-      </div>
     </div>
   );
 }
