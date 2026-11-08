@@ -2,13 +2,13 @@
 //   key       -> hue, walked around the circle of fifths, so related keys get neighbouring hues (C is cobalt)
 //   tempo     -> vividness: slow mixes are deeper and muted, fast ones more saturated and a little brighter
 //   evolution -> hue spread across the ramp: a static mix is one hue, a shifting one sweeps across neighbours
-// Colours are OKLab triplets [L, a, b].
+// Colours are OKLab triplets [L, a, b], the space Grainient's shader blends in.
 
 import { BPM_MAX, BPM_MIN } from '../state/mix';
 
 export type Lab = [number, number, number];
 
-/** Lightness and chroma per stop, bottom to top, at a middling tempo. The sliders take the top two. */
+/** Lightness and chroma per stop, bottom to top, at a middling tempo. Mostly dark, so text keeps contrast. */
 const STOPS: [number, number][] = [
   [0.09, 0.02],
   [0.17, 0.05],
@@ -18,28 +18,18 @@ const STOPS: [number, number][] = [
   [0.71, 0.15],
 ];
 
-/** The background's bands, bottom to top: darker, so cream text stays readable on every one of them. */
-export const BANDS: [number, number][] = [
-  [0.1, 0.02],
-  [0.135, 0.035],
-  [0.17, 0.05],
-  [0.21, 0.065],
-  [0.255, 0.08],
-  [0.305, 0.095],
-];
-
 const BASE_HUE = 265; // C
 const MAX_SPREAD = 70; // degrees across the ramp at full evolution
 
-export function mixPalette(key: number, bpm: number, evolution: number, stops = STOPS): Lab[] {
+export function mixPalette(key: number, bpm: number, evolution: number): Lab[] {
   const fifths = (((key * 7) % 12) + 12) % 12;
   const hue = BASE_HUE + fifths * 30;
   const t = clamp01((bpm - BPM_MIN) / (BPM_MAX - BPM_MIN));
   const vivid = 0.7 + 0.5 * t;
   const spread = clamp01(evolution) * MAX_SPREAD;
-  return stops.map(([L, C], i) => {
-    const top = i === stops.length - 1;
-    const h = hue + (i / (stops.length - 1) - 0.5) * spread;
+  return STOPS.map(([L, C], i) => {
+    const top = i === STOPS.length - 1;
+    const h = hue + (i / (STOPS.length - 1) - 0.5) * spread;
     return toGamut(top ? L + 0.06 * (t - 0.5) : L, C * vivid, h);
   });
 }

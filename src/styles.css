@@ -1,45 +1,9 @@
 /* Garsae visual language. The rules live in DESIGN.md ("Visual language"); this file implements them.
-   Order: tokens, base, surfaces, transport, page, sound panel, tiles, controls, sheets, toast, responsive. */
+   Order: tokens, base, glass, transport, page, sound panel, tiles, controls, sheets, toast, responsive. */
 
 /* ---------------------------------------------------------------- tokens */
 
-/* Registered so a new mix's background and slider colours glide instead of jumping. */
-@property --band-0 {
-  syntax: '<color>';
-  inherits: false;
-  initial-value: #000;
-}
-
-@property --band-1 {
-  syntax: '<color>';
-  inherits: false;
-  initial-value: #000;
-}
-
-@property --band-2 {
-  syntax: '<color>';
-  inherits: false;
-  initial-value: #000;
-}
-
-@property --band-3 {
-  syntax: '<color>';
-  inherits: false;
-  initial-value: #000;
-}
-
-@property --band-4 {
-  syntax: '<color>';
-  inherits: false;
-  initial-value: #000;
-}
-
-@property --band-5 {
-  syntax: '<color>';
-  inherits: false;
-  initial-value: #000;
-}
-
+/* Registered so a new mix's slider colours glide instead of jumping. */
 @property --slider-mid {
   syntax: '<color>';
   inherits: true;
@@ -153,6 +117,18 @@ body {
   zoom: var(--zoom, 1);
 }
 
+/* Film grain over everything, like the photography it borrows from. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 button,
 input,
 select {
@@ -221,35 +197,34 @@ output,
   color: var(--text);
 }
 
-/* The background: flat bands of the mix's colours, darkest at the bottom (ui/Background.tsx).
+/* The background: a slow grainy warm gradient (ui/Background.tsx, React Bits' Grainient).
    Dimmer while paused; it brightens over a couple of seconds when music starts. */
 .background {
   position: fixed;
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  opacity: 0.7;
-  background: linear-gradient(
-    to top,
-    var(--band-0) 0 16.667%,
-    var(--band-1) 0 33.333%,
-    var(--band-2) 0 50%,
-    var(--band-3) 0 66.667%,
-    var(--band-4) 0 83.333%,
-    var(--band-5) 0
-  );
-  transition:
-    opacity 2.4s ease,
-    --band-0 2.5s ease,
-    --band-1 2.5s ease,
-    --band-2 2.5s ease,
-    --band-3 2.5s ease,
-    --band-4 2.5s ease,
-    --band-5 2.5s ease;
+  opacity: 0.75;
+  transition: opacity 2.4s ease;
 }
 
 .is-playing .background {
   opacity: 1;
+}
+
+.grainient-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.grainient-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 /* ---------------------------------------------------------------- surfaces */
