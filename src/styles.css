@@ -1481,60 +1481,54 @@ input[type='range']:focus-visible {
   inset: 0;
   z-index: 40;
   display: flex;
+  flex-direction: column;
   overflow: auto;
-  padding: 32px 20px;
-  /* A pool of shade keeps the type readable whatever colours the background takes. */
-  background: radial-gradient(90% 70% at 50% 42%, oklch(0 0 0 / 0.5), transparent 75%);
-  transition:
-    opacity 0.45s ease,
-    transform 0.45s ease-in;
+  padding: max(20px, env(safe-area-inset-top)) clamp(20px, 5vw, 64px) max(28px, env(safe-area-inset-bottom));
+  /* Shade pooled under the text keeps it readable whatever colours the background takes. */
+  background: radial-gradient(120% 90% at 0% 100%, oklch(0 0 0 / 0.65), transparent 70%);
+  transition: opacity 0.45s ease;
 }
 
 .welcome.leaving {
   opacity: 0;
-  transform: scale(1.03);
   pointer-events: none;
 }
 
-.welcome-lang {
-  position: absolute;
-  top: max(16px, env(safe-area-inset-top));
-  right: 16px;
+.welcome-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.welcome-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* This sits on the brightest part of the background, so it brings its own dark ground. */
-.welcome-lang .segmented {
+.welcome-head .segmented {
   background: oklch(0 0 0 / 0.55);
   border-color: var(--hairline-strong);
 }
 
-.welcome-lang .segmented button {
+.welcome-head .segmented button {
   color: var(--text-2);
 }
 
-.welcome-lang .segmented button[aria-pressed='true'] {
+.welcome-head .segmented button[aria-pressed='true'] {
   color: var(--text);
-}
-
-.welcome-inner {
-  width: min(100%, 1040px);
-  margin: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
 }
 
 /* The mark draws itself: the eclipse closes around, the horizon opens from the centre, and it settles. */
 .welcome-mark {
-  width: 76px;
-  height: 76px;
-  margin-bottom: 20px;
+  width: 26px;
+  height: 26px;
   stroke: var(--text);
-  stroke-width: 1;
+  stroke-width: 1.5;
   stroke-linecap: round;
   overflow: visible;
-  filter: drop-shadow(0 0 16px var(--accent-glow));
 }
 
 .welcome-ring {
@@ -1572,210 +1566,95 @@ input[type='range']:focus-visible {
   }
 }
 
+/* Anchored low and to the left, like the instrument it opens onto, rather than centred like a poster. */
+.welcome-body {
+  width: min(100%, 620px);
+  margin-top: auto;
+  padding-top: 48px;
+  animation: fade 0.8s ease 0.4s both;
+}
+
 .welcome-title {
   margin: 0;
-  font-size: clamp(42px, 8.4vw, 92px);
+  font-size: clamp(32px, 4.4vw, 52px);
   font-weight: 500;
-  line-height: 1.02;
-  letter-spacing: -0.03em;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
   color: var(--text);
 }
 
-/* Each line rises out of its own mask. The padding leaves room for descenders. */
-.welcome-line {
-  display: block;
-  overflow: hidden;
-  padding-bottom: 0.14em;
-  margin-bottom: -0.14em;
-}
-
-.welcome-line > span {
-  display: block;
-  animation: welcome-line 1.2s var(--ease-out) var(--d) both;
-}
-
-@keyframes welcome-line {
-  from {
-    transform: translateY(112%);
-  }
-}
-
-.welcome-rise {
-  animation: welcome-rise 0.9s var(--ease-out) var(--d) both;
-}
-
-@keyframes welcome-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-}
-
 .welcome-sub {
-  margin: 20px 0 40px;
-  max-width: 62ch;
-  font-size: clamp(15px, 1.8vw, 18px);
+  margin: 14px 0 28px;
+  max-width: 48ch;
+  font-size: 15px;
   line-height: 1.5;
-  text-wrap: balance;
-  color: var(--text-2);
-}
-
-.welcome-inner > .micro {
-  margin: 0 0 12px;
   color: var(--text-2);
 }
 
 .welcome-picks {
   list-style: none;
-  width: 100%;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  border-top: 1px solid var(--hairline-strong);
 }
 
-/* A starter is built like a tile, and the same light rises in it when it is under the pointer. */
 .welcome-pick {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
   width: 100%;
-  height: 100%;
-  min-height: 112px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px;
+  display: grid;
+  grid-template-columns: minmax(9em, auto) 1fr;
+  align-items: baseline;
+  gap: 4px 20px;
+  padding: 13px 10px;
+  border: none;
+  border-bottom: 1px solid var(--hairline-strong);
+  background: none;
   text-align: left;
-  border-radius: var(--r-md);
-  border: 1px solid oklch(1 0 0 / 0.1);
-  background-color: var(--glass-tint);
-  background-image: var(--glass-sheen);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--tile-edge), 0 12px 30px -20px oklch(0 0 0 / 0.9);
-  transition:
-    border-color var(--t-hover) var(--ease-out),
-    box-shadow var(--t-hover) var(--ease-out),
-    transform var(--t-press) var(--ease-out);
-}
-
-.welcome-pick::before,
-.welcome-pick::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  opacity: 0;
-  transition:
-    opacity var(--t-light-off) var(--ease-out),
-    transform var(--t-light-off) var(--ease-out);
-}
-
-.welcome-pick::before {
-  inset: 0;
-  z-index: -1;
-  background: radial-gradient(90% 70% at 50% 115%, oklch(0.7 0.17 42 / 0.32), transparent 70%);
-  transform: translateY(40%);
-}
-
-.welcome-pick::after {
-  left: 15%;
-  right: 15%;
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(to right, transparent, oklch(0.88 0.08 50 / 0.9), transparent);
-  transform: scaleX(0);
-}
-
-.welcome-pick:focus-visible {
-  outline: none;
-  border-color: oklch(0.82 0.09 50 / 0.7);
-}
-
-.welcome-pick:focus-visible::before,
-.welcome-pick:focus-visible::after {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity var(--t-light-on) var(--ease-out),
-    transform var(--t-light-on) var(--ease-out);
-}
-
-.welcome-pick:hover {
-  border-color: oklch(0.82 0.09 50 / 0.7);
-}
-
-.welcome-pick:hover::before,
-.welcome-pick:hover::after {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity var(--t-light-on) var(--ease-out),
-    transform var(--t-light-on) var(--ease-out);
-}
-
-/* One card is lit at a time: the pointer takes the light from the focused card. */
-.welcome-picks:hover .welcome-pick:focus-visible:not(:hover) {
-  border-color: oklch(1 0 0 / 0.1);
-}
-
-.welcome-picks:hover .welcome-pick:focus-visible:not(:hover)::before,
-.welcome-picks:hover .welcome-pick:focus-visible:not(:hover)::after {
-  opacity: 0;
-}
-
-.welcome-pick:active {
-  transform: scale(0.985);
+  transition: background var(--t-hover) var(--ease-out);
 }
 
 .welcome-pick-name {
   font-size: 16px;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
   color: var(--text);
-}
-
-.welcome-pick-hint {
-  font-size: 13px;
-  line-height: 1.35;
-  color: var(--text-2);
-}
-
-.welcome-skip {
-  margin-top: 20px;
-  padding: 12px 16px;
-  border: none;
-  background: none;
-  font-size: 14px;
-  color: var(--text-2);
   transition: color var(--t-hover) var(--ease-out);
 }
 
-.welcome-skip:hover {
+.welcome-pick-hint {
+  font-size: 14px;
+  color: var(--text-3);
+}
+
+.welcome-pick.build .welcome-pick-name {
+  color: var(--text-2);
+}
+
+.welcome-pick:hover,
+.welcome-pick:focus-visible {
+  outline: none;
+  background: oklch(1 0 0 / 0.06);
+}
+
+.welcome-pick:hover .welcome-pick-name,
+.welcome-pick:focus-visible .welcome-pick-name {
+  color: var(--accent);
+}
+
+/* One row is lit at a time: the pointer takes the light from the focused row. */
+.welcome-picks:hover .welcome-pick:focus-visible:not(:hover) {
+  background: none;
+}
+
+.welcome-picks:hover .welcome-pick:focus-visible:not(:hover) .welcome-pick-name {
   color: var(--text);
 }
 
-@media (max-width: 860px) {
-  .welcome-picks {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 560px) {
   .welcome-pick {
-    min-height: 60px;
+    grid-template-columns: 1fr;
     gap: 2px;
-    padding: 10px 14px;
-    justify-content: center;
-  }
-  .welcome-mark {
-    width: 56px;
-    height: 56px;
-    margin-bottom: 14px;
-  }
-  .welcome-sub {
-    margin: 14px 0 24px;
-  }
-  .welcome-skip {
-    margin-top: 8px;
+    padding: 11px 4px;
   }
 }
 

@@ -1,4 +1,4 @@
-import { useId, useRef, type CSSProperties } from 'react';
+import { useId, useRef } from 'react';
 import { useT } from '../i18n';
 import { PRESETS, type Preset } from '../state/presets';
 import { LanguageSwitch } from './LanguageSwitch';
@@ -12,11 +12,9 @@ interface Props {
   onBuild: () => void;
 }
 
-const delay = (ms: number) => ({ '--d': `${ms}ms` }) as CSSProperties;
-
 /**
- * The opening of a first visit, once only: the live background, full-bleed type and the starters. Choosing one
- * plays it while this fades away and the instrument comes up underneath. Share links skip it.
+ * The opening of a first visit, once only: the live background, the mark drawing itself, and the starters as a
+ * plain list. Choosing one plays it while this fades away and the instrument comes up underneath. Share links skip it.
  */
 export function Welcome({ leaving, onPreview, onPick, onBuild }: Props) {
   const t = useT();
@@ -26,31 +24,24 @@ export function Welcome({ leaving, onPreview, onPick, onBuild }: Props) {
 
   return (
     <section ref={ref} className={`welcome${leaving ? ' leaving' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-      <div className="welcome-lang welcome-rise" style={delay(1800)}>
+      <header className="welcome-head">
+        <span className="welcome-brand">
+          <svg className="welcome-mark" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path className="welcome-ring" pathLength={1} d="M4.88 13.5A6.5 6.5 0 1 1 15.12 13.5" />
+            <path className="welcome-horizon" d="M1.75 13.5h16.5" />
+          </svg>
+          <span className="wordmark">Garsæ</span>
+        </span>
         <LanguageSwitch />
-      </div>
-      <div className="welcome-inner">
-        <svg className="welcome-mark" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <path className="welcome-ring" pathLength={1} d="M4.88 13.5A6.5 6.5 0 1 1 15.12 13.5" />
-          <path className="welcome-horizon" d="M1.75 13.5h16.5" />
-        </svg>
+      </header>
+      <div className="welcome-body">
         <h2 id={titleId} className="welcome-title">
-          <span className="welcome-line">
-            <span style={delay(500)}>{t.welcomeLine1}</span>
-          </span>{' '}
-          <span className="welcome-line">
-            <span style={delay(640)}>{t.welcomeLine2}</span>
-          </span>
+          {t.welcomeTitle}
         </h2>
-        <p className="welcome-sub welcome-rise" style={delay(1000)}>
-          {t.welcomeSub}
-        </p>
-        <p className="micro bracket welcome-rise" style={delay(1200)}>
-          {t.welcomePick}
-        </p>
+        <p className="welcome-sub">{t.welcomeSub}</p>
         <ul className="welcome-picks">
           {PRESETS.map((p, i) => (
-            <li key={p.id} className="welcome-rise" style={delay(1280 + i * 80)}>
+            <li key={p.id}>
               <button
                 type="button"
                 className="welcome-pick"
@@ -64,10 +55,13 @@ export function Welcome({ leaving, onPreview, onPick, onBuild }: Props) {
               </button>
             </li>
           ))}
+          <li>
+            <button type="button" className="welcome-pick build" onClick={onBuild}>
+              <span className="welcome-pick-name">{t.welcomeBuild}</span>
+              <span className="welcome-pick-hint">{t.welcomeBuildHint}</span>
+            </button>
+          </li>
         </ul>
-        <button type="button" className="welcome-skip welcome-rise" style={delay(1800)} onClick={onBuild}>
-          {t.welcomeBuild}
-        </button>
       </div>
     </section>
   );

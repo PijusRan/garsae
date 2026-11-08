@@ -173,9 +173,8 @@ export const lt: Strings = {
   viewOnGithub: 'Žiūrėti „GitHub“',
   storedHere: 'Miksai ir nustatymai laikomi tik šioje naršyklėje.',
 
-  welcomeLine1: 'Muzika susikaupti,',
-  welcomeLine2: 'kuri niekada nesikartoja.',
-  welcomeSub: 'Kiekviena nata sintezuojama gyvai jūsų naršyklėje. Jokių įrašų, jokios paskyros.',
-  welcomePick: 'Pasirinkite miksą ir pradėkite',
-  welcomeBuild: 'Arba susikurkite savo miksą',
+  welcomeTitle: 'Pasirinkite, ko klausytis dirbant',
+  welcomeSub: 'Garsæ kiekvieną garsą sintezuoja gyvai jūsų naršyklėje, todėl miksas gali skambėti visą dieną ir nesikartoti.',
+  welcomeBuild: 'Susikurti savo',
+  welcomeBuildHint: 'Pradėti nuo tuščio',
 };

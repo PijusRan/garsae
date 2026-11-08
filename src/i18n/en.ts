@@ -128,11 +128,10 @@ export const en = {
   viewOnGithub: 'View on GitHub',
   storedHere: 'Mixes and settings are stored in this browser only.',
 
-  welcomeLine1: 'Focus music',
-  welcomeLine2: 'that never repeats.',
-  welcomeSub: 'Every note is synthesized live in your browser. No samples, no account.',
-  welcomePick: 'Pick a mix to begin',
-  welcomeBuild: 'Or build my own mix',
+  welcomeTitle: 'Choose something to work to',
+  welcomeSub: 'Garsæ synthesizes every sound live in your browser, so a mix can play all day without looping.',
+  welcomeBuild: 'Build my own',
+  welcomeBuildHint: 'Start with nothing on',
 };
 
 export type Strings = typeof en;
