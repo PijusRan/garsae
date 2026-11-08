@@ -1956,7 +1956,7 @@ input[type='range']:focus-visible {
   .tab-strip {
     flex: none;
     display: flex;
-    gap: 2px;
+    gap: 6px;
     margin-inline: calc(var(--gutter) * -1);
     padding-inline: var(--gutter);
     overflow: auto hidden;
@@ -1971,23 +1971,37 @@ input[type='range']:focus-visible {
     justify-content: center;
     gap: 6px;
     height: 40px;
-    padding: 0 10px;
-    border: 1px solid transparent;
+    padding: 0 16px;
+    /* Every tab is a visible button, not a word: a filled pill with an edge. */
+    border: 1px solid var(--hairline-strong);
     border-radius: var(--r-pill);
-    background: none;
+    background: linear-gradient(oklch(0.27 0.004 60 / 0.85), oklch(0.15 0.003 60 / 0.85));
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06);
     font-size: 13px;
-    color: var(--text-2);
-    white-space: nowrap;
-  }
-  .tab-strip button[aria-pressed='true'] {
-    background: oklch(0 0 0 / 0.6);
-    border-color: var(--hairline-strong);
+    font-weight: 450;
     color: var(--text);
+    white-space: nowrap;
+    transition:
+      background var(--t-hover) var(--ease-out),
+      color var(--t-hover) var(--ease-out),
+      transform var(--t-press) var(--ease-out);
+  }
+  .tab-strip button:active {
+    transform: scale(0.96);
+  }
+  /* The open tab is solid and light, so which one is showing is never in doubt. */
+  .tab-strip button[aria-pressed='true'] {
+    background: var(--text);
+    border-color: var(--text);
+    color: #111;
   }
   .tab-count {
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     color: var(--accent);
+  }
+  .tab-strip button[aria-pressed='true'] .tab-count {
+    color: #8a3d1c;
   }
   .category:not(.active),
   .category-head {
