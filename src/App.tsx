@@ -27,8 +27,7 @@ import { useT } from './i18n';
 import type { Strings } from './i18n/en';
 import { AboutSheet } from './ui/AboutSheet';
 import { Welcome } from './ui/Welcome';
-import { Background, levelReader, type AudioLevels } from './ui/Background';
-import { LiveMark } from './ui/LiveMark';
+import { Background } from './ui/Background';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
 import { CheckIcon, ChevronIcon, CloseIcon, MixesIcon, SaveIcon, ShuffleIcon } from './ui/icons';
@@ -122,8 +121,6 @@ export function App() {
   const pointerFocus = useRef(false);
   const fadingRef = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const levelsRef = useRef<(() => AudioLevels) | null>(null);
-  const getLevels = useCallback(() => levelsRef.current?.() ?? null, []);
   const meters = useMemo(
     () => Object.fromEntries(TILE_IDS.map((id) => [id, () => engineRef.current?.tileMeter(id) ?? null])) as Record<TileId, () => AnalyserNode | null>,
     [],
@@ -191,7 +188,6 @@ export function App() {
       applyMix(engine, useMix, null, next?.bpm ?? bpm, next?.key ?? key);
       appliedRef.current = useMix;
       engineRef.current = engine;
-      levelsRef.current = levelReader(engine.master.analyser);
     }
     if (engine.playing) {
       engine.stop();
@@ -269,7 +265,6 @@ export function App() {
   };
 
   const timerLeft = timerEnd === null ? null : Math.max(0, timerEnd - now);
-  const fading = timerLeft !== null && timerLeft <= TIMER_FADE_MS;
 
   const activeIds = TILE_IDS.filter((id) => mix.tiles[id].on);
   const activeCount = activeIds.length;
@@ -464,8 +459,6 @@ export function App() {
           activeCount={activeCount}
           volume={volume}
           timerLeft={timerLeft}
-          fading={fading}
-          getLevels={getLevels}
           onToggle={pressPlay}
           onVolume={setVolume}
           onTimer={setTimer}
@@ -474,9 +467,8 @@ export function App() {
         />
 
         <section className="mix-strip" aria-label={t.mix}>
-          {/* Phones keep the player at the bottom, so the brand gets its place up here. */}
+          {/* Phones keep the player at the bottom, so the wordmark gets its place up here. */}
           <span className="strip-brand">
-            <LiveMark size={22} risen={playing && !fading} fading={fading} getLevels={getLevels} />
             <span className="wordmark">Garsæ</span>
           </span>
           <div className="actions">

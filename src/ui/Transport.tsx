@@ -1,8 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useT } from '../i18n';
 import { MoreIcon, PauseIcon, PlayIcon, ShareIcon, VolumeIcon } from './icons';
-import type { AudioLevels } from './Background';
-import { LiveMark } from './LiveMark';
 import { TimerControl } from './TimerControl';
 
 interface Props {
@@ -14,8 +12,6 @@ interface Props {
   activeCount: number;
   volume: number;
   timerLeft: number | null;
-  fading: boolean;
-  getLevels: () => AudioLevels | null;
   onToggle: () => void;
   onVolume: (v: number) => void;
   onTimer: (minutes: number | null) => void;
@@ -34,7 +30,6 @@ export function Transport(props: Props) {
   return (
     <header className="transport glass" aria-label={t.player}>
       <span className="mark-link">
-        <LiveMark size={24} risen={playing && !props.fading} fading={props.fading} getLevels={props.getLevels} />
         <span className="wordmark">Garsæ</span>
       </span>
       <button

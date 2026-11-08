@@ -72,8 +72,6 @@ export class Master {
   readonly limiter: DynamicsCompressorNode;
   /** The listener's master volume. After the limiter, so it never changes how the mix is limited. */
   readonly volume: GainNode;
-  /** Read-only tap for visuals. Not connected to the speakers. */
-  readonly analyser: AnalyserNode;
 
   private amGain: GainNode;
   private amLfo: OscillatorNode;
@@ -133,9 +131,6 @@ export class Master {
     this.limiter.connect(clipIn).connect(clip).connect(clipOut);
     this.volume = new GainNode(ctx, { gain: 1 });
     clipOut.connect(this.volume).connect(ctx.destination);
-    // Taps the mix before the volume knob, so the background follows the music, not the slider.
-    this.analyser = new AnalyserNode(ctx, { fftSize: 1024, smoothingTimeConstant: 0.85 });
-    clipOut.connect(this.analyser);
 
     this.sources = [wow, flutter, this.amLfo];
     for (const s of this.sources) s.start();

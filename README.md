@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.png" alt="Garsæ: endless generative focus music, synthesized live in your browser." width="100%">
+  <img src="docs/images/banner.png" alt="Garsæ: background music for working, synthesized in your browser as it plays." width="100%">
 </p>
 
 <p align="center">

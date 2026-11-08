@@ -296,41 +296,6 @@ output,
   letter-spacing: -0.015em;
 }
 
-/* The mark at rest is the logo. Playing, the eclipse rises clear of its horizon and glows with the music. */
-.live-mark {
-  position: relative;
-  flex: none;
-  display: inline-flex;
-}
-
-.live-mark svg {
-  position: relative;
-  overflow: visible;
-}
-
-.live-mark-sun {
-  transition: transform 2.4s var(--ease-out);
-}
-
-.live-mark.risen .live-mark-sun {
-  transform: translateY(-2.5px);
-}
-
-/* Sets over the timer's last 30 seconds, along with the music. */
-.live-mark.fading .live-mark-sun {
-  transition: transform 30s linear;
-}
-
-.live-mark-glow {
-  position: absolute;
-  inset: -55%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, oklch(0.7 0.17 45 / 0.75), transparent);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-}
-
 .strip-brand {
   display: none;
 }
