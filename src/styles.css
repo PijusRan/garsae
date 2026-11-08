@@ -81,12 +81,18 @@
   --slider-mid: #6e9dff;
   --slider-end: #2a62d8;
 
-  /* Category marks: warm, same lightness and chroma, hue only. Small marks, never fills. */
-  --cat-pads: oklch(0.78 0.06 60);
-  --cat-bass: oklch(0.78 0.06 250);
-  --cat-drums: oklch(0.78 0.06 30);
-  --cat-texture: oklch(0.78 0.06 140);
-  --cat-effects: oklch(0.78 0.06 95);
+  /* Category colours: one lightness and chroma, hues spread apart. --cat marks (labels, the tile edge,
+     sliders, waves); --cat-deep is the fill of a tile that is on. Hex, because canvas reads them. */
+  --cat-pads: #e4b572;
+  --cat-pads-deep: #33230a;
+  --cat-bass: #8cc3fc;
+  --cat-bass-deep: #14283c;
+  --cat-drums: #f8a49d;
+  --cat-drums-deep: #3a1d1b;
+  --cat-texture: #8ed09c;
+  --cat-texture-deep: #152d1a;
+  --cat-effects: #d2acee;
+  --cat-effects-deep: #2d2037;
 
   --r-sm: 6px;
   --r-md: 8px;
@@ -430,19 +436,19 @@ output,
   gap: 4px;
 }
 
+.cat-pads { --cat: var(--cat-pads); --cat-deep: var(--cat-pads-deep); }
+.cat-bass { --cat: var(--cat-bass); --cat-deep: var(--cat-bass-deep); }
+.cat-drums { --cat: var(--cat-drums); --cat-deep: var(--cat-drums-deep); }
+.cat-texture { --cat: var(--cat-texture); --cat-deep: var(--cat-texture-deep); }
+.cat-effects { --cat: var(--cat-effects); --cat-deep: var(--cat-effects-deep); }
+
 .mark {
   flex: none;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--text-3);
+  background: var(--cat, var(--text-3));
 }
-
-.mark.cat-pads { background: var(--cat-pads); }
-.mark.cat-bass { background: var(--cat-bass); }
-.mark.cat-drums { background: var(--cat-drums); }
-.mark.cat-texture { background: var(--cat-texture); }
-.mark.cat-effects { background: var(--cat-effects); }
 
 /* ---------------------------------------------------------------- page */
 
@@ -634,10 +640,12 @@ output,
 
 .category-head .micro {
   white-space: nowrap;
+  color: var(--cat);
 }
 
 .category-head .count {
-  color: var(--accent);
+  font-weight: 400;
+  color: var(--text-3);
 }
 
 .category-note {
@@ -647,50 +655,6 @@ output,
   padding-left: 8px;
   font-size: 13px;
   color: var(--text-3);
-}
-
-/* At rest a tile's name sits centred in the space the name and description share. On hover (or keyboard
-   focus) it rises to make room and the description slides in beneath it; both move back on leave. Only
-   transforms move, so tiles never change size. */
-@media (hover: hover) {
-  .tile-name,
-  .tile-hint {
-    transition:
-      transform 280ms var(--ease-out),
-      opacity 180ms var(--ease-out);
-  }
-
-  .tile-name {
-    transform: translateY(var(--hint-shift));
-  }
-
-  .tile-hint {
-    opacity: 0;
-    transform: translateY(calc(var(--hint-shift) * 0.6));
-  }
-
-  .tile:hover .tile-name,
-  .tile:has(.tile-toggle:focus-visible) .tile-name {
-    transform: none;
-  }
-
-  .tile:hover .tile-hint,
-  .tile:has(.tile-toggle:focus-visible) .tile-hint {
-    opacity: 1;
-    transform: none;
-    /* The name starts moving first, then the description follows it in. */
-    transition-delay: 70ms;
-  }
-}
-
-@media (hover: none) {
-  .tile-hint {
-    display: none;
-  }
-  /* Without the description line, the name needs less room above the slider. */
-  .tile .tile-toggle {
-    min-height: 44px;
-  }
 }
 
 .tiles {
@@ -734,14 +698,32 @@ output,
   transform: scale(0.985);
 }
 
+/* The category's colour along the left edge: dim at rest, full when the tile is on. */
+.tile::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--cat);
+  opacity: 0.35;
+  pointer-events: none;
+  transition: opacity var(--t-press) var(--ease-out);
+}
+
 .tile:hover {
   border-color: var(--hairline-strong);
   background-color: var(--panel-2);
 }
 
 .tile.on {
-  border-color: oklch(0.88 0.08 50 / 0.45);
-  background-color: var(--panel-2);
+  border-color: color-mix(in oklch, var(--cat) 45%, transparent);
+  background-color: var(--cat-deep);
+}
+
+.tile.on::before {
+  opacity: 1;
 }
 
 /* The toggle fills the tile, so the tile draws the focus ring. */
@@ -755,8 +737,6 @@ output,
 }
 
 .tile-toggle {
-  /* Half the description line plus the gap: how far the name drops to sit centred at rest. */
-  --hint-shift: 10px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -794,9 +774,13 @@ output,
 }
 
 .tile-hint {
-  font-size: 13.5px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 17px;
   color: var(--text-3);
+}
+
+.tile.on .tile-hint {
+  color: var(--text-2);
 }
 
 .tile-volume {
@@ -823,6 +807,17 @@ output,
 
 .tile-volume:disabled {
   pointer-events: none;
+}
+
+/* A tile's slider is lit in its category's colour. */
+.tile input.tile-volume::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(var(--cat), var(--cat)) 0 0 / var(--fill, 0%) 100% no-repeat,
+    var(--surface-well);
+}
+
+.tile input.tile-volume::-moz-range-progress {
+  background: var(--cat);
 }
 
 /* ---------------------------------------------------------------- controls */
@@ -1784,14 +1779,11 @@ input[type='range']:focus-visible {
   }
 }
 
-/* Short windows have no room for a description under the name, and less space to give between tiles. */
+/* Very short windows have no room for a description under the name, and less space to give between tiles. */
 /* .short and .shorter are set in index.html from the window's height after the app's zoom. */
 @media (min-width: 1280px) {
-  .short .tile-hint {
+  .shorter .tile-hint {
     display: none;
-  }
-  .short .tile-toggle {
-    --hint-shift: 0px;
   }
   :root.shorter {
     --tile-gap: 10px;

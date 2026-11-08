@@ -9,7 +9,8 @@ const MAX_HEIGHT = 0.62;
 interface Wave {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
-  fill: CanvasGradient | null;
+  /** The tile's category colour, read from CSS on first draw. */
+  fill: string | null;
   meter: () => AnalyserNode | null;
   live: boolean;
   /** Scales the height, so the tile's slider moves the wave. */
@@ -60,11 +61,7 @@ function draw(w: Wave): void {
   const { width, height } = canvas;
   ctx.clearRect(0, 0, width, height);
   if (!width || !height) return;
-  if (!w.fill) {
-    w.fill = ctx.createLinearGradient(0, height * (1 - MAX_HEIGHT), 0, height);
-    w.fill.addColorStop(0, 'rgb(255 197 168 / 0.04)');
-    w.fill.addColorStop(1, 'rgb(250 118 65 / 0.3)');
-  }
+  w.fill ||= getComputedStyle(canvas).getPropertyValue('--cat').trim() || '#c4c1b5';
   const y = (i: number) => height - heights[i] * height * MAX_HEIGHT;
   const x = (i: number) => (i / (POINTS - 1)) * width;
   ctx.beginPath();
@@ -78,6 +75,7 @@ function draw(w: Wave): void {
   ctx.lineTo(width, height);
   ctx.closePath();
   ctx.fillStyle = w.fill;
+  ctx.globalAlpha = 0.18;
   ctx.fill();
 }
 

@@ -23,7 +23,7 @@ export function TileCard({ meta, setting, playing, meter, onToggle, onVolume }: 
   const hasBeenOn = useRef(false);
   hasBeenOn.current ||= setting.on;
   return (
-    <div id={`tile-${meta.id}`} className={`tile${setting.on ? ' on' : ''}`}>
+    <div id={`tile-${meta.id}`} className={`tile cat-${meta.category}${setting.on ? ' on' : ''}`}>
       {hasBeenOn.current && !meta.effect && <TileWave live={setting.on && playing} volume={setting.volume} meter={meter} />}
       <button type="button" className="tile-toggle" aria-pressed={setting.on} title={hint} onClick={onToggle}>
         <span className="tile-name">

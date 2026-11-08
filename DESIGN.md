@@ -108,8 +108,8 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 **Colour**
 - Ground is pure black (`--bg`). Surfaces are white at low alpha (2.5-10%) over near-black, so the background light shows through them. Edges are white hairlines at 8% and 14%.
 - Text is warm cream `--text` `#f9f7e9`, then `--text-2` `#c4c1b5` and grey `--text-3` `#8e8e8e`.
-- **One accent**: peach `--accent` `#ffc5a8`. It marks only: on state (the light rising in on tiles, "N on" counts), focus rings, the active timer, the current mix, the play button while playing, and the first-press invite ring around Play (a first visit or an opened share link; still, not pulsing, under reduced motion). No other hues, except the category marks and the sliders, which follow the background.
-- Category marks keep one lightness and chroma, varying hue only. They appear only as 6px dots (mix fingerprints in the Mixes sheet).
+- **One accent**: peach `--accent` `#ffc5a8`. It marks only: on state (the light rising in on tiles, "N on" counts), focus rings, the active timer, the current mix, the play button while playing, and the first-press invite ring around Play (a first visit or an opened share link; still, not pulsing, under reduced motion). No other hues, except the category colours and the sliders, which follow the background.
+- **Category colours** (`--cat-*`) keep one lightness and chroma with hues spread apart: pads amber, bass blue, drums rose, texture green, effects violet. Each has a deep twin (`--cat-*-deep`) for fills. They colour the category labels, a 3px edge on every tile (dim at rest, full when on), the fill of a tile that is on, its slider and its wave, and the dots in mix fingerprints.
 
 **Type**
 - Bricolage Grotesque (variable with the optical-size axis, self-hosted through `@fontsource-variable/bricolage-grotesque/opsz.css`, so it works offline). Chosen over Inter, which felt generic; it keeps the same optical-size setup, so small text stays plain and large text gets its more characterful display shapes.
@@ -125,9 +125,9 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 - Buttons, the segmented control, selects, the save field and the toast are pills. Surfaces are small-radius rectangles: 6 (icon buttons), 8 (tiles, transport), 12 (panel, sheets).
 - **Primary** (`.btn.black` / `.btn.primary`): black pill with a hairline. **Secondary**: a flat `--panel-2` pill with a hairline. Ghost for the rest. Press scales to 0.97. Nothing lifts or glows on hover; fills step one shade lighter.
 - The Play button is a solid cream pill, solid peach while playing. No halo.
-- **Tile waves:** a tile that is on and playing draws its own sound as a soft frequency silhouette rising from the bottom edge, in low-opacity peach behind the name (`src/ui/TileWave.tsx`). It is a shape, not a meter: smoothed, one shared 24 fps loop, normalised to the tile's own peak and scaled by its slider. It falls flat on pause, stops with the tab hidden, and is absent under reduced motion. Effect tiles make no sound of their own, so they have none.
+- **Tile waves:** a tile that is on and playing draws its own sound as a soft frequency silhouette rising from the bottom edge, in its category colour at low opacity behind the name (`src/ui/TileWave.tsx`). It is a shape, not a meter: smoothed, one shared 24 fps loop, normalised to the tile's own peak and scaled by its slider. It falls flat on pause, stops with the tab hidden, and is absent under reduced motion. Effect tiles make no sound of their own, so they have none.
 - Sliders: a 2px track lit cream into the background's two brightest colours up to the value, and a cream thumb with a black ring that turns white on hover. 44px tall on touch.
-- Tiles show only their name, centred. On hover or keyboard focus the name rises and the description slides in beneath it (transforms only, so tiles never resize); touch screens, which cannot hover, show names only. The effect mark sits beside the name.
+- Tiles show their name with the description always beneath it, on touch screens too; only very short windows (`.shorter`) drop the description. The effect mark sits beside the name.
 
 **Icons and controls**
 - One SVG icon set (`src/ui/icons.tsx`): 20px grid, 1.5px stroke, round caps. The mark (`MarkIcon`) is the eclipse setting over the horizon; the app icon matches it, and the browser tab shows the mark itself (`public/favicon.svg`), black on light themes and `--text` on dark. No emoji or unicode glyphs as icons.

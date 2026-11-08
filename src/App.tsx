@@ -599,7 +599,7 @@ export function App() {
           {CATEGORIES.map((cat) => (
             <section
               key={cat.id}
-              className={`category${tab === cat.id ? ' active' : ''}`}
+              className={`category cat-${cat.id}${tab === cat.id ? ' active' : ''}`}
               style={categoryGrid(cat.id)}
               aria-labelledby={`cat-${cat.id}`}
             >
