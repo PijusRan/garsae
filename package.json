@@ -12,7 +12,7 @@
     "ui-check": "node scripts/ui-check.mjs"
   },
   "dependencies": {
-    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/ibm-plex-sans": "^5.3.0",
     "preact": "^11.1.1"
   },
   "devDependencies": {

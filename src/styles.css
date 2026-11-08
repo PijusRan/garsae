@@ -111,7 +111,7 @@
   --t-hover: 200ms;
   --t-sheet: 320ms;
 
-  --font: 'Bricolage Grotesque Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font: 'IBM Plex Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   /* The space between tiles. Rows open up with the window, so tiles never read as one solid block. */
   --tile-gap: 14px;
   --row-gap: clamp(10px, calc(var(--vh) * 2), 24px);
@@ -133,10 +133,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-optical-sizing: auto;
   font-size: 15px;
   line-height: 1.45;
-  letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
@@ -295,7 +293,7 @@ output,
 .wordmark {
   font-size: 19px;
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.015em;
 }
 
 /* The mark at rest is the logo. Playing, the eclipse rises clear of its horizon and glows with the music. */
@@ -759,7 +757,7 @@ output,
   font-size: clamp(16px, 1.2vw, 19px);
   line-height: 1.2;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   color: var(--text-2);
   transition: color var(--t-press) var(--ease-out);
 }
@@ -1166,7 +1164,7 @@ input[type='range']:focus-visible {
   margin: 0;
   font-size: 22px;
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.015em;
 }
 
 .sheet-sub {
@@ -1480,7 +1478,7 @@ input[type='range']:focus-visible {
   font-size: clamp(42px, 8.4vw, 92px);
   font-weight: 500;
   line-height: 1.02;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.015em;
   color: var(--text);
 }
 
@@ -1577,7 +1575,7 @@ input[type='range']:focus-visible {
 .welcome-pick-name {
   font-size: 16px;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   color: var(--text);
 }
 

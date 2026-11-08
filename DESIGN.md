@@ -112,8 +112,8 @@ The goal is a calm, cinematic instrument: black ground, warm light, very little 
 - **Category colours** (`--cat-*`) keep one lightness and chroma with hues spread apart: pads amber, bass blue, drums rose, texture green, effects violet. Each has a deep twin (`--cat-*-deep`) for fills. They colour the category labels, a 3px edge on every tile (dim at rest, full when on), the fill of a tile that is on, its slider and its wave, and the dots in mix fingerprints.
 
 **Type**
-- Bricolage Grotesque (variable with the optical-size axis, self-hosted through `@fontsource-variable/bricolage-grotesque/opsz.css`, so it works offline). Chosen over Inter, which felt generic; it keeps the same optical-size setup, so small text stays plain and large text gets its more characterful display shapes.
-- Display text is weight 500 with tight tracking: sheet titles and the wordmark -0.03em, tile and mix names -0.02em. Body 13-15px.
+- IBM Plex Sans (variable weight, self-hosted through `@fontsource-variable/ibm-plex-sans/wght.css`, so it works offline). A plain, engineered face that suits an instrument panel; it replaced Bricolage Grotesque, which read as a trendy landing-page pick. It covers Lithuanian.
+- Display text is weight 500 with slight tracking: sheet titles and the wordmark -0.015em, tile and mix names -0.01em. Body 13-15px, untracked.
 - **No uppercase, no brackets, no letter-spaced labels.** Section labels (`.micro`) are 13px, weight 500, sentence case, in `--text-2`. Clear is a plain underlined text button; Undo in the toast is an accent text button.
 - Tabular numerals for anything that counts.
 
