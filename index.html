@@ -19,6 +19,31 @@
       try {
         if (!localStorage.getItem('garsae.last') && !location.hash) document.documentElement.classList.add('first');
       } catch {}
+      // Big windows scale the whole app up, as browser zoom would: the layout is drawn for about
+      // 1480 x 740 and a 1920 x 1080 screen shows it at 130%. Viewport units and the short-window
+      // rules then follow the zoomed size, set here because CSS media queries only see the real one.
+      (() => {
+        const root = document.documentElement;
+        const fit = () => {
+          const w = innerWidth;
+          const h = innerHeight;
+          const z = Math.min(2, Math.max(1, Math.min(w / 1480, h / 740)));
+          const zoomed = z > 1.01;
+          root.style.setProperty('--zoom', zoomed ? z.toFixed(3) : '1');
+          if (zoomed) {
+            root.style.setProperty('--vh', `${h / z / 100}px`);
+            root.style.setProperty('--dvh', `${h / z / 100}px`);
+          } else {
+            root.style.removeProperty('--vh');
+            root.style.removeProperty('--dvh');
+          }
+          const effective = zoomed ? h / z : h;
+          root.classList.toggle('short', effective <= 960);
+          root.classList.toggle('shorter', effective <= 800);
+        };
+        fit();
+        addEventListener('resize', fit);
+      })();
     </script>
     <meta name="description" content="Endless generative focus music. Pick instruments, mix them, and work." />
     <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -80,8 +80,11 @@
   --font: 'Bricolage Grotesque Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   /* The space between tiles. Rows open up with the window, so tiles never read as one solid block. */
   --tile-gap: 14px;
-  --row-gap: clamp(10px, 2vh, 24px);
+  --row-gap: clamp(10px, calc(var(--vh) * 2), 24px);
   --gutter: 16px;
+  /* Viewport units, overridden in pixels while the app is zoomed (see index.html). */
+  --vh: 1vh;
+  --dvh: 1dvh;
 }
 
 /* ---------------------------------------------------------------- base */
@@ -114,6 +117,8 @@ body {
 body {
   /* The page colour lives on html; body stays clear so the background behind it shows. */
   background: transparent;
+  /* Big windows scale the app up (set in index.html). */
+  zoom: var(--zoom, 1);
 }
 
 /* Film grain over everything, like the photography it borrows from. */
@@ -462,7 +467,7 @@ output,
 /* ---------------------------------------------------------------- page */
 
 .app {
-  height: 100dvh;
+  height: calc(var(--dvh) * 100);
   display: flex;
   flex-direction: column;
 }
@@ -1223,7 +1228,7 @@ input[type='range']:focus-visible {
 
 .sheet {
   width: min(460px, 100%);
-  max-height: 82vh;
+  max-height: calc(var(--vh) * 82);
   overflow: auto;
   padding: 18px 22px 22px;
   border-radius: var(--r-lg);
@@ -1829,7 +1834,7 @@ input[type='range']:focus-visible {
     flex-direction: column;
     gap: 14px;
     width: 232px;
-    height: calc(100dvh - 28px);
+    height: calc(var(--dvh) * 100 - 28px);
     margin: 14px 0 14px 14px;
     padding: 18px 16px;
     border-radius: var(--r-lg);
@@ -1933,17 +1938,15 @@ input[type='range']:focus-visible {
 }
 
 /* Short windows have no room for a description under the name, and less space to give between tiles. */
-@media (min-width: 1280px) and (max-height: 960px) {
-  .tile-hint {
+/* .short and .shorter are set in index.html from the window's height after the app's zoom. */
+@media (min-width: 1280px) {
+  .short .tile-hint {
     display: none;
   }
-  .tile-toggle {
+  .short .tile-toggle {
     --hint-shift: 0px;
   }
-}
-
-@media (min-width: 1280px) and (max-height: 800px) {
-  :root {
+  :root.shorter {
     --tile-gap: 10px;
   }
 }
