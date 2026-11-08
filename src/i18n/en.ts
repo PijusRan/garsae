@@ -49,7 +49,7 @@ export const en = {
   clear: 'Clear',
   starters: 'Starters',
   starterMixes: 'Starter mixes',
-  surpriseMe: 'Random mix',
+  surpriseMe: 'Surprise me',
   countOn: (count: number) => `${count} on`,
 
   effect: 'Effect',
@@ -78,7 +78,7 @@ export const en = {
   timerOff: 'Timer off',
   fadingOutIn: (minutes: number) => `Fading out in ${minutes} min`,
   pickSoundFirst: 'Pick a sound first',
-  surpriseMix: 'Random mix',
+  surpriseMix: 'Surprise mix',
   allTilesOff: 'All tiles off',
   loaded: (name: string) => `Loaded “${name}”`,
   shareTitle: 'Garsæ mix',

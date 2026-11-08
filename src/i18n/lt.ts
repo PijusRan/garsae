@@ -94,7 +94,7 @@ export const lt: Strings = {
   clear: 'Išvalyti',
   starters: 'Paruošti',
   starterMixes: 'Paruošti miksai',
-  surpriseMe: 'Atsitiktinis miksas',
+  surpriseMe: 'Nustebink mane',
   countOn: (count) => `Įjungta: ${count}`,
 
   effect: 'Efektas',
@@ -123,7 +123,7 @@ export const lt: Strings = {
   timerOff: 'Laikmatis išjungtas',
   fadingOutIn: (minutes) => `Nutils po ${minutes} min.`,
   pickSoundFirst: 'Pirma pasirinkite garsą',
-  surpriseMix: 'Atsitiktinis miksas',
+  surpriseMix: 'Netikėtas miksas',
   allTilesOff: 'Visi garsai išjungti',
   loaded: (name) => `Įkelta: „${name}“`,
   shareTitle: 'Garsæ miksas',

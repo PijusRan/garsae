@@ -61,9 +61,9 @@ try {
   const afterSpace = await page.$eval('.play', (b) => b.classList.contains('playing'));
   const tilesAfter = await page.$$eval('.tile.on', (els) => els.length);
 
-  // A random mix can be undone.
+  // Surprise me can be undone.
   const onBefore = await page.$$eval('.tile.on .tile-name', (els) => els.map((e) => e.textContent).join());
-  await page.evaluate(() => [...document.querySelectorAll('.actions .btn')].find((b) => b.textContent === 'Random mix').click());
+  await page.evaluate(() => [...document.querySelectorAll('.actions .btn')].find((b) => b.textContent === 'Surprise me').click());
   await page.waitForSelector('.toast-undo');
   await page.click('.toast-undo');
   await new Promise((r) => setTimeout(r, 200));
