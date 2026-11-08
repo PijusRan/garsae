@@ -373,12 +373,12 @@ export function createBrushes(core: Core): Instrument {
       // Triplet fill on the snare instead of the last beat's ride.
       for (let k = 0; k < 3; k++) hit('slap', 'slap', tb + (k * B) / 3, 0.35 + 0.15 * k, { tone: 1.05 });
     } else {
-      hit('ride', 'ride', tb, backbeat ? 0.85 : 0.65, { decay: 1.5 });
-      if (backbeat || chance(0.1 * busy)) hit('ride', 'ride', skip, 0.42, { decay: 0.9 });
+      hit('jazzride', 'ride', tb, backbeat ? 0.85 : 0.65, { decay: 1.3 });
+      if (backbeat || chance(0.1 * busy)) hit('jazzride', 'ride', skip, 0.5, { decay: 0.7 });
       else if (chance(0.05 * busy)) {
         // The occasional triplet "let-ta" on the ride.
-        hit('ride', 'ride', tb + B / 3, 0.35, { decay: 0.8 });
-        hit('ride', 'ride', tb + (2 * B) / 3, 0.4, { decay: 0.8 });
+        hit('jazzride', 'ride', tb + B / 3, 0.4, { decay: 0.6 });
+        hit('jazzride', 'ride', tb + (2 * B) / 3, 0.45, { decay: 0.6 });
       }
     }
 
@@ -388,11 +388,11 @@ export function createBrushes(core: Core): Instrument {
 
     if (backbeat) {
       hit('slap', 'slap', tb, 0.55);
-      hit('hat', 'hat', tb, 0.45, { tone: 0.7, decay: 0.8 });
+      hit('chick', 'hat', tb, 0.5);
     }
 
     // Feathered kick: felt more than heard. Sometimes a bomb on the "and" of 4 or on 3.
-    hit('kick', 'kick', tb, 0.16, { tone: 0.8, decay: 0.8 });
+    hit('kick', 'kick', tb, 0.12, { tone: 0.8, decay: 0.7 });
     if ((b === 2 || b === 3) && chance(0.06 * busy)) hit('kick', 'kick', b === 3 ? skip : tb, 0.55, { tone: 0.8, decay: 1 });
 
     // Snare comping: a soft "chatter" on a swung offbeat.
