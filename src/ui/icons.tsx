@@ -111,6 +111,14 @@ export const ReplaceIcon = (p: IconProps) => (
   </Icon>
 );
 
+/** Back to the default: a counter-clockwise arrow. */
+export const ResetIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4.75 10a5.25 5.25 0 1 0 1.6-3.8" />
+    <path d="M5.75 3.25v3.25H9" />
+  </Icon>
+);
+
 export const ChevronIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M6 8l4 4 4-4" />

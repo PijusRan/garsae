@@ -516,6 +516,105 @@ output,
   color: var(--text-3);
 }
 
+/* Evolution per sound: folded under the main slider, listing only the tiles that are on. */
+.per-sound-toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--text-3);
+  transition: color var(--t-hover) var(--ease-out);
+}
+
+.per-sound-toggle:hover {
+  color: var(--text);
+}
+
+.per-sound-toggle svg {
+  transform: rotate(-90deg);
+  transition: transform var(--t-hover) var(--ease-out);
+}
+
+.per-sound-toggle[aria-expanded='true'] svg {
+  transform: none;
+}
+
+.per-sound-count {
+  margin-left: 4px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.per-sound-list {
+  display: grid;
+  gap: 8px;
+  padding: 2px 0 2px 18px;
+}
+
+.per-sound-empty {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+
+.per-sound-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.per-sound-row label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.per-sound-row input {
+  grid-column: 1 / -1;
+  height: 20px;
+}
+
+/* Following the mix: the thumb sits where the main slider is, with the track dimmed. */
+.per-sound-row.follows input {
+  opacity: 0.5;
+  transition: opacity var(--t-hover) var(--ease-out);
+}
+
+.per-sound-row.follows input:hover,
+.per-sound-row.follows input:focus-visible {
+  opacity: 0.8;
+}
+
+.per-sound-state {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.per-sound-reset {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text-3);
+  transition: color var(--t-hover) var(--ease-out);
+}
+
+.per-sound-reset:hover {
+  color: var(--text);
+}
+
 .inline {
   display: flex;
   align-items: center;
@@ -1628,6 +1727,11 @@ input[type='range']:focus-visible {
   .timer {
     min-width: 44px;
     height: 44px;
+  }
+  .per-sound-reset {
+    width: 44px;
+    height: 44px;
+    margin: -11px -11px -11px 0;
   }
   .btn.small {
     height: 36px;

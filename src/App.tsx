@@ -31,6 +31,7 @@ import { Background, levelReader, type AudioLevels } from './ui/Background';
 import { LiveMark } from './ui/LiveMark';
 import { useMediaSession } from './ui/mediaSession';
 import { MixesPanel } from './ui/MixesPanel';
+import { PerSound } from './ui/PerSound';
 import { CheckIcon, ChevronIcon, CloseIcon, MixesIcon, SaveIcon, ShuffleIcon } from './ui/icons';
 import { ShareSheet } from './ui/ShareSheet';
 import { Transport } from './ui/Transport';
@@ -518,6 +519,7 @@ export function App() {
               aria-valuetext={`${evoPct}%, ${evolutionText(mix.evolution, t)}`}
               onChange={(e) => setMix((m) => ({ ...m, evolution: Number(e.currentTarget.value) / 100 }))}
             />
+            <PerSound mix={mix} onChange={(id, evolution) => setTile(id, { evolution })} />
           </div>
 
           <div className="field tempo">
