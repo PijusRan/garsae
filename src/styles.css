@@ -239,19 +239,14 @@ output,
 
 /* ---------------------------------------------------------------- transport */
 
-/* A bar on small screens. From 900px it joins the sidebar, and this box goes away. */
+/* The bar of the player island on small screens. From 900px it joins the sidebar, and this box goes away. */
 .transport {
-  position: relative;
-  z-index: 20;
-  order: -1;
   flex: none;
   display: flex;
   align-items: center;
   gap: 16px;
   height: 64px;
-  margin: 14px var(--gutter) 0;
   padding: 0 14px 0 20px;
-  border-radius: var(--r-md);
 }
 
 .mark-link {
@@ -361,6 +356,16 @@ output,
   line-height: 1.2;
 }
 
+/* Holds the status and the island toggle laid over it. Only a box under 900px. */
+.status-wrap {
+  display: contents;
+}
+
+.island-toggle,
+.island-grabber {
+  display: none;
+}
+
 .status-main,
 .status-detail {
   overflow: hidden;
@@ -433,17 +438,6 @@ output,
 
 /* ---------------------------------------------------------------- sound settings */
 
-.panel {
-  padding: 16px 20px;
-  border-radius: var(--r-lg);
-  border: 1px solid oklch(1 0 0 / 0.1);
-  background-color: var(--glass-tint);
-  background-image: var(--glass-sheen);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--tile-edge), 0 16px 40px -24px oklch(0 0 0 / 0.9);
-}
-
 /* The actions on the mix. */
 .mix-strip {
   order: 0;
@@ -475,16 +469,14 @@ output,
 }
 
 /* Evolution, tempo and key: stacked, in the sidebar or in their own tab. */
+/* Part of a glass surface everywhere (the sidebar, or the player island), so no surface of its own. */
 .sound {
-  order: 2;
-  flex: 0 1 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  gap: 22px;
-  margin: 0 var(--gutter) 14px;
-  padding: 18px 16px;
-  overflow: auto;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid var(--hairline);
 }
 
 .field {
@@ -854,8 +846,7 @@ output,
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .tile,
-  .panel {
+  .tile {
     background-color: oklch(0.12 0.004 60 / 0.9);
   }
 }
@@ -1494,6 +1485,7 @@ input[type='range']:focus-visible {
 
 /* The instrument waits underneath and comes up just after the welcome screen clears, so the two never overlap. */
 .sidebar,
+.player,
 .transport,
 .mix-strip,
 .sound,
@@ -1502,6 +1494,7 @@ input[type='range']:focus-visible {
 }
 
 .welcoming .sidebar,
+.welcoming .player,
 .welcoming .transport,
 .welcoming .mix-strip,
 .welcoming .sound,
@@ -1776,8 +1769,15 @@ input[type='range']:focus-visible {
     border-radius: var(--r-lg);
     overflow: hidden auto;
   }
+  .player,
+  .island,
+  .island-panel,
+  .island-panel-inner,
   .transport {
     display: contents;
+  }
+  .island-scrim {
+    display: none;
   }
   .mark-link {
     margin: 0 0 4px;
@@ -1855,21 +1855,11 @@ input[type='range']:focus-visible {
   .mix-strip .text-link {
     order: 1;
   }
-  /* Part of the sidebar's glass here, so no surface of its own. */
   .sound {
     order: 6;
     flex: none;
     gap: 14px;
-    margin: 0;
     padding: 14px 0 0;
-    border: none;
-    border-top: 1px solid var(--hairline);
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    overflow: visible;
   }
   .sound .inline {
     gap: 8px;
@@ -2022,30 +2012,95 @@ input[type='range']:focus-visible {
   }
 }
 
-/* The sidebar holds the sound settings here, so the Sound tab has nothing to show. A window widened
-   while that tab was open falls back to the first category. */
-@media (min-width: 900px) and (max-width: 1279px) {
-  .tab-sound {
-    display: none !important;
-  }
-  .sound-open .category:first-child {
-    display: flex;
-  }
-}
-
-/* No sidebar: the sound settings are a tab, and take the tiles' place. */
+/* No sidebar: the player island. .player holds the bar's place in the layout, and the island inside it
+   grows over the tiles (down on tablets, up on phones) when the status is tapped, so nothing reflows. */
 @media (max-width: 899px) {
-  .sound:not(.active),
-  .sound-open .stage {
-    display: none;
-  }
-  .page.sound-open {
+  .player {
+    position: relative;
+    z-index: 20;
+    order: -1;
     flex: none;
-    padding-bottom: 8px;
+    height: 64px;
+    margin: 14px var(--gutter) 0;
   }
-  /* Takes up the slack the tiles leave, so a player at the bottom stays there. */
-  .sound.active {
-    margin-bottom: auto;
+  .island {
+    position: absolute;
+    inset: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--r-md);
+  }
+  .island.open {
+    border-radius: var(--r-lg);
+  }
+  .status-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+  }
+  .status-wrap .status {
+    padding-right: 26px;
+  }
+  .island-toggle {
+    position: absolute;
+    inset: 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 4px;
+    border: none;
+    border-radius: var(--r-sm);
+    background: none;
+    color: var(--text-3);
+    transition: color var(--t-hover) var(--ease-out);
+  }
+  .island-toggle:hover,
+  .island.open .island-toggle {
+    color: var(--text);
+  }
+  .island-toggle svg {
+    transition: transform var(--t-sheet) var(--ease-out);
+  }
+  .island.open .island-toggle svg {
+    transform: rotate(180deg);
+  }
+  /* Folds open by animating its one row from nothing to its full height. */
+  .island-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--t-sheet) var(--ease-out);
+  }
+  .island.open .island-panel {
+    grid-template-rows: 1fr;
+  }
+  /* Hidden when folded, so the keyboard and screen readers skip it; it stays visible while it closes. */
+  .island-panel-inner {
+    min-height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    opacity: 0;
+    transition:
+      opacity var(--t-hover) var(--ease-out),
+      visibility 0s linear var(--t-sheet);
+  }
+  .island.open .island-panel-inner {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity var(--t-sheet) var(--ease-out);
+  }
+  .island .sound {
+    max-height: calc(var(--dvh) * 70 - 64px);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  /* Taps outside the open island close it. */
+  .island-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 19;
   }
 }
 
@@ -2066,16 +2121,52 @@ input[type='range']:focus-visible {
   .page {
     padding-bottom: 8px;
   }
-  .sound {
-    margin-bottom: 8px;
-  }
-  .transport {
+  .player {
     order: 3;
     height: 68px;
     margin: 0 10px max(10px, env(safe-area-inset-bottom));
+  }
+  /* Anchored at the bottom, so it opens upwards, above the bar. */
+  .island {
+    inset: auto 0 0;
+    border-radius: var(--r-lg);
+  }
+  .island-panel {
+    order: -1;
+  }
+  .island .sound {
+    max-height: calc(var(--dvh) * 70 - 88px);
+    border-top: none;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .island-toggle svg {
+    transform: rotate(180deg);
+  }
+  .island.open .island-toggle svg {
+    transform: none;
+  }
+  /* A handle to drag the open island back down. */
+  .island.open .island-grabber {
+    order: -2;
+    display: block;
+    flex: none;
+    height: 20px;
+    touch-action: none;
+    cursor: grab;
+  }
+  .island-grabber::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 8px auto 0;
+    border-radius: 2px;
+    background: var(--hairline-strong);
+  }
+  .transport {
+    height: 68px;
     gap: 6px;
     padding: 0 8px 0 12px;
-    border-radius: var(--r-lg);
   }
   .mark-link {
     display: none;
@@ -2107,6 +2198,11 @@ input[type='range']:focus-visible {
   }
   .toast {
     bottom: calc(max(10px, env(safe-area-inset-bottom)) + 80px);
+  }
+  /* The open island fills the bottom, so the toast drops in at the top instead. */
+  .island.open ~ .toast {
+    top: max(10px, env(safe-area-inset-top));
+    bottom: auto;
   }
   .mix-strip {
     flex-wrap: wrap;

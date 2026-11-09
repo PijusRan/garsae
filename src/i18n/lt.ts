@@ -101,6 +101,7 @@ export const lt: Strings = {
   tileVolume: (name) => `${name}: garsumas`,
 
   sound: 'Garsas',
+  soundSettings: 'Garso nustatymai',
   evolution: 'Kaita',
   evolutionSteady: 'visiškai pastovus',
   evolutionMostlySteady: 'beveik pastovus',

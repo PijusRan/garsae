@@ -56,6 +56,7 @@ export const en = {
   tileVolume: (name: string) => `${name} volume`,
 
   sound: 'Sound',
+  soundSettings: 'Sound settings',
   evolution: 'Evolution',
   evolutionSteady: 'completely steady',
   evolutionMostlySteady: 'mostly steady',

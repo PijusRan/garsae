@@ -133,14 +133,24 @@ try {
   await page.goto(url);
   await page.waitForSelector('.tile');
   await page.screenshot({ path: 'smoke-output/phone.png', fullPage: true });
+  // The player island opens over the tiles without the page growing.
+  await page.click('.island-toggle');
+  await new Promise((r) => setTimeout(r, 500));
+  const islandOpens = await page.$eval('.island-toggle', (b) => b.getAttribute('aria-expanded') === 'true');
+  await page.screenshot({ path: 'smoke-output/phone-island.png' });
   const overflow = await page.evaluate(() => {
     const de = document.documentElement;
     return de.scrollWidth > window.innerWidth || de.scrollHeight > window.innerHeight;
   });
+  await page.keyboard.press('Escape');
+  await page.setViewport({ width: 768, height: 1024, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await page.click('.island-toggle');
+  await new Promise((r) => setTimeout(r, 500));
+  await page.screenshot({ path: 'smoke-output/tablet-island.png' });
 
-  console.log({ welcomed, stillPlayingDuringFade, timerStopped, timerToast, startersShown, afterStarter, savedRow, timerText, storedVolume, barVisible, tileToggledBySpace: tilesAfter !== before + 1, pausedBySpace: !afterSpace, undoRestores: onBefore === onRestored, dialogGone, playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, errors });
+  console.log({ welcomed, stillPlayingDuringFade, timerStopped, timerToast, startersShown, afterStarter, savedRow, timerText, storedVolume, barVisible, tileToggledBySpace: tilesAfter !== before + 1, pausedBySpace: !afterSpace, undoRestores: onBefore === onRestored, dialogGone, playing, bellsOn, status, fromLink, bpmShown, horizontalOverflowOnPhone: overflow, islandOpens, errors });
   const phase3Ok = welcomed && startersShown && afterStarter === 'Brown noise' && savedRow.current && savedRow.tiles === 'Brown noise' && /\d:\d\d/.test(timerText) && storedVolume === '0.4' && stillPlayingDuringFade && timerStopped;
-  if (!phase3Ok || !playing || bellsOn !== 'true' || !barVisible || afterSpace || onBefore !== onRestored || !dialogGone || overflow || errors.length) process.exitCode = 1;
+  if (!phase3Ok || !playing || bellsOn !== 'true' || !barVisible || afterSpace || onBefore !== onRestored || !dialogGone || overflow || !islandOpens || errors.length) process.exitCode = 1;
 } finally {
   await browser.close();
   server.httpServer.close();

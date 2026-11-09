@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useT } from '../i18n';
-import { MoreIcon, PauseIcon, PlayIcon, ShareIcon, VolumeIcon } from './icons';
+import { ChevronIcon, MoreIcon, PauseIcon, PlayIcon, ShareIcon, VolumeIcon } from './icons';
 import type { AudioLevels } from './Background';
 import { LiveMark } from './LiveMark';
 import { TimerControl } from './TimerControl';
@@ -16,6 +16,9 @@ interface Props {
   timerLeft: number | null;
   fading: boolean;
   getLevels: () => AudioLevels | null;
+  /** Under 900px the sound settings fold into the player, opened from the status. */
+  islandOpen: boolean;
+  onIsland: () => void;
   onToggle: () => void;
   onVolume: (v: number) => void;
   onTimer: (minutes: number | null) => void;
@@ -24,15 +27,16 @@ interface Props {
 }
 
 /**
- * The one persistent control surface: a bar stuck to the top of the page on wide screens,
- * at the bottom (within thumb reach) on phones. The only glass layer that is always on screen.
+ * The one persistent control surface: part of the sidebar on wide screens. Under 900px it is the bar of
+ * the player island, along the top on tablets and at the bottom (within thumb reach) on phones, and
+ * tapping the status opens the sound settings out of it.
  */
 export function Transport(props: Props) {
   const { playing, starting, invite, chord, detail, activeCount, volume, timerLeft } = props;
   const t = useT();
   const pct = Math.round(volume * 100);
   return (
-    <header className="transport glass" aria-label={t.player}>
+    <header className="transport" aria-label={t.player}>
       <span className="mark-link">
         <LiveMark size={24} risen={playing && !props.fading} fading={props.fading} getLevels={props.getLevels} />
         <span className="wordmark">Garsæ</span>
@@ -47,9 +51,23 @@ export function Transport(props: Props) {
         {playing ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
         <span className="play-label">{playing ? t.pause : t.play}</span>
       </button>
-      <div className="status" aria-live="off">
-        <span className="status-main">{playing && chord ? chord : playing ? t.starting : activeCount === 0 ? t.pickSound : invite ? t.pressPlay : t.paused}</span>
-        <span className="status-detail">{detail}</span>
+      <div className="status-wrap">
+        <div className="status" aria-live="off">
+          <span className="status-main">{playing && chord ? chord : playing ? t.starting : activeCount === 0 ? t.pickSound : invite ? t.pressPlay : t.paused}</span>
+          <span className="status-detail">{detail}</span>
+        </div>
+        {/* Covers the status, so the whole middle of the bar is the target. */}
+        <button
+          type="button"
+          className="island-toggle"
+          aria-expanded={props.islandOpen}
+          aria-controls="island-panel"
+          aria-label={t.soundSettings}
+          title={t.soundSettings}
+          onClick={props.onIsland}
+        >
+          <ChevronIcon size={16} />
+        </button>
       </div>
       <span className="t-sep" aria-hidden="true" />
       <label className="t-volume">

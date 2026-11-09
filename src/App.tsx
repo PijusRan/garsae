@@ -116,8 +116,11 @@ export function App() {
   const [invitePlay, setInvitePlay] = useState(() => getBoot().fromLink || getBoot().firstVisit);
   const [toast, setToast] = useState<Toast | null>(null);
   const [offline, setOffline] = useState<'off' | 'busy' | 'on'>(isOfflineEnabled() ? 'on' : 'off');
-  // Under 900px one category shows at a time, or the sound settings. Wider, all of them show (styles.css).
-  const [tab, setTab] = useState<Category | 'sound'>('pads');
+  // Under 1280px one category shows at a time. Wider, all of them show (styles.css).
+  const [tab, setTab] = useState<Category>('pads');
+  // Under 900px the sound settings fold out of the player.
+  const [islandOpen, setIslandOpen] = useState(false);
+  const grabY = useRef<number | null>(null);
   const install = useInstallPrompt();
   const engineRef = useRef<Engine | null>(null);
   const appliedRef = useRef<MixState | null>(null);
@@ -337,6 +340,29 @@ export function App() {
     };
   }, [pressPlay]);
 
+  // The open island closes on Escape, and when a sheet takes over.
+  useEffect(() => {
+    if (!islandOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIslandOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [islandOpen]);
+  useEffect(() => {
+    if (sheet) setIslandOpen(false);
+  }, [sheet]);
+
+  /** Phones: a downward drag on the grabber closes the island. */
+  const grabStart = (e: React.PointerEvent<HTMLSpanElement>) => {
+    grabY.current = e.clientY;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const grabEnd = (e: React.PointerEvent<HTMLSpanElement>) => {
+    if (grabY.current !== null && e.clientY - grabY.current > 24) setIslandOpen(false);
+    grabY.current = null;
+  };
+
   const setTile = (id: TileId, patch: Partial<MixState['tiles'][TileId]>) =>
     setMix((m) => ({ ...m, tiles: { ...m.tiles, [id]: { ...m.tiles[id], ...patch } } }));
 
@@ -467,23 +493,125 @@ export function App() {
       <Background playing={playing} getLevels={getLevels} musicKey={previewKey ?? key} bpm={bpm} evolution={mix.evolution} />
       {/* One set of markup. Wide screens show this as a column; on small ones it dissolves into the page. */}
       <aside className="sidebar glass">
-        <Transport
-          playing={playing}
-          starting={starting}
-          invite={invitePlay}
-          chord={chord}
-          detail={detail}
-          activeCount={activeCount}
-          volume={volume}
-          timerLeft={timerLeft}
-          fading={fading}
-          getLevels={getLevels}
-          onToggle={pressPlay}
-          onVolume={setVolume}
-          onTimer={setTimer}
-          onShare={() => void share()}
-          onMore={() => setSheet('about')}
-        />
+        {/* Under 900px: the player island, a bar that opens into the sound settings. Wider, it dissolves into the sidebar. */}
+        <div className="player">
+          <div className={`island glass${islandOpen ? ' open' : ''}`}>
+            <span className="island-grabber" aria-hidden="true" onPointerDown={grabStart} onPointerUp={grabEnd} />
+            <Transport
+              playing={playing}
+              starting={starting}
+              invite={invitePlay}
+              chord={chord}
+              detail={detail}
+              activeCount={activeCount}
+              volume={volume}
+              timerLeft={timerLeft}
+              fading={fading}
+              getLevels={getLevels}
+              onToggle={pressPlay}
+              onVolume={setVolume}
+              onTimer={setTimer}
+              islandOpen={islandOpen}
+              onIsland={() => setIslandOpen((o) => !o)}
+              onShare={() => void share()}
+              onMore={() => setSheet('about')}
+            />
+
+            {/* Settings most mixes leave alone: in the sidebar, or folded into the player on small screens. */}
+            <div className="island-panel" id="island-panel">
+              <div className="island-panel-inner">
+                <section className="sound" aria-label={t.sound}>
+                  <div className="field evolution">
+                    <div className="field-head">
+                      <label htmlFor="evolution">{t.evolution}</label>
+                      <span className="field-value">{evolutionText(mix.evolution, t)}</span>
+                    </div>
+                    <input
+                      id="evolution"
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={evoPct}
+                      style={fill(evoPct)}
+                      aria-valuetext={`${evoPct}%, ${evolutionText(mix.evolution, t)}`}
+                      onChange={(e) => setMix((m) => ({ ...m, evolution: Number(e.currentTarget.value) / 100 }))}
+                    />
+                    <PerSound mix={mix} onChange={(id, evolution) => setTile(id, { evolution })} />
+                  </div>
+        
+                  <div className="field tempo">
+                    <div className="field-head">
+                      <label htmlFor="bpm">{t.tempo}</label>
+                      <output htmlFor="bpm" className="field-value">
+                        {bpm} bpm
+                      </output>
+                    </div>
+                    <div className="inline">
+                      <div className="segmented" role="group" aria-label={t.tempoMode}>
+                        <button
+                          type="button"
+                          aria-pressed={mix.bpm === null}
+                          onClick={() => setMix((m) => ({ ...m, bpm: null }))}
+                        >
+                          {t.auto}
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={mix.bpm !== null}
+                          onClick={() => setMix((m) => ({ ...m, bpm }))}
+                        >
+                          {t.setManually}
+                        </button>
+                      </div>
+                      <input
+                        id="bpm"
+                        type="range"
+                        min={BPM_MIN}
+                        max={BPM_MAX}
+                        value={bpm}
+                        style={fill(bpmPct)}
+                        onChange={(e) => setMix((m) => ({ ...m, bpm: Number(e.currentTarget.value) }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="field key">
+                    <div className="field-head">
+                      <label htmlFor="key">{t.key}</label>
+                    </div>
+                    <div className="select">
+                      <select
+                        id="key"
+                        value={mix.key === null ? 'auto' : String(mix.key)}
+                        onChange={(e) => setMix((m) => ({ ...m, key: e.currentTarget.value === 'auto' ? null : Number(e.currentTarget.value) }))}
+                      >
+                        <option value="auto">
+                          {t.auto} ({NOTE_NAMES[rolled.key]})
+                        </option>
+                        {NOTE_NAMES.map((n, i) => (
+                          <option key={n} value={i}>
+                            {n}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronIcon size={16} />
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+
+          {/* Wide screens show this in the free space at the foot of the sidebar, so it never covers a tile. */}
+          <div className={`toast glass${toast ? ' show' : ''}`} role="status" aria-live="polite">
+            <span>{toast?.msg}</span>
+            {toast?.undo && (
+              <button type="button" className="toast-undo" onClick={() => toast.undo?.()}>
+                {t.undo}
+              </button>
+            )}
+          </div>
+        </div>
 
         <section className="mix-strip" aria-label={t.mix}>
           {/* Phones keep the player at the bottom, so the brand gets its place up here. */}
@@ -511,99 +639,10 @@ export function App() {
             </button>
           </div>
         </section>
-
-        {/* Settings most mixes leave alone: in the sidebar, or their own tab on small screens. */}
-        <section className={`sound panel${tab === 'sound' ? ' active' : ''}`} aria-label={t.sound}>
-          <div className="field evolution">
-            <div className="field-head">
-              <label htmlFor="evolution">{t.evolution}</label>
-              <span className="field-value">{evolutionText(mix.evolution, t)}</span>
-            </div>
-            <input
-              id="evolution"
-              type="range"
-              min={0}
-              max={100}
-              value={evoPct}
-              style={fill(evoPct)}
-              aria-valuetext={`${evoPct}%, ${evolutionText(mix.evolution, t)}`}
-              onChange={(e) => setMix((m) => ({ ...m, evolution: Number(e.currentTarget.value) / 100 }))}
-            />
-            <PerSound mix={mix} onChange={(id, evolution) => setTile(id, { evolution })} />
-          </div>
-
-          <div className="field tempo">
-            <div className="field-head">
-              <label htmlFor="bpm">{t.tempo}</label>
-              <output htmlFor="bpm" className="field-value">
-                {bpm} bpm
-              </output>
-            </div>
-            <div className="inline">
-              <div className="segmented" role="group" aria-label={t.tempoMode}>
-                <button
-                  type="button"
-                  aria-pressed={mix.bpm === null}
-                  onClick={() => setMix((m) => ({ ...m, bpm: null }))}
-                >
-                  {t.auto}
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={mix.bpm !== null}
-                  onClick={() => setMix((m) => ({ ...m, bpm }))}
-                >
-                  {t.setManually}
-                </button>
-              </div>
-              <input
-                id="bpm"
-                type="range"
-                min={BPM_MIN}
-                max={BPM_MAX}
-                value={bpm}
-                style={fill(bpmPct)}
-                onChange={(e) => setMix((m) => ({ ...m, bpm: Number(e.currentTarget.value) }))}
-              />
-            </div>
-          </div>
-
-          <div className="field key">
-            <div className="field-head">
-              <label htmlFor="key">{t.key}</label>
-            </div>
-            <div className="select">
-              <select
-                id="key"
-                value={mix.key === null ? 'auto' : String(mix.key)}
-                onChange={(e) => setMix((m) => ({ ...m, key: e.currentTarget.value === 'auto' ? null : Number(e.currentTarget.value) }))}
-              >
-                <option value="auto">
-                  {t.auto} ({NOTE_NAMES[rolled.key]})
-                </option>
-                {NOTE_NAMES.map((n, i) => (
-                  <option key={n} value={i}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              <ChevronIcon size={16} />
-            </div>
-          </div>
-        </section>
-
-        {/* Wide screens show this in the free space at the foot of the sidebar, so it never covers a tile. */}
-        <div className={`toast glass${toast ? ' show' : ''}`} role="status" aria-live="polite">
-          <span>{toast?.msg}</span>
-          {toast?.undo && (
-            <button type="button" className="toast-undo" onClick={() => toast.undo?.()}>
-              {t.undo}
-            </button>
-          )}
-        </div>
       </aside>
+      {islandOpen && <div className="island-scrim" onClick={() => setIslandOpen(false)} />}
 
-      <div className={`page${tab === 'sound' ? ' sound-open' : ''}`}>
+      <div className="page">
         <h1 className="sr-only">Garsæ</h1>
         {activeCount === 0 && startersRow}
 
@@ -614,9 +653,6 @@ export function App() {
               {onIn(cat.id) > 0 && <span className="tab-count">{onIn(cat.id)}</span>}
             </button>
           ))}
-          <button type="button" className="tab-sound" aria-pressed={tab === 'sound'} onClick={() => setTab('sound')}>
-            {t.sound}
-          </button>
         </div>
 
         <main className="stage">
