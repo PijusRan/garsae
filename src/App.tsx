@@ -189,6 +189,16 @@ export function App() {
       // Created inside the tap so iOS lets the AudioContext start.
       engine = new Engine();
       engine.onChord = setChord;
+      // The engine has already crossfaded; the mix only catches up, so the light moves across the grid.
+      engine.onHandover = (from, to) =>
+        setMix((m) => ({
+          ...m,
+          tiles: {
+            ...m.tiles,
+            [from]: { ...m.tiles[from], on: false },
+            [to]: { ...m.tiles[to], on: true, volume: m.tiles[from].volume, evolution: m.tiles[from].evolution },
+          },
+        }));
       engine.setMasterVolume(volume);
       applyMix(engine, useMix, null, next?.bpm ?? bpm, next?.key ?? key);
       appliedRef.current = useMix;
