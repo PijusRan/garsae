@@ -29,6 +29,8 @@ export class ChordEngine {
   loop: ChordSlot[];
   index = 0;
   barInChord = 0;
+  /** True for the bar on which the loop came back round to its first chord. */
+  wrapped = false;
   private started = false;
 
   constructor(loop: ChordSlot[] = randomLoop()) {
@@ -49,6 +51,7 @@ export class ChordEngine {
 
   /** Advance by one bar. Returns true when a new chord starts on this bar. */
   advanceBar(evolution: number): boolean {
+    this.wrapped = false;
     if (!this.started) {
       this.started = true;
       return true;
@@ -59,6 +62,7 @@ export class ChordEngine {
     this.index++;
     if (this.index >= this.loop.length) {
       this.index = 0;
+      this.wrapped = true;
       if (chance(chordSwapChance(evolution))) this.swapOne(evolution);
     }
     return true;

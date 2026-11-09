@@ -22,6 +22,8 @@ export class Tile {
   ownEvolution: number | null = null;
   private active = false;
   private offAt = 0;
+  /** A tile handing over keeps playing until here, so the crossfade is a blend rather than tails. */
+  private playUntil = 0;
   private bus: GainNode;
   private analyser: AnalyserNode | null = null;
 
@@ -80,6 +82,7 @@ export class Tile {
   setOn(on: boolean, atOnce = false): void {
     if (on === this.on) return;
     this.on = on;
+    this.playUntil = 0;
     if (on && !this.active) {
       this.active = true;
       this.instrument.activate?.(this.core.ctx.currentTime);
@@ -88,23 +91,45 @@ export class Tile {
     this.apply(atOnce ? AT_ONCE : on ? FADE_IN : FADE_OUT);
   }
 
+  /**
+   * One side of an Evolution handover: a slow fade from `at`. Going out, the tile keeps playing
+   * until `playUntil` so the two sounds blend.
+   */
+  crossfade(on: boolean, at: number, timeConstant: number, playUntil = 0): void {
+    if (on === this.on) return;
+    this.on = on;
+    if (on && !this.active) {
+      this.active = true;
+      this.instrument.activate?.(this.core.ctx.currentTime);
+    }
+    if (!on) {
+      this.playUntil = playUntil;
+      this.offAt = Math.max(playUntil, at + 5 * timeConstant) + SILENT_AFTER;
+    }
+    this.apply(timeConstant, at);
+  }
+
   setVolume(v: number, atOnce = false): void {
     if (v === this.volume) return;
     this.volume = v;
     this.apply(atOnce ? AT_ONCE : VOLUME_MOVE);
   }
 
-  private apply(timeConstant: number): void {
+  private apply(timeConstant: number, at?: number): void {
     if (this.instrument.setLevel) {
       this.instrument.setLevel(this.on ? this.volume : 0);
       return;
     }
     const target = this.on ? volumeToGain(this.volume) * this.meta.level : 0;
-    glide(this.core.ctx, this.bus.gain, target, timeConstant);
+    glide(this.core.ctx, this.bus.gain, target, timeConstant, at);
   }
 
   step(s: StepInfo): void {
     if (!this.active) return;
+    if (!this.on && s.time < this.playUntil) {
+      this.play(s);
+      return;
+    }
     if (!this.on) {
       // A tile that is off starts no new notes: the ones already sounding fade with the bus. Otherwise an
       // old drum kit and bass keep hitting under the new mix (a doubled downbeat) until they are released.
@@ -114,6 +139,10 @@ export class Tile {
       }
       return;
     }
+    this.play(s);
+  }
+
+  private play(s: StepInfo): void {
     this.instrument.step?.(this.ownEvolution === null ? s : { ...s, evolution: this.ownEvolution });
   }
 }

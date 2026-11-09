@@ -1,12 +1,14 @@
 // The Garsae audio engine. A plain TypeScript module with no React inside:
 // the UI only sends commands such as setTile / setTileVolume / setEvolution.
-import { TILE_BY_ID, type TileId } from '../tiles';
+import { TILES, TILE_BY_ID, type TileId } from '../tiles';
 import { ChordEngine } from './chords';
 import { createAmbientPulse, createBossa, createBreakbeat, createBrushes, createDnb, createDub, createHouse, createLofi, createTechno, createTripHop } from './drums/genres';
 import { create808, createFmBass, createFretless, createGlide, createMuted, createPulse, createReese, createRolling, createSub, createWalk } from './instruments/bass';
 import { createChoir, createEPiano, createFeltPiano, createStrings, createTapeFlute, createVibes } from './instruments/keys';
 import { createCrackle, createHum, createNoise, createWind } from './instruments/atmosphere';
 import { createAmplitudeMod, createWobble } from './instruments/effects';
+import { HANDOVER_GRACE_LOOPS, handoverChance, handoverCooldownBars } from './evolution';
+import { chance, pick } from './random';
 import { createArp, createBells, createDrone, createPad } from './instruments/pads';
 import { Master, type ModulationSettings } from './master';
 import { NoiseBank } from './noise';
@@ -76,6 +78,13 @@ export class Engine {
   playing = false;
   /** Called (on the main thread) with the chord heard right now. */
   onChord?: (name: string) => void;
+  /** Called when Evolution hands one tile over to another; the new tile has taken the old one's settings. */
+  onHandover?: (from: TileId, to: TileId) => void;
+  /** Chord loops played so far, and when each tile last came on, counted in loops. */
+  private loops = 0;
+  private onSince = new Map<TileId, number>();
+  private quietUntilLoop = HANDOVER_GRACE_LOOPS;
+  private lastHandoverBar = -Infinity;
 
   constructor(ctx?: BaseAudioContext) {
     this.ctx = ctx ?? new AudioContext({ latencyHint: 'playback' });
@@ -103,6 +112,7 @@ export class Engine {
     if (nav.audioSession) nav.audioSession.type = 'playback';
     if (this.ctx instanceof AudioContext && this.ctx.state !== 'running') await this.ctx.resume();
     this.playing = true;
+    this.quietUntilLoop = this.loops + HANDOVER_GRACE_LOOPS;
     this.scheduler.start();
     this.master.setOutput(1, 0.6);
   }
@@ -145,6 +155,7 @@ export class Engine {
     if (!on && !this.tiles.has(id)) return;
     const t = this.tile(id);
     if (volume !== undefined) t.setVolume(volume, !this.playing);
+    if (on && !t.on) this.onSince.set(id, this.loops);
     t.setOn(on, !this.playing);
   }
 
@@ -196,6 +207,10 @@ export class Engine {
     const stepInBar = step % 16;
     const bar = Math.floor(step / 16);
     const chordChanged = stepInBar === 0 ? this.chords.advanceBar(evolution) : false;
+    if (stepInBar === 0 && this.chords.wrapped) {
+      this.loops++;
+      this.maybeHandover(bar, time);
+    }
     const chord = chordInfo(root, this.chords.current.degree);
     const info: StepInfo = {
       step,
@@ -217,6 +232,40 @@ export class Engine {
       const delay = Math.max(0, (time - this.ctx.currentTime) * 1000);
       const cb = this.onChord;
       setTimeout(() => cb(chord.name), delay);
+    }
+  }
+
+  /**
+   * Evolution's slowest move: as the chord loop comes round, one tile may hand over to an off sibling
+   * of the same family (a pad to another pad), keeping its volume and own Evolution. The two
+   * crossfade over a bar or two from the downbeat. Drums overlap for less, so two grooves never clash for long.
+   */
+  private maybeHandover(bar: number, time: number): void {
+    if (this.loops < this.quietUntilLoop) return;
+    if (bar - this.lastHandoverBar < handoverCooldownBars(this.core.evolution)) return;
+    const ready = [...this.tiles.values()].filter(
+      (t) => t.on && t.meta.family && this.loops - (this.onSince.get(t.meta.id) ?? 0) >= HANDOVER_GRACE_LOOPS,
+    );
+    // Shuffled, so no tile always gets the first roll.
+    for (let i = ready.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ready[i], ready[j]] = [ready[j], ready[i]];
+    }
+    for (const from of ready) {
+      if (!chance(handoverChance(from.evolution))) continue;
+      const pool = TILES.filter((m) => m.family === from.meta.family && !this.tiles.get(m.id)?.on);
+      if (pool.length === 0) continue;
+      const to = this.tile(pick(pool).id);
+      const bars = from.meta.category === 'drums' ? 1 : 2;
+      const barDur = this.stepDur * 16;
+      to.setVolume(from.volume, true);
+      to.setOwnEvolution(from.ownEvolution);
+      to.crossfade(true, time, (barDur * bars) / 4);
+      from.crossfade(false, time, (barDur * bars) / 4, time + barDur * bars);
+      this.onSince.set(to.meta.id, this.loops);
+      this.lastHandoverBar = bar;
+      this.onHandover?.(from.meta.id, to.meta.id);
+      return;
     }
   }
 
