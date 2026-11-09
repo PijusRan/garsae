@@ -21,7 +21,7 @@ interface Props {
 /**
  * A slow, grainy gradient whose colours come from the mix: key sets the hue, tempo the vividness, evolution
  * the hue spread (palette.ts). A new mix glides to its colours over a few seconds. Dark at the bottom, light
- * towards the top, so the light sits behind the player and the Sound panel and the tiles stay on dark ground.
+ * towards the top, so the light sits behind the player and its sound settings, and the tiles stay on dark ground.
  * Dimmer and nearly still while paused; while music plays it brightens and flows faster with the loudness.
  * The pointer never moves it: the background must not compete with the music.
  */
