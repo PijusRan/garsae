@@ -159,7 +159,13 @@ export class Engine {
 
   setEvolution(e: number): void {
     this.core.evolution = e;
-    for (const t of this.tiles.values()) t.instrument.setEvolution?.(e);
+    for (const t of this.tiles.values()) t.mixEvolutionChanged();
+  }
+
+  /** A tile's own Evolution; null makes it follow the mix again. */
+  setTileEvolution(id: TileId, e: number | null): void {
+    if (e === null && !this.tiles.has(id)) return;
+    this.tile(id).setOwnEvolution(e);
   }
 
   setBpm(bpm: number): void {

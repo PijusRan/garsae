@@ -18,6 +18,8 @@ const SILENT_AFTER = 5;
 export class Tile {
   on = false;
   volume: number;
+  /** This tile's own Evolution, or null to follow the mix's. */
+  ownEvolution: number | null = null;
   private active = false;
   private offAt = 0;
   private bus: GainNode;
@@ -41,6 +43,23 @@ export class Tile {
     }
     instrument.setEvolution?.(core.evolution);
     instrument.setTempo?.(core.bpm);
+  }
+
+  /** The Evolution this tile plays with. */
+  get evolution(): number {
+    return this.ownEvolution ?? this.core.evolution;
+  }
+
+  /** null hands the tile back to the mix's Evolution. */
+  setOwnEvolution(e: number | null): void {
+    if (e === this.ownEvolution) return;
+    this.ownEvolution = e;
+    this.instrument.setEvolution?.(this.evolution);
+  }
+
+  /** The mix's Evolution moved: only tiles that follow it hear about it. */
+  mixEvolutionChanged(): void {
+    if (this.ownEvolution === null) this.instrument.setEvolution?.(this.core.evolution);
   }
 
   /** A tap on this tile's sound after its level, for the UI to draw. Made on first use; effect tiles have none. */
@@ -70,6 +89,7 @@ export class Tile {
   }
 
   setVolume(v: number, atOnce = false): void {
+    if (v === this.volume) return;
     this.volume = v;
     this.apply(atOnce ? AT_ONCE : VOLUME_MOVE);
   }
@@ -94,6 +114,6 @@ export class Tile {
       }
       return;
     }
-    this.instrument.step?.(s);
+    this.instrument.step?.(this.ownEvolution === null ? s : { ...s, evolution: this.ownEvolution });
   }
 }

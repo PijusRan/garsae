@@ -31,6 +31,8 @@ export interface TileMeta {
   reverb: number;
   /** Effect tiles change the whole mix instead of adding a sound. */
   effect?: boolean;
+  /** Its sound ignores Evolution, so it gets no Evolution of its own. */
+  steady?: boolean;
 }
 
 export const TILES: TileMeta[] = [
@@ -60,22 +62,22 @@ export const TILES: TileMeta[] = [
   { id: 'techno', category: 'drums', name: 'Minimal techno', hint: 'Four on the floor', defaultVolume: 0.45, level: 0.928, reverb: 0.08 },
   { id: 'dub', category: 'drums', name: 'Dub', hint: 'One drop, echoes', defaultVolume: 0.5, level: 0.788, reverb: 0.15 },
   { id: 'ambient', category: 'drums', name: 'Ambient pulse', hint: 'A soft heartbeat', defaultVolume: 0.5, level: 0.666, reverb: 0.35 },
-  { id: 'breaks', category: 'drums', name: 'Breakbeat', hint: 'The classic Amen break', defaultVolume: 0.4, level: 0.377, reverb: 0.06 },
+  { id: 'breaks', category: 'drums', name: 'Breakbeat', hint: 'The classic Amen break', defaultVolume: 0.4, level: 0.377, reverb: 0.06, steady: true },
   { id: 'brushes', category: 'drums', name: 'Brushes', hint: 'Soft jazz swing', defaultVolume: 0.5, level: 2.15, reverb: 0.12 },
   { id: 'house', category: 'drums', name: 'Deep house', hint: 'Warm, steady, shuffled', defaultVolume: 0.45, level: 0.456, reverb: 0.08 },
   { id: 'triphop', category: 'drums', name: 'Trip hop', hint: 'Slow, heavy, dusty', defaultVolume: 0.5, level: 0.5, reverb: 0.15 },
   { id: 'dnb', category: 'drums', name: 'Liquid DnB', hint: 'Fast, light two-step', defaultVolume: 0.4, level: 0.5, reverb: 0.08 },
   { id: 'bossa', category: 'drums', name: 'Bossa nova', hint: 'Clave and a soft pulse', defaultVolume: 0.5, level: 1, reverb: 0.12 },
 
-  { id: 'crackle', category: 'texture', name: 'Vinyl crackle', hint: 'Dust and pops', defaultVolume: 0.4, level: 1.95, reverb: 0 },
+  { id: 'crackle', category: 'texture', name: 'Vinyl crackle', hint: 'Dust and pops', defaultVolume: 0.4, level: 1.95, reverb: 0, steady: true },
   { id: 'wind', category: 'texture', name: 'Wind', hint: 'Moving air', defaultVolume: 0.4, level: 0.721, reverb: 0.1 },
-  { id: 'hum', category: 'texture', name: 'Room hum', hint: 'Distant machine', defaultVolume: 0.35, level: 0.316, reverb: 0 },
+  { id: 'hum', category: 'texture', name: 'Room hum', hint: 'Distant machine', defaultVolume: 0.35, level: 0.316, reverb: 0, steady: true },
 
-  { id: 'brown', category: 'texture', name: 'Brown noise', hint: 'Deep rumble', defaultVolume: 0.35, level: 0.328, reverb: 0 },
-  { id: 'pink', category: 'texture', name: 'Pink noise', hint: 'Even, soft hiss', defaultVolume: 0.3, level: 0.304, reverb: 0 },
-  { id: 'green', category: 'texture', name: 'Green noise', hint: 'Mid-range, natural', defaultVolume: 0.3, level: 0.313, reverb: 0 },
-  { id: 'am', category: 'effects', name: 'Amplitude mod', hint: 'Gentle pulsing on mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true },
-  { id: 'wobble', category: 'effects', name: 'Tape wobble', hint: 'Warps the whole mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true },
+  { id: 'brown', category: 'texture', name: 'Brown noise', hint: 'Deep rumble', defaultVolume: 0.35, level: 0.328, reverb: 0, steady: true },
+  { id: 'pink', category: 'texture', name: 'Pink noise', hint: 'Even, soft hiss', defaultVolume: 0.3, level: 0.304, reverb: 0, steady: true },
+  { id: 'green', category: 'texture', name: 'Green noise', hint: 'Mid-range, natural', defaultVolume: 0.3, level: 0.313, reverb: 0, steady: true },
+  { id: 'am', category: 'effects', name: 'Amplitude mod', hint: 'Gentle pulsing on mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true, steady: true },
+  { id: 'wobble', category: 'effects', name: 'Tape wobble', hint: 'Warps the whole mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true, steady: true },
 ];
 
 export const TILE_BY_ID: Record<TileId, TileMeta> = Object.fromEntries(

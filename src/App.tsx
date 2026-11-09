@@ -46,6 +46,7 @@ function applyMix(engine: Engine, mix: MixState, prev: MixState | null, bpm: num
     const s = mix.tiles[id];
     const p = prev?.tiles[id];
     if (!p || p.on !== s.on || p.volume !== s.volume) engine.setTile(id, s.on, s.volume);
+    if (!p || p.evolution !== s.evolution) engine.setTileEvolution(id, s.evolution);
   }
 }
 

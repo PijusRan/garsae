@@ -5,6 +5,8 @@ import { TILES, TILE_BY_ID, TILE_IDS, isTileId, type TileId } from '../tiles';
 export interface TileSetting {
   on: boolean;
   volume: number;
+  /** This tile's own Evolution, 0-1, or null to follow the mix's. */
+  evolution: number | null;
 }
 
 export interface MixState {
@@ -33,7 +35,7 @@ function allTiles(on: Partial<Record<TileId, number>> = {}): Record<TileId, Tile
   const out = {} as Record<TileId, TileSetting>;
   for (const t of TILES) {
     const v = on[t.id];
-    out[t.id] = { on: v !== undefined, volume: v ?? t.defaultVolume };
+    out[t.id] = { on: v !== undefined, volume: v ?? t.defaultVolume, evolution: null };
   }
   return out;
 }
@@ -50,14 +52,18 @@ export function defaultMix(): MixState {
 
 // ---------------------------------------------------------------- share links
 
-/** Encodes a mix as a compact hash string, e.g. "t=pad.65,lofi.45,-bells.20&e=30&b=72&k=9" (- marks an off tile with a custom volume). */
+/**
+ * Encodes a mix as a compact hash string, e.g. "t=pad.65.40,lofi.45,-bells.20&e=30&b=72&k=9".
+ * - marks an off tile with custom settings; a third number is the tile's own Evolution.
+ */
 export function encodeMix(m: MixState): string {
   const parts: string[] = [];
   for (const id of TILE_IDS) {
     const s = m.tiles[id];
-    const vol = Math.round(s.volume * 100);
-    if (s.on) parts.push(`${id}.${vol}`);
-    else if (Math.abs(s.volume - TILE_BY_ID[id].defaultVolume) > 0.005) parts.push(`-${id}.${vol}`);
+    const own = s.evolution === null ? '' : `.${Math.round(s.evolution * 100)}`;
+    const entry = `${id}.${Math.round(s.volume * 100)}${own}`;
+    if (s.on) parts.push(entry);
+    else if (own || Math.abs(s.volume - TILE_BY_ID[id].defaultVolume) > 0.005) parts.push(`-${entry}`);
   }
   const q = new URLSearchParams();
   q.set('t', parts.join(','));
@@ -77,10 +83,15 @@ export function decodeMix(input: string): MixState | null {
   for (const raw of t.split(',')) {
     if (!raw) continue;
     const off = raw.startsWith('-');
-    const [id, vol] = (off ? raw.slice(1) : raw).split('.');
+    const [id, vol, evo] = (off ? raw.slice(1) : raw).split('.');
     if (!isTileId(id)) continue;
     const v = Number(vol);
-    mix.tiles[id] = { on: !off, volume: Number.isFinite(v) ? clamp01(v / 100) : TILE_BY_ID[id].defaultVolume };
+    const ev = evo === undefined || evo === '' ? NaN : Number(evo);
+    mix.tiles[id] = {
+      on: !off,
+      volume: Number.isFinite(v) ? clamp01(v / 100) : TILE_BY_ID[id].defaultVolume,
+      evolution: Number.isFinite(ev) ? clamp01(ev / 100) : null,
+    };
   }
   const e = Number(q.get('e'));
   if (q.has('e') && Number.isFinite(e)) mix.evolution = clamp01(e / 100);
