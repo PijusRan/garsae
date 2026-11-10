@@ -4,9 +4,9 @@
 // portions of the Software. Used here as part of an application; not redistributed on its own.
 //
 // Changes for Garsae: styles live in styles.css, an optional `liveSpeed` callback scales the flow every
-// frame (the music's loudness drives it), an optional `liveRamp` callback supplies the palette every frame
-// (it glides between mixes), and each mount creates its own canvas so a remount gets a
-// live WebGL context.
+// frame (the music's loudness drives it; slower flow draws less often, and at 0 it stops drawing), an
+// optional `liveRamp` callback supplies the palette every frame (it glides between mixes), and each mount
+// creates its own canvas so a remount gets a live WebGL context.
 
 import { useEffect, useRef, type CSSProperties, type HTMLAttributes } from 'react';
 
@@ -452,6 +452,7 @@ export const Grainient = ({
     let raf = 0;
     let last = 0;
     let visible = true;
+    let pace = 1;
 
     const syncPalette = () => {
       const s = settingsRef.current;
@@ -605,14 +606,16 @@ export const Grainient = ({
       raf = 0;
       if (!visible || document.hidden) return;
       // A slow background doesn't need 60 fps: draw at about 30 and let the elapsed time carry the motion.
-      if (last && now - last < MIN_FRAME_MS && introClock >= 1) {
+      // Slower flow draws less often (paused, about 13 fps), so each frame still moves the same small step.
+      if (last && now - last < MIN_FRAME_MS / clamp(pace, 0.35, 1) && introClock >= 1) {
         raf = requestAnimationFrame(frame);
         return;
       }
       const s = settingsRef.current;
       const dt = last ? clamp((now - last) / 1000, 0.001, 0.05) : 1 / 60;
       last = now;
-      if (!reduce) time += dt * s.speed * 0.16 * (s.live ? s.live() : 1);
+      pace = s.live ? s.live() : 1;
+      if (!reduce) time += dt * s.speed * 0.16 * pace;
       if (introClock < 1) introClock = Math.min(1, introClock + dt / INTRO_SECONDS);
       grainClock += dt;
       if (s.grainAnimated && !reduce && grainClock > 1 / 24) {
@@ -622,7 +625,7 @@ export const Grainient = ({
       updateTouches(dt, view.width / view.height);
       draw();
       const busy =
-        (!reduce && (s.speed > 0 || s.grainAnimated)) || introClock < 1 || trail.length > 0 || spins.length > 0;
+        (!reduce && ((s.speed > 0 && pace > 0) || s.grainAnimated)) || introClock < 1 || trail.length > 0 || spins.length > 0;
       if (busy) raf = requestAnimationFrame(frame);
       else last = 0;
     };

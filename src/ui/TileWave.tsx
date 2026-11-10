@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { isFocused, onFocusChange } from './attention';
 
 /** Points along the tile. Few, because this is a soft silhouette and not an analyser display. */
 const POINTS = 18;
@@ -81,9 +82,11 @@ function draw(w: Wave): void {
   ctx.fill();
 }
 
-/** One loop for every tile. It stops when all of them have settled, and with the tab hidden. */
+/** One loop for every tile. It stops when all of them have settled, with the tab hidden, and while the
+ *  window is out of focus (the waves hold their shape and carry on when it comes back). */
 function tick(now: number): void {
   raf = 0;
+  if (!isFocused()) return;
   if (now - lastFrame >= FRAME_MS - 2) {
     lastFrame = now;
     for (const w of waves) {
@@ -97,8 +100,12 @@ function tick(now: number): void {
 
 function wake(w: Wave): void {
   waves.add(w);
-  if (!raf) raf = requestAnimationFrame(tick);
+  if (!raf && isFocused()) raf = requestAnimationFrame(tick);
 }
+
+onFocusChange(() => {
+  if (!raf && waves.size && isFocused()) raf = requestAnimationFrame(tick);
+});
 
 const REDUCED_MOTION = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 

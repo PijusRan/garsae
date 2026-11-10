@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Grainient } from './Grainient';
+import { useFocused } from './attention';
 import { labToHex, mixPalette, type Lab } from './palette';
 
 /** Loudness and low-end energy of the music, each roughly 0-1. */
@@ -23,18 +24,22 @@ interface Props {
  * the hue spread (palette.ts). A new mix glides to its colours over a few seconds. Dark at the bottom, light
  * towards the top, so the light sits behind the player and its sound settings, and the tiles stay on dark ground.
  * Dimmer and nearly still while paused; while music plays it brightens and flows faster with the loudness.
- * The pointer never moves it: the background must not compete with the music.
+ * The pointer never moves it: the background must not compete with the music. While the window is out of
+ * focus it glides to a stop and stops drawing, since each frame re-blurs every glass tile over it.
  */
 export function Background({ playing, getLevels, musicKey, bpm, evolution }: Props) {
   const playingRef = useRef(playing);
   const levelsRef = useRef(getLevels);
+  const focusedRef = useRef(true);
   playingRef.current = playing;
   levelsRef.current = getLevels;
+  // Re-rendering on focus also wakes Grainient, which stops drawing once the flow has come to rest.
+  focusedRef.current = useFocused();
   const target = useMemo(() => mixPalette(musicKey, bpm, evolution), [musicKey, bpm, evolution]);
   const targetRef = useRef(target);
   targetRef.current = target;
   // Everything eases, so play, pause, loud passages and new mixes never jump.
-  const eased = useRef({ play: playing ? 1 : 0, level: 0, last: performance.now() });
+  const eased = useRef({ play: playing ? 1 : 0, level: 0, focus: 1, last: performance.now() });
   const shown = useRef<Lab[]>(target.map((lab) => [...lab] as Lab));
   const colourClock = useRef(performance.now());
 
@@ -46,7 +51,10 @@ export function Background({ playing, getLevels, musicKey, bpm, evolution }: Pro
     const on = playingRef.current;
     e.play += ((on ? 1 : 0) - e.play) * (1 - Math.exp(-dt * 0.8));
     e.level += ((on ? (levelsRef.current()?.level ?? 0) : 0) - e.level) * (1 - Math.exp(-dt * 2.5));
-    return 0.4 + 0.6 * e.play + 1.2 * e.level;
+    const focus = focusedRef.current ? 1 : 0;
+    e.focus += (focus - e.focus) * (1 - Math.exp(-dt * 2));
+    if (!focus && e.focus < 0.02) e.focus = 0;
+    return (0.4 + 0.6 * e.play + 1.2 * e.level) * e.focus;
   }, []);
 
   const ramp = useCallback(() => {

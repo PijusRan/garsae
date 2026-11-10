@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { useFocused } from './attention';
 import type { AudioLevels } from './Background';
 
 interface Props {
@@ -20,16 +21,22 @@ const REDUCED_MOTION = window.matchMedia?.('(prefers-reduced-motion: reduce)').m
 export function LiveMark({ size, risen, fading, getLevels }: Props) {
   const glow = useRef<HTMLSpanElement>(null);
   const clip = `mark-${useId().replace(/\W/g, '')}`;
+  // Out of focus nothing redraws while you work in another window.
+  const focused = useFocused();
 
   useEffect(() => {
     const el = glow.current;
+    if (!el) return;
+    if (!risen) {
+      el.style.opacity = '';
+      return;
+    }
     // Phones and wide screens each show one of the two marks. The hidden one has nothing to do.
-    if (!el || !risen || !el.getClientRects().length) return;
+    // Out of focus the glow holds its brightness.
+    if (!focused || !el.getClientRects().length) return;
     if (REDUCED_MOTION) {
       el.style.opacity = '0.5';
-      return () => {
-        el.style.opacity = '';
-      };
+      return;
     }
     let raf = 0;
     let last = 0;
@@ -42,11 +49,8 @@ export function LiveMark({ size, risen, fading, getLevels }: Props) {
       el.style.opacity = String(0.2 + 0.8 * shown);
     };
     raf = requestAnimationFrame(frame);
-    return () => {
-      cancelAnimationFrame(raf);
-      el.style.opacity = '';
-    };
-  }, [risen, getLevels]);
+    return () => cancelAnimationFrame(raf);
+  }, [risen, focused, getLevels]);
 
   return (
     <span className={`live-mark${risen ? ' risen' : ''}${fading ? ' fading' : ''}`} aria-hidden="true">
