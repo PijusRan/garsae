@@ -1,7 +1,9 @@
 // The background's colours, derived from the mix: every mix gets its own light.
-//   key       -> hue, walked around the circle of fifths, so related keys get neighbouring hues (C is cobalt)
+//   key       -> hue of the light, walked around the circle of fifths, so related keys get neighbouring hues
+//                (C is cobalt). The hues skip the olive and mustard band, which turns muddy when dark.
 //   tempo     -> vividness: slow mixes are deeper and muted, fast ones more saturated and a little brighter
-//   evolution -> hue spread across the ramp: a static mix is one hue, a shifting one sweeps across neighbours
+//   evolution -> how far the shadows sweep: the light keeps the key's hue and the darker stops drift towards
+//                indigo, like dusk (gold over crimson and plum, green over teal and navy), further when it shifts
 // Colours are OKLab triplets [L, a, b], the space Grainient's shader blends in.
 
 import { BPM_MAX, BPM_MIN } from '../state/mix';
@@ -10,26 +12,29 @@ export type Lab = [number, number, number];
 
 /** Lightness and chroma per stop, bottom to top, at a middling tempo. Mostly dark, so text keeps contrast. */
 const STOPS: [number, number][] = [
-  [0.09, 0.02],
-  [0.17, 0.05],
-  [0.26, 0.09],
-  [0.37, 0.13],
-  [0.53, 0.17],
-  [0.71, 0.15],
+  [0.1, 0.03],
+  [0.18, 0.07],
+  [0.27, 0.11],
+  [0.38, 0.14],
+  [0.54, 0.16],
+  [0.73, 0.13],
 ];
 
-const BASE_HUE = 265; // C
-const MAX_SPREAD = 70; // degrees across the ramp at full evolution
+/** Hue of the light per step round the circle of fifths from C (C G D A E B F# C# Ab Eb Bb F). */
+const HUES = [265, 292, 322, 352, 20, 44, 66, 152, 176, 198, 220, 242];
+const SHADOW_HUE = 285; // indigo, which the shadows drift towards
 
 export function mixPalette(key: number, bpm: number, evolution: number): Lab[] {
   const fifths = (((key * 7) % 12) + 12) % 12;
-  const hue = BASE_HUE + fifths * 30;
+  const hue = HUES[fifths];
   const t = clamp01((bpm - BPM_MIN) / (BPM_MAX - BPM_MIN));
-  const vivid = 0.7 + 0.5 * t;
-  const spread = clamp01(evolution) * MAX_SPREAD;
+  const vivid = 0.75 + 0.45 * t;
+  // Drift the short way round towards indigo, further for hues far from it (warm ones brown otherwise).
+  const delta = ((SHADOW_HUE - hue + 540) % 360) - 180;
+  const sweep = Math.sign(delta || 1) * (45 + 40 * clamp01(evolution)) * (0.7 + (0.6 * Math.abs(delta)) / 180);
   return STOPS.map(([L, C], i) => {
     const top = i === STOPS.length - 1;
-    const h = hue + (i / (STOPS.length - 1) - 0.5) * spread;
+    const h = hue + sweep * (1 - i / (STOPS.length - 1)) ** 0.8;
     return toGamut(top ? L + 0.06 * (t - 0.5) : L, C * vivid, h);
   });
 }
