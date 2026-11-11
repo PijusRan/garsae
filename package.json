@@ -10,8 +10,7 @@
     "typecheck": "tsc -b",
     "smoke": "node scripts/smoke.mjs",
     "ui-check": "node scripts/ui-check.mjs",
-    "faust": "node scripts/build-faust.mjs",
-    "compare": "vite --open /compare.html"
+    "faust": "node scripts/build-faust.mjs"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",

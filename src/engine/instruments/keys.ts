@@ -1,13 +1,13 @@
 // Keys, voices and solo instruments in the pads category, each with its own generator:
 // electric piano, choir, felt piano, string ensemble, vibraphone and tape flute.
-import { movementDepth, noteDensity } from '../evolution';
+// The choir, felt piano, strings and flute play on physical models (models/host.ts).
+import { noteDensity } from '../evolution';
 import { cleanupAt, envelope, glide, percussive } from '../params';
 import { chance, clamp, pick, rand, randInt } from '../random';
-import { startLoop } from '../noise';
-import { createChorus, createDrift } from '../synth';
+import { createChorus } from '../synth';
 import { chordInPentatonic, midiToFreq, notesInRange, pentatonicNotes, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
-import { voices } from '../models/host';
+import { modelVoice, type Vowel } from '../models/host';
 
 /** The chord's tones as a close voicing from `lo` upwards, with an optional 9th on top. */
 function voicing(s: StepInfo, lo: number, ninth: boolean): number[] {
@@ -99,112 +99,37 @@ export function createEPiano(core: Core): Instrument {
 
 // ---------------------------------------------------------------- choir
 
-/** Formants (Hz) and relative gains for soft vowels. Choirs sing these, not bright "ee"s. */
-const VOWELS = {
-  oo: [
-    { f: 350, g: 1 },
-    { f: 640, g: 0.35 },
-    { f: 2700, g: 0.14 },
-  ],
-  oh: [
-    { f: 450, g: 1 },
-    { f: 800, g: 0.5 },
-    { f: 2830, g: 0.18 },
-  ],
-  ah: [
-    { f: 750, g: 1 },
-    { f: 1150, g: 0.6 },
-    { f: 2900, g: 0.22 },
-  ],
-} as const;
-type Vowel = keyof typeof VOWELS;
+const CHOIR_VOWELS: Vowel[] = ['oo', 'oh', 'ah'];
 
 /**
- * Wordless voices: each note is two detuned saws with a delayed vibrato and a breath of
- * noise, and the whole choir sings through one bank of vowel formants that drifts slowly
- * between "oo", "oh" and "ah". Evolution makes the vowel change more often.
+ * Wordless voices, sung softly: a tenor on the root and three upper parts, on a formant voice model (models/host.ts),
+ * through an ensemble chorus that spreads each part into a section. Each chord is held for as long as it lasts, and
+ * the parts move to the next chord legato. Some chord changes bring a new vowel, more often with Evolution.
  */
 export function createChoir(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const chorus = createChorus(ctx, { wet: 0.7, rate: 0.35, depth: 0.0022 });
   chorus.output.connect(out);
-  const singers = new GainNode(ctx, { gain: 1 });
-  const formants = VOWELS.oo.map((v) => {
-    const bp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: v.f, Q: 7 });
-    const g = new GainNode(ctx, { gain: v.g });
-    singers.connect(bp).connect(g).connect(chorus.input);
-    return { bp, g };
-  });
-  const v = voices(core, 'choir', singers, chorus.input);
-  const drift = createDrift(ctx, 5, 0.09);
-  const vibrato = new OscillatorNode(ctx, { frequency: 5.1 });
-  vibrato.start();
+  const singers = modelVoice(core, 'choir', chorus.input);
   let vowel: Vowel = 'oo';
   let soundingUntil = 0;
-
-  function setVowel(next: Vowel, timeConstant: number) {
-    vowel = next;
-    v.model?.setVowel?.(next, ctx.currentTime);
-    VOWELS[next].forEach((p, i) => {
-      glide(ctx, formants[i].bp.frequency, p.f, timeConstant);
-      glide(ctx, formants[i].g.gain, p.g, timeConstant);
-    });
-  }
-
-  function voice(midi: number, t: number, hold: number, peak: number, pan: number) {
-    if (v.synthOn) synthVoice(midi, t, hold, peak, pan);
-    v.model?.note(t, midi, hold, 0.8);
-  }
-
-  function synthVoice(midi: number, t: number, hold: number, peak: number, pan: number) {
-    const f = midiToFreq(midi);
-    const g = new GainNode(ctx, { gain: 0 });
-    const p = new StereoPannerNode(ctx, { pan });
-    g.connect(p).connect(v.synth);
-    // Vibrato fades in after the attack, like a held sung note.
-    const vibDepth = new GainNode(ctx, { gain: 0 });
-    vibrato.connect(vibDepth);
-    vibDepth.gain.setValueAtTime(0, t);
-    vibDepth.gain.linearRampToValueAtTime(14, t + 1.6);
-    const oscs = [-7, 8].map((d) => {
-      const o = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f, detune: d + rand(-3, 3) });
-      o.connect(g);
-      vibDepth.connect(o.detune);
-      drift.connect(o.detune);
-      return o;
-    });
-    const breath = new AudioBufferSourceNode(ctx, { buffer: core.noise.get('pink'), loop: true });
-    const breathGain = new GainNode(ctx, { gain: 0.25 });
-    breath.connect(breathGain).connect(g);
-    const end = envelope(g.gain, t, hold, { peak, attack: 2.2, release: 3.5 });
-    for (const o of oscs) o.start(t + rand(0, 1 / f));
-    startLoop(breath, t);
-    cleanupAt([...oscs, breath], end, [g, p, vibDepth, breathGain], () => {
-      vibrato.disconnect(vibDepth);
-      for (const o of oscs) drift.disconnect(o.detune);
-    });
-  }
 
   function playChord(s: StepInfo, bars: number) {
     const hold = bars * s.barDur;
     // Upper voices in the alto/soprano range, and a tenor on the root.
-    const notes = voicing(s, 60, false).slice(0, 3);
-    notes.forEach((m, i) => voice(m, s.time, hold, 0.05, -0.4 + 0.4 * i));
-    voice(placeInRange(s.chord.rootPc, 48), s.time, hold, 0.045, 0.2);
+    for (const m of voicing(s, 60, false).slice(0, 3)) singers.note(s.time, m, hold, 0.8);
+    singers.note(s.time, placeInRange(s.chord.rootPc, 48), hold, 0.75);
     soundingUntil = s.time + hold;
   }
 
   return {
     output: out,
-    setEvolution(e) {
-      // Keep the current vowel but let livelier settings open the formants a little.
-      for (const f of formants) glide(ctx, f.bp.Q, 7 - 2 * movementDepth(e), 1.5);
-    },
     step(s) {
       if (s.stepInBar !== 0) return;
       if (s.chordChanged && chance(0.25 + 0.5 * s.evolution)) {
-        setVowel(pick((Object.keys(VOWELS) as Vowel[]).filter((v) => v !== vowel)), s.barDur * 0.6);
+        vowel = pick(CHOIR_VOWELS.filter((v) => v !== vowel));
+        singers.setVowel?.(vowel, s.time);
       }
       if (s.chordChanged || s.time >= soundingUntil - 0.01) playChord(s, s.barsLeftInChord);
     },
@@ -216,72 +141,16 @@ export function createChoir(core: Core): Instrument {
 
 // ---------------------------------------------------------------- felt piano
 
-/** String stiffness: overtones run sharp, f(n) = n·f·√(1 + B·n²). It is what makes additive tones sound like a piano. */
-const PIANO_B = 0.00032;
-
-/**
- * An upright with felt between the hammers and the strings, as modern classical records use it. Each note sums
- * stiff-string partials, the low ones doubled a cent or two apart for the beating of a real unison. Every partial
- * falls fast and then slowly, the higher ones sooner. Harder notes reach more partials; a soft thud of felt starts each.
- * Sparse phrases over a low root on each chord, with plenty of air.
- */
 export function createFeltPiano(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const felt = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 7500, Q: 0.35 });
   const body = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 190, Q: 0.9, gain: 2.5 });
   felt.connect(body).connect(out);
-  const v = voices(core, 'piano', felt);
+  const piano = modelVoice(core, 'piano', felt);
   let nextNote = 0;
   let last = 67;
-
-  function note(t: number, midi: number, hold: number, vel: number) {
-    if (v.synthOn) synthNote(t, midi, hold, vel);
-    v.model?.note(t, midi, hold, vel);
-  }
-
-  function synthNote(t: number, midi: number, hold: number, vel: number) {
-    const f = midiToFreq(midi);
-    const pan = new StereoPannerNode(ctx, { pan: clamp((midi - 62) / 32, -0.45, 0.45) });
-    const amp = new GainNode(ctx, { gain: 0.15 });
-    amp.connect(pan).connect(v.synth);
-    // Low strings ring far longer than high ones.
-    const ring = clamp(7 * Math.sqrt(220 / f), 2.5, 9);
-    const count = clamp(Math.floor(9000 / f), 4, 14);
-    const oscs: OscillatorNode[] = [];
-    const nodes: AudioNode[] = [amp, pan];
-    for (let n = 1; n <= count; n++) {
-      const level = vel * Math.exp(-(n - 1) * (0.62 - 0.24 * vel));
-      const decay = ring / (1 + 0.6 * (n - 1));
-      const g = new GainNode(ctx, { gain: 0 });
-      g.connect(amp);
-      g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(level, t + 0.012 - 0.006 * vel);
-      // A prompt fall, then the long aftersound.
-      g.gain.setTargetAtTime(level * 0.42, t + 0.012, decay * 0.07);
-      g.gain.setTargetAtTime(0, t + 0.012 + decay * 0.22, decay * 0.3);
-      nodes.push(g);
-      for (const cents of n <= 3 ? [-0.7, 0.8] : [0]) {
-        const osc = new OscillatorNode(ctx, { frequency: n * f * Math.sqrt(1 + PIANO_B * n * n), detune: cents });
-        const share = new GainNode(ctx, { gain: n <= 3 ? 0.6 : 1 });
-        osc.connect(share).connect(g);
-        oscs.push(osc);
-        nodes.push(share);
-      }
-    }
-    // The damper comes down when the note is let go.
-    amp.gain.setValueAtTime(0.15, t + hold);
-    amp.gain.setTargetAtTime(0, t + hold, 0.14);
-    const end = t + hold + 0.9;
-    const thud = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
-    const thudLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1800 });
-    const thudGain = new GainNode(ctx, { gain: 0 });
-    thud.connect(thudLp).connect(thudGain).connect(amp);
-    percussive(thudGain.gain, t, 0.45 * vel, 0.002, 0.03);
-    thud.start(t, rand(0, 1.5), 0.06);
-    for (const o of oscs) o.start(t);
-    cleanupAt(oscs, end, [...nodes, thud, thudLp, thudGain]);
-  }
+  const note = piano.note;
 
   function melody(s: StepInfo): number {
     const pool = pentatonicNotes(s.root, 60, 79);
@@ -321,9 +190,9 @@ export function createFeltPiano(core: Core): Instrument {
 // ---------------------------------------------------------------- string ensemble
 
 /**
- * A 1970s string machine: three slightly detuned saws per note, which is how the first ones got their width, through
- * a slow chorus and a faster one in series. A cut below the cello range keeps it out of the bass's way, and two broad
- * lifts stand in for the body and sheen of real strings.
+ * A string section on a bowed-string physical model (models/host.ts), six desks moving to each chord legato, through
+ * a slow chorus and a faster one in series for the width of a section. A cut below the cello range keeps it out of
+ * the bass's way, and two broad lifts bring out body and sheen.
  */
 export function createStrings(core: Core): Instrument {
   const { ctx } = core;
@@ -337,38 +206,15 @@ export function createStrings(core: Core): Instrument {
   hp.connect(body).connect(sheen).connect(lp).connect(fast.input);
   fast.output.connect(slow.input);
   slow.output.connect(out);
-  const v = voices(core, 'strings', hp);
-  const drift = createDrift(ctx, 4, 0.08);
+  const section = modelVoice(core, 'strings', hp);
   let soundingUntil = 0;
-
-  function voice(midi: number, t: number, hold: number, peak: number) {
-    if (v.synthOn) synthVoice(midi, t, hold, peak);
-    v.model?.note(t, midi, hold, 0.75);
-  }
-
-  function synthVoice(midi: number, t: number, hold: number, peak: number) {
-    const f = midiToFreq(midi);
-    const g = new GainNode(ctx, { gain: 0 });
-    g.connect(v.synth);
-    const oscs = [-7, 0.5, 8].map((d) => {
-      const o = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f, detune: d + rand(-1.5, 1.5) });
-      o.connect(g);
-      drift.connect(o.detune);
-      return o;
-    });
-    const end = envelope(g.gain, t, hold, { peak, attack: 1.3, release: 2.8 });
-    for (const o of oscs) o.start(t + rand(0, 1 / f));
-    cleanupAt(oscs, end, [g], () => {
-      for (const o of oscs) drift.disconnect(o.detune);
-    });
-  }
 
   function playChord(s: StepInfo, bars: number) {
     const hold = bars * s.barDur;
     const notes = voicing(s, 55, false);
     // Doubling the root up high opens the voicing like a section playing in octaves.
     notes.push(placeInRange(s.chord.rootPc, 72));
-    for (const m of notes) voice(m, s.time, hold, 0.035);
+    for (const m of notes) section.note(s.time, m, hold, 0.75);
     soundingUntil = s.time + hold;
   }
 
@@ -411,19 +257,13 @@ export function createVibes(core: Core): Instrument {
   rotor.connect(panDepth).connect(sweep.pan);
   rotor.start();
   tone.connect(motor).connect(sweep).connect(out);
-  const v = voices(core, 'vibes', tone);
   let nextHit = 0;
 
   function note(t: number, midi: number, vel: number) {
-    if (v.synthOn) synthNote(t, midi, vel);
-    v.model?.note(t, midi, 0, vel);
-  }
-
-  function synthNote(t: number, midi: number, vel: number) {
     const f = midiToFreq(midi);
     const amp = new GainNode(ctx, { gain: 0.16 * vel });
     const pan = new StereoPannerNode(ctx, { pan: clamp((midi - 67) / 28, -0.4, 0.4) });
-    amp.connect(pan).connect(v.synth);
+    amp.connect(pan).connect(tone);
     const ring = clamp(4.6 * Math.sqrt(262 / f), 2, 5.5);
     const oscs: OscillatorNode[] = [];
     const nodes: AudioNode[] = [amp, pan];
@@ -478,85 +318,26 @@ export function createVibes(core: Core): Instrument {
 // ---------------------------------------------------------------- tape flute
 
 /**
- * A flute on a tape-replay keyboard: a near-sine with a few soft harmonics and a little breath, a vibrato that arrives
- * late, and the slow pitch sag of tape running through the whole thing. Played low and dark, like an alto flute on a
- * worn tape: the top octave of a real flute is piercing. Short phrases of long notes, then bars of rest.
+ * A flute on a tape-replay keyboard, played softly on a jet-driven waveguide flute (models/host.ts): the breath carries
+ * a late vibrato, the tape a slow pitch sag. Low and dark, like an alto flute on a worn tape, with a quiet echo a
+ * dotted quarter behind. Short phrases of long notes, then bars of rest.
  */
 export function createTapeFlute(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 200, Q: 0.6 });
-  // Tape loses the top: everything above a few kHz is what made it shrill.
+  // Tape loses the top.
   const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2800, Q: 0.4 });
   hp.connect(lp).connect(out);
-  const v = voices(core, 'flute', hp);
   const delay = new DelayNode(ctx, { maxDelayTime: 3, delayTime: 0.75 });
   const feedback = new GainNode(ctx, { gain: 0.25 });
   const loopFilter = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1500 });
   const wet = new GainNode(ctx, { gain: 0.2 });
   lp.connect(delay).connect(loopFilter).connect(feedback).connect(delay);
   loopFilter.connect(wet).connect(out);
-  const vibrato = new OscillatorNode(ctx, { frequency: 4.7 });
-  const wow = new OscillatorNode(ctx, { frequency: 0.55 });
-  const wowDepth = new GainNode(ctx, { gain: 5 });
-  wow.connect(wowDepth);
-  vibrato.start();
-  wow.start();
+  const flute = modelVoice(core, 'flute', hp);
   let phrase: { step: number; midi: number; beats: number }[] = [];
   let last = 69;
-
-  function note(t: number, midi: number, hold: number, vel: number) {
-    if (v.synthOn) synthNote(t, midi, hold, vel);
-    v.model?.note(t, midi, hold, vel);
-  }
-
-  function synthNote(t: number, midi: number, hold: number, vel: number) {
-    const f = midiToFreq(midi);
-    const amp = new GainNode(ctx, { gain: 0 });
-    const pan = new StereoPannerNode(ctx, { pan: rand(-0.2, 0.2) });
-    amp.connect(pan).connect(v.synth);
-    const vibDepth = new GainNode(ctx, { gain: 0 });
-    vibrato.connect(vibDepth);
-    vibDepth.gain.setValueAtTime(0, t + 0.4);
-    vibDepth.gain.linearRampToValueAtTime(8, t + 1.2);
-    const oscs = [
-      { ratio: 1, gain: 1 },
-      { ratio: 2, gain: 0.16 },
-      { ratio: 3, gain: 0.05 },
-    ].map((p) => {
-      const o = new OscillatorNode(ctx, { frequency: f * p.ratio });
-      const g = new GainNode(ctx, { gain: p.gain });
-      o.connect(g).connect(amp);
-      vibDepth.connect(o.detune);
-      wowDepth.connect(o.detune);
-      return { o, g };
-    });
-    // Breath: a soft chiff as the note speaks, settling to a little air under the tone.
-    const breath = new AudioBufferSourceNode(ctx, { buffer: core.noise.get('pink'), loop: true });
-    const breathBp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: f * 2, Q: 1.1 });
-    const breathGain = new GainNode(ctx, { gain: 0 });
-    breathGain.gain.setValueAtTime(0, t);
-    breathGain.gain.linearRampToValueAtTime(0.5, t + 0.06);
-    breathGain.gain.setTargetAtTime(0.18, t + 0.06, 0.15);
-    breath.connect(breathBp).connect(breathGain).connect(amp);
-    // Blown in slowly, swelling a little into the note, then easing off as the breath runs out.
-    const peak = 0.1 * vel;
-    const attack = 0.2;
-    const relStart = t + Math.max(attack + 0.1, hold);
-    amp.gain.setValueAtTime(0, t);
-    amp.gain.linearRampToValueAtTime(peak * 0.8, t + attack);
-    amp.gain.linearRampToValueAtTime(peak, t + attack + (relStart - t - attack) * 0.4);
-    amp.gain.linearRampToValueAtTime(peak * 0.7, relStart);
-    amp.gain.setTargetAtTime(0, relStart, 0.12);
-    const end = relStart + 0.7;
-    for (const { o } of oscs) o.start(t);
-    startLoop(breath, t);
-    const sources = oscs.map((x) => x.o);
-    cleanupAt([...sources, breath], end, [amp, pan, vibDepth, breathBp, breathGain, ...oscs.map((x) => x.g)], () => {
-      vibrato.disconnect(vibDepth);
-      for (const o of sources) wowDepth.disconnect(o.detune);
-    });
-  }
 
   function makePhrase(s: StepInfo) {
     const pool = pentatonicNotes(s.root, 60, 77);
@@ -586,7 +367,7 @@ export function createTapeFlute(core: Core): Instrument {
         if (chance(0.3 + 0.2 * s.evolution)) makePhrase(s);
       }
       const hit = phrase.find((n) => n.step === s.stepInBar);
-      if (hit) note(s.time + rand(0, 0.02), hit.midi, hit.beats * 4 * s.stepDur, rand(0.75, 1));
+      if (hit) flute.note(s.time + rand(0, 0.02), hit.midi, hit.beats * 4 * s.stepDur, rand(0.75, 1));
     },
     deactivate() {
       phrase = [];

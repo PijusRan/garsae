@@ -1,66 +1,49 @@
-// Physical-model voices for the acoustic tiles (Faust models running in an AudioWorklet, see ../faust).
-// A tile's generator still decides what to play; this only decides which voice plays it:
-// - synth: the Web Audio voices, as always (the default; nothing here is loaded)
-// - model: the physical model instead
-// - ab: both play the same notes, and one control crossfades between them, for comparing by ear
+// Physical-model voices (Faust models running in an AudioWorklet, see ../faust) for the tape flute, string ensemble,
+// choir, felt piano, glass bells and walking bass. The tile's generator decides every note; the model plays it.
+// The models load once per engine, in the background (models/bank.ts). A voice asked for before they have loaded
+// joins in as soon as they have; until then its notes are dropped, which the tile's fade-in covers.
 import type { Core } from '../types';
 
-export type VoiceMode = 'synth' | 'model' | 'ab';
-export type ModelName = 'flute' | 'strings' | 'choir' | 'piano' | 'vibes' | 'arp' | 'bells' | 'walk' | 'congas';
-export type Stroke = 'open' | 'slap' | 'mute';
-
-/** The tiles that have a physical model, and which model. */
-export const MODEL_TILES = {
-  flute: 'flute',
-  strings: 'strings',
-  choir: 'choir',
-  piano: 'piano',
-  vibes: 'vibes',
-  arp: 'arp',
-  bells: 'bells',
-  walk: 'walk',
-  hands: 'congas',
-} as const;
+export type ModelName = 'flute' | 'strings' | 'choir' | 'piano' | 'bells' | 'walk';
+export type Vowel = 'oo' | 'oh' | 'ah';
 
 export interface ModelVoice {
   output: AudioNode;
-  /** A note at t held for `hold` seconds (struck models ignore the hold). Congas take a stroke. */
-  note(t: number, midi: number, hold: number, vel: number, stroke?: Stroke): void;
-  /** The choir's vowel. */
-  setVowel?(vowel: 'oo' | 'oh' | 'ah', t: number): void;
+  /** A note at t held for `hold` seconds (struck models ring on regardless). */
+  note(t: number, midi: number, hold: number, vel: number): void;
+  /** The choir's vowel, moving from t. */
+  setVowel?(vowel: Vowel, t: number): void;
 }
 
 export interface ModelHost {
-  mode: Exclude<VoiceMode, 'synth'>;
   create(name: ModelName): ModelVoice;
-  /** 0 hears the synth voices, 1 the models (A/B mode). */
-  ab: AudioNode;
 }
 
-export interface Voices {
-  /** Where the synth voice's notes connect. */
-  synth: AudioNode;
-  /** False when only the model plays: skip building synth notes at all. */
-  synthOn: boolean;
-  model: ModelVoice | null;
+export interface Models {
+  /** Set once loaded. */
+  host: ModelHost | null;
+  ready: Promise<ModelHost>;
 }
 
-/** Sets up a tile's voices: synth notes go to `synthDest`, the model's output to `modelDest`. */
-export function voices(core: Core, name: ModelName, synthDest: AudioNode, modelDest: AudioNode = synthDest): Voices {
-  const host = core.models;
-  if (!host) return { synth: synthDest, synthOn: true, model: null };
-  const model = host.create(name);
-  if (host.mode === 'model') {
-    model.output.connect(modelDest);
-    return { synth: synthDest, synthOn: false, model };
-  }
-  const { ctx } = core;
-  const synthGain = new GainNode(ctx, { gain: 1 });
-  const modelGain = new GainNode(ctx, { gain: 0 });
-  const invert = new GainNode(ctx, { gain: -1 });
-  host.ab.connect(modelGain.gain);
-  host.ab.connect(invert).connect(synthGain.gain);
-  synthGain.connect(synthDest);
-  model.output.connect(modelGain).connect(modelDest);
-  return { synth: synthGain, synthOn: true, model };
+/** A tile's model voice, playing into `dest`. */
+export function modelVoice(core: Core, name: ModelName, dest: AudioNode): ModelVoice {
+  const output = new GainNode(core.ctx, { gain: 1 });
+  output.connect(dest);
+  let voice: ModelVoice | null = null;
+  let vowel: { vowel: Vowel; t: number } | null = null;
+  const attach = (host: ModelHost) => {
+    voice = host.create(name);
+    voice.output.connect(output);
+    if (vowel) voice.setVowel?.(vowel.vowel, Math.max(vowel.t, core.ctx.currentTime));
+  };
+  if (core.models.host) attach(core.models.host);
+  else core.models.ready.then(attach, () => {});
+  return {
+    output,
+    note: (t, midi, hold, vel) => voice?.note(t, midi, hold, vel),
+    setVowel(v, t) {
+      vowel = { vowel: v, t };
+      voice?.setVowel?.(v, t);
+    },
+  };
 }

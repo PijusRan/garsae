@@ -2,7 +2,8 @@
 // blows across the embouchure; the jet takes a moment to cross it, then the jet table (x³ - x) turns it into a push
 // into the bore, whose reflection comes back through a lowpass and feeds the jet again. Every delay is worked out in
 // samples from the sample rate, with the reflection filter's phase delay taken off, so it plays in tune at any rate.
-// The breath carries the vibrato, as a flautist's does, and a little air noise. A slow wow on the pitch is the tape.
+// The breath carries the vibrato, as a flautist's does, and a little dark air noise. Played soft: gentle pressure, a
+// slow breath in, and the top rounded off. A slow wow on the pitch is the tape.
 import("stdfaust.lib");
 
 N = 2;
@@ -28,17 +29,17 @@ with {
 // asked-for one, less 18 µs, at 44.1 and 48 kHz alike. Ask for the note that comes out right.
 tuned(f) = 0.9862 / (1 / f + 0.000018);
 
-voice(i) = stkFlute(tuned(freq * wow), blow) * 0.6
+voice(i) = stkFlute(tuned(freq * wow), blow) : fi.lowpass(2, 2600) : *(0.6)
 with {
   freq = hslider("freq%i", 440, 50, 2000, 0.001);
   gate = hslider("gate%i", 0, 0, 1, 1);
   vel = hslider("vel%i", 0.8, 0, 1, 0.001);
-  // Blown in over a tenth of a second; let go a little faster.
-  breath = gate * (1.1 + 0.2 * vel) : si.smooth(ba.tau2pole(0.08));
+  // Blown in gently over a fifth of a second; let go a little faster.
+  breath = gate * (0.9 + 0.1 * vel) : si.smooth(ba.tau2pole(0.14));
   // The vibrato only arrives once the note has settled.
   late = gate : si.smooth(ba.tau2pole(0.5));
-  vibrato = os.osc(4.7 + 0.2 * i) * 0.04 * late * late;
-  air = no.noise * 0.08;
+  vibrato = os.osc(4.7 + 0.2 * i) * 0.035 * late * late;
+  air = no.noise : fi.lowpass(1, 1400) : *(0.12);
   blow = breath * (1 + vibrato + air);
   wow = 1 + 0.003 * os.osc(0.55);
 };

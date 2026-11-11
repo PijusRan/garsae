@@ -30,7 +30,7 @@ with {
   vel = hslider("vel%i", 0.8, 0, 1, 0.001);
   type = hslider("type%i", 0, 0, 4, 1);
   // Sung in over a couple of seconds, like the synth choir.
-  level = gate * (0.6 + 0.4 * vel) * 2 : si.smooth(ba.tau2pole(0.7));
+  level = gate * (0.6 + 0.4 * vel) * 2 : si.smooth(ba.tau2pole(0.9));
   // The vibrato fades in after the attack, like a held sung note.
   late = gate : si.smooth(ba.tau2pole(0.8));
   sung = freq * (1 + os.osc(4.9 + 0.31 * i) * 0.006 * late * late);
@@ -38,4 +38,5 @@ with {
 
 pan(i) = _ <: *(sqrt(1 - p)), *(sqrt(p)) with { p = 0.2 + 0.6 * i / (N - 1); };
 
-process = par(i, N, voice(i) : pan(i)) :> _, _;
+// Sung softly: the top rounded off, so the formants above 3 kHz (the bright "ring" of projected singing) stay back.
+process = par(i, N, voice(i) : pan(i)) :> par(c, 2, fi.lowpass(2, 2800));

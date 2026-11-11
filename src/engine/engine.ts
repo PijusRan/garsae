@@ -11,7 +11,7 @@ import { HANDOVER_GRACE_LOOPS, handoverChance, handoverCooldownBars } from './ev
 import { chance, pick } from './random';
 import { createArp, createBells, createDrone, createPad } from './instruments/pads';
 import { Master, type ModulationSettings } from './master';
-import type { VoiceMode } from './models/host';
+import type { Models } from './models/host';
 import { NoiseBank } from './noise';
 import { Scheduler } from './scheduler';
 import { Tile } from './tile';
@@ -86,14 +86,19 @@ export class Engine {
   private onSince = new Map<TileId, number>();
   private quietUntilLoop = HANDOVER_GRACE_LOOPS;
   private lastHandoverBar = -Infinity;
-  /** Resolves once the voices are ready: at once for the synth voices, after loading for the physical models. */
+  /** Resolves once the physical models have loaded (offline renders wait for it before switching tiles on). */
   readonly ready: Promise<void>;
-  /** A/B mode: 0 hears the synth voices, 1 the physical models. */
-  private ab?: ConstantSourceNode;
 
-  constructor(ctx?: BaseAudioContext, opts: { voices?: VoiceMode } = {}) {
+  /** Starts fetching the physical models' code early, before any engine exists (no audio is touched). */
+  static preload(): void {
+    void import('./models/bank');
+  }
+
+  constructor(ctx?: BaseAudioContext) {
     this.ctx = ctx ?? new AudioContext({ latencyHint: 'playback' });
     this.master = new Master(this.ctx);
+    const models: Models = { host: null, ready: import('./models/bank').then(({ createModelHost }) => createModelHost(this.ctx)) };
+    models.ready.then((host) => (models.host = host), (e) => console.error('physical models failed to load', e));
     this.core = {
       ctx: this.ctx,
       noise: new NoiseBank(this.ctx),
@@ -101,25 +106,10 @@ export class Engine {
       root: 9,
       bpm: 75,
       evolution: 0.3,
+      models,
     };
+    this.ready = models.ready.then(() => {});
     this.scheduler = new Scheduler(this.ctx, (step, time) => this.onStep(step, time), () => this.stepDur);
-    const mode = opts.voices ?? 'synth';
-    if (mode === 'synth') {
-      this.ready = Promise.resolve();
-    } else {
-      const ab = new ConstantSourceNode(this.ctx, { offset: mode === 'model' ? 1 : 0 });
-      ab.start();
-      this.ab = ab;
-      // Loaded on demand: the models' WebAssembly stays out of the app unless asked for.
-      this.ready = import('./models/bank').then(async ({ createModelHost }) => {
-        this.core.models = await createModelHost(this.ctx, mode, ab);
-      });
-    }
-  }
-
-  /** A/B mode: 0 plays the synth voices, 1 the physical models, crossfading in a few milliseconds. */
-  setModelMix(x: number): void {
-    this.ab?.offset.setTargetAtTime(x, this.ctx.currentTime, 0.008);
   }
 
   private get stepDur(): number {

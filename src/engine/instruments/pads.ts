@@ -7,7 +7,7 @@ import { chance, clamp, pick, rand, randInt } from '../random';
 import { createChorus, createDrift } from '../synth';
 import { chordInPentatonic, midiToFreq, notesInRange, pentatonicNotes, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
-import { voices } from '../models/host';
+import { modelVoice } from '../models/host';
 
 /** A slow lowpass LFO shared by several instruments for "filter / texture movement". */
 function movingFilter(core: Core, base: number, maxDepth: number, baseRate: number, q = 0.5) {
@@ -101,59 +101,19 @@ export function createPad(core: Core): Instrument {
 // ---------------------------------------------------------------- glass bells / sparse notes
 
 /**
- * Partials of an ideal free bar (glockenspiel, vibraphone): 1, 2.76 and 5.40 times the
- * fundamental, each fading faster than the one below. A twin of the fundamental a few
- * cents sharp beats slowly against it, which is what makes struck metal shimmer.
+ * Sparse notes on glass bars, a physical model (models/host.ts): a hard mallet on a free bar whose modes fall at 1,
+ * 2.76 and 5.40 times the fundamental, each dying faster than the one below, with a twin of the fundamental a few
+ * cents sharp that beats slowly against it, which is what makes struck metal and glass shimmer.
  */
-const BAR_PARTIALS = [
-  { ratio: 1, detune: 0, gain: 0.11, decay: 4.6 },
-  { ratio: 1, detune: 4, gain: 0.05, decay: 3.6 },
-  { ratio: 2.756, detune: 0, gain: 0.04, decay: 1.5 },
-  { ratio: 5.404, detune: 0, gain: 0.014, decay: 0.45 },
-];
-
 export function createBells(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const tone = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 14000 });
   tone.connect(out);
-  const v = voices(core, 'bells', tone);
+  const bars = modelVoice(core, 'bells', tone);
   let nextAllowed = 0;
   let last = 79;
-
-  function bell(t: number, midi: number, vel: number) {
-    if (v.synthOn) synthBell(t, midi, vel);
-    v.model?.note(t, midi, 0, vel);
-  }
-
-  function synthBell(t: number, midi: number, vel: number) {
-    const f = midiToFreq(midi);
-    const pan = new StereoPannerNode(ctx, { pan: rand(-0.6, 0.6) });
-    const amp = new GainNode(ctx, { gain: vel });
-    amp.connect(pan).connect(v.synth);
-    const oscs: OscillatorNode[] = [];
-    const nodes: AudioNode[] = [amp, pan];
-    let end = t;
-    for (const p of BAR_PARTIALS) {
-      const osc = new OscillatorNode(ctx, { frequency: f * p.ratio, detune: p.detune });
-      const g = new GainNode(ctx, { gain: 0 });
-      osc.connect(g).connect(amp);
-      // Softer strikes lose the upper partials first, like a lighter mallet.
-      const level = p.gain * (p.ratio > 2 ? vel : 1);
-      end = Math.max(end, percussive(g.gain, t, level, 0.002, p.decay));
-      oscs.push(osc);
-      nodes.push(g);
-    }
-    // The mallet: a few milliseconds of noise around the upper partials.
-    const strike = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
-    const strikeBp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: Math.min(f * 4, 9000), Q: 1.5 });
-    const strikeGain = new GainNode(ctx, { gain: 0 });
-    strike.connect(strikeBp).connect(strikeGain).connect(amp);
-    percussive(strikeGain.gain, t, 0.05 * vel, 0.001, 0.025);
-    strike.start(t, rand(0, 1.5), 0.05);
-    for (const o of oscs) o.start(t);
-    cleanupAt(oscs, end, [...nodes, strike, strikeBp, strikeGain]);
-  }
+  const bell = (t: number, midi: number, vel: number) => bars.note(t, midi, 0, vel);
 
   function chooseNote(s: StepInfo): number {
     const pool = pentatonicNotes(s.root, 72, 88);
@@ -223,21 +183,15 @@ export function createArp(core: Core): Instrument {
   filter.connect(delay);
   delay.connect(loopFilter).connect(feedback).connect(delay);
   loopFilter.connect(wet).connect(out);
-  const v = voices(core, 'arp', filter);
 
   let phrase: { step: number; midi: number; vel: number }[] = [];
   let last = 64;
 
   function note(t: number, midi: number, vel: number) {
-    if (v.synthOn) synthNote(t, midi, vel);
-    v.model?.note(t, midi, 0, vel);
-  }
-
-  function synthNote(t: number, midi: number, vel: number) {
     const f = midiToFreq(midi);
     const amp = new GainNode(ctx, { gain: 1 });
     const pan = new StereoPannerNode(ctx, { pan: clamp((midi - 64) / 24, -0.4, 0.4) });
-    amp.connect(pan).connect(v.synth);
+    amp.connect(pan).connect(filter);
     // Low bars ring longer than high ones.
     const ring = clamp(1.5 * Math.sqrt(262 / f), 0.7, 2);
     const oscs: OscillatorNode[] = [];

@@ -5,7 +5,7 @@ import { chance, clamp, pick, rand } from '../random';
 import { saturationCurve } from '../synth';
 import { DORIAN, midiToFreq, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
-import { voices } from '../models/host';
+import { modelVoice } from '../models/host';
 
 /** The MIDI note with pitch class `pc` closest to `ref`, kept inside [lo, hi]. */
 function nearest(pc: number, ref: number, lo: number, hi: number): number {
@@ -60,68 +60,96 @@ export function createSub(core: Core): Instrument {
   };
 }
 
-// ---------------------------------------------------------------- warm walking bass
+// ---------------------------------------------------------------- walking bass
 
+interface Walked {
+  beat: number;
+  midi: number;
+  vel: number;
+  beats: number;
+}
+
+/**
+ * An upright bass walking, on a plucked-string physical model (models/host.ts). Played as a jazz bassist builds a line:
+ * each bar is planned from where it must arrive. Beat 1 lands on the chord (its root on a change, otherwise a chord tone
+ * for variety); beats 2 and 3 move towards the next downbeat by chord tones and scale steps; beat 4 approaches it from a
+ * half step, a scale step or its fifth above. Calm settings play a two-feel (half notes on 1 and 3); livelier ones walk
+ * all four beats, now and then with a ghosted triplet "skip" into the next beat. Notes are long, each plucked afresh.
+ */
 export function createWalk(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 3200, Q: 0.5 });
   lp.connect(out);
-  const v = voices(core, 'walk', lp);
-  let last = 43;
-  const LO = 36;
+  const bass = modelVoice(core, 'walk', lp);
+  const LO = 31;
   const HI = 55;
+  let last = 43;
+  let fourFeel = false;
+  let bar: Walked[] = [];
+  /** Where the last bar's line was heading: this bar starts there. */
+  let target: number | null = null;
 
-  function note(t: number, midi: number, dur: number, vel: number) {
-    if (v.synthOn) synthNote(t, midi, dur, vel);
-    v.model?.note(t, midi, dur, vel);
+  const scaleOf = (s: StepInfo) => DORIAN.map((i) => (s.root + i) % 12);
+  /** Every note in range with one of these pitch classes. */
+  const notesOf = (pcs: number[]) => {
+    const found: number[] = [];
+    for (let m = LO; m <= HI; m++) if (pcs.includes(m % 12)) found.push(m);
+    return found;
+  };
+
+  /** How beat 4 leads into `target`: a half step either side, the scale step below or above, or its fifth above. */
+  function approach(s: StepInfo, target: number, from: number): number {
+    const scale = scaleOf(s);
+    const options = [target - 1, target + 1, target + 7, ...[-2, -1, 1, 2].map((d) => target + d).filter((m) => scale.includes(m % 12))]
+      .filter((m) => m >= LO && m <= HI && m !== target && m !== from);
+    // Mostly the near ones, so the line keeps moving by small steps.
+    const near = options.filter((m) => Math.abs(m - target) <= 2);
+    return near.length && chance(0.8) ? pick(near) : options.length ? pick(options) : target + 1;
   }
 
-  /**
-   * Upright-style pluck: a saw and a triangle through a lowpass that closes after the
-   * attack, a pitch that settles from a few cents sharp, and a soft finger thump.
-   */
-  function synthNote(t: number, midi: number, dur: number, vel: number) {
-    const f = midiToFreq(midi);
-    const g = new GainNode(ctx, { gain: 0 });
-    const tone = new BiquadFilterNode(ctx, { type: 'lowpass', Q: 0.9, frequency: 500 + 900 * vel });
-    tone.frequency.setTargetAtTime(f * 5, t + 0.01, 0.12);
-    const a = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f });
-    const b = new OscillatorNode(ctx, { type: 'triangle', frequency: f });
-    const sawGain = new GainNode(ctx, { gain: 0.7 });
-    for (const o of [a, b]) {
-      o.detune.setValueAtTime(14, t);
-      o.detune.setTargetAtTime(0, t, 0.02);
-    }
-    a.connect(sawGain).connect(tone);
-    b.connect(tone);
-    tone.connect(g).connect(v.synth);
-    const end = envelope(g.gain, t, dur, { peak: 0.34 * vel, attack: 0.006, decay: 0.45, sustain: 0.35, release: 0.12 });
-    const thump = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
-    const thumpLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 380 });
-    const thumpGain = new GainNode(ctx, { gain: 0 });
-    thump.connect(thumpLp).connect(thumpGain).connect(v.synth);
-    percussive(thumpGain.gain, t, 0.5 * vel, 0.002, 0.035);
-    thump.start(t, rand(0, 1.5), 0.06);
-    a.start(t);
-    b.start(t);
-    cleanupAt([a, b], end, [g, tone, sawGain, thump, thumpLp, thumpGain]);
+  /** A note from `pool` a step or two from `from`, heading for `to`. */
+  function towards(from: number, to: number, pool: number[]): number {
+    const dir = Math.sign(to - from) || (chance(0.5) ? 1 : -1);
+    const ahead = pool.filter((m) => m !== from && Math.sign(m - from) === dir && Math.abs(m - from) <= 5);
+    if (!ahead.length) return pool.reduce((best, m) => (m !== from && Math.abs(m - from) < Math.abs(best - from) ? m : best), pool[0]);
+    // Short of the target when there is room, and one of the nearest two, so the line steps rather than leaps.
+    const short = ahead.filter((m) => Math.abs(m - from) < Math.abs(to - from));
+    const options = short.length ? short : ahead;
+    options.sort((x, y) => Math.abs(x - from) - Math.abs(y - from));
+    return pick(options.slice(0, 2));
   }
 
-  function choose(s: StepInfo, beat: number): number {
-    if (beat === 0) return nearest(s.chord.rootPc, last, LO, HI);
-    if (s.barsLeftInChord === 1 && beat === 3) {
-      // Approach the next chord's root from one scale step above or below.
-      const target = nearest(s.nextChord.rootPc, last, LO + 2, HI - 2);
-      const scale = DORIAN.map((i) => (s.root + i) % 12);
-      const above = [1, 2].map((d) => target + d).find((m) => scale.includes(m % 12)) ?? target + 2;
-      const below = [1, 2].map((d) => target - d).find((m) => scale.includes(m % 12)) ?? target - 2;
-      return Math.abs(above - last) < Math.abs(below - last) ? above : below;
+  function plan(s: StepInfo): Walked[] {
+    const chordTones = notesOf(s.chord.pcs);
+    const scaleTones = notesOf(scaleOf(s));
+    const changing = s.chordChanged || s.bar % 2 === 0;
+    const own = changing ? nearest(s.chord.rootPc, last, LO, HI) : nearest(pick(s.chord.pcs.slice(1, 3)), last, LO, HI);
+    // Land where the last bar was heading, as long as it is still in the chord.
+    const first = target !== null && s.chord.pcs.includes(target % 12) ? target : own;
+    const into = s.barsLeftInChord === 1;
+    // Where the next bar starts: the next chord's root, or another tone of this chord.
+    const next = into ? nearest(s.nextChord.rootPc, first, LO, HI) : nearest(pick(s.chord.pcs), first + pick([-5, -3, 3, 5]), LO, HI);
+    target = next;
+    const downbeat = s.chordChanged ? 0.95 : 0.85;
+    if (!fourFeel) {
+      // Two-feel: the root, then the fifth, or a tone that leads to the next chord.
+      const third = into ? approach(s, next, first) : nearest(s.chord.pcs[2], first + 7, LO, HI);
+      return [
+        { beat: 0, midi: first, vel: downbeat, beats: 1.9 },
+        { beat: 2, midi: third, vel: 0.75, beats: 1.9 },
+      ];
     }
-    // Chord tones on strong beats, scale tones as passing notes.
-    const pcs = beat === 2 || chance(0.6) ? s.chord.pcs : DORIAN.map((i) => (s.root + i) % 12);
-    const options = pcs.map((pc) => nearest(pc, last, LO, HI)).filter((m) => m !== last && Math.abs(m - last) <= 7);
-    return options.length ? pick(options) : nearest(s.chord.rootPc, last, LO, HI);
+    const four = approach(s, next, first);
+    // Beats 2 and 3 never take the approach note itself, so beat 4 always moves.
+    const two = towards(first, four, scaleTones.filter((m) => m !== four));
+    const three = towards(two, four, chordTones.filter((m) => m !== four && m !== two));
+    return [
+      { beat: 0, midi: first, vel: downbeat, beats: 0.92 },
+      { beat: 1, midi: two, vel: 0.72, beats: 0.92 },
+      { beat: 2, midi: three, vel: 0.8, beats: 0.92 },
+      { beat: 3, midi: four, vel: 0.74, beats: 0.92 },
+    ];
   }
 
   return {
@@ -129,10 +157,24 @@ export function createWalk(core: Core): Instrument {
     step(s) {
       if (s.stepInBar % 4 !== 0) return;
       const beat = s.stepInBar / 4;
-      const restChance = 0.28 - 0.18 * noteDensity(s.evolution);
-      if (beat !== 0 && !(s.barsLeftInChord === 1 && beat === 3) && chance(restChance)) return;
-      last = choose(s, beat);
-      note(s.time, last, s.stepDur * 3.3, beat === 0 ? 1 : rand(0.7, 0.9));
+      const beatDur = s.stepDur * 4;
+      if (beat === 0) {
+        // The feel holds for a whole chord.
+        if (s.chordChanged || bar.length === 0) fourFeel = chance(clamp((s.evolution - 0.2) / 0.45, 0, 1));
+        bar = plan(s);
+      }
+      const n = bar.find((x) => x.beat === beat);
+      if (!n) return;
+      last = n.midi;
+      bass.note(s.time, n.midi, n.beats * beatDur, n.vel * rand(0.92, 1.05));
+      // A skip: a ghosted repeat on the last triplet of beats 2 and 4, rarer when calm.
+      if (fourFeel && (beat === 1 || beat === 3) && chance(0.1 * noteDensity(s.evolution))) {
+        bass.note(s.time + (beatDur * 2) / 3, n.midi, beatDur / 4, 0.35);
+      }
+    },
+    deactivate() {
+      bar = [];
+      target = null;
     },
   };
 }

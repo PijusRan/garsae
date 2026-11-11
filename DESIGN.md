@@ -44,7 +44,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 
 ### Pads / melodies
 - **Each instrument defines its own generator**; there is no single global method. For example, the chord pad drifts between chords, the bells play sparse notes, and the arpeggio arpeggiates.
-- Acoustic instruments copy the physics that makes them recognisable rather than a general synth patch: the felt piano's partials follow the stiff-string formula, the vibraphone's bars are tuned 1:4:10 with a motor tremolo, the string ensemble uses three detuned paths per note like the first string machines.
+- Acoustic instruments copy the physics that makes them recognisable rather than a general synth patch. The tape flute, strings, choir, felt piano, glass bells and walking bass are physical models (Faust, in an AudioWorklet): a jet-driven flute, a bowed string, formant voices, a felt hammer on stiff-string modes, a struck free bar, a plucked upright. The vibraphone stays additive, its bars tuned 1:4:10 with a motor tremolo.
 
 ### Focus-aid tiles
 - **Noise colours**: brown / pink / green noise variants (Texture).

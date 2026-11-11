@@ -1,36 +1,31 @@
-// The physical-model voices. Loaded on demand (a dynamic import from the engine), so the models' WebAssembly
-// never reaches the app unless they are switched on.
-import arp from '../faust/gen/arp';
+// The physical models and how each tile plays its own. Loaded by the engine with a dynamic import, so the page can
+// draw before the models' WebAssembly has arrived.
 import bells from '../faust/gen/bells';
 import choir from '../faust/gen/choir';
-import congas from '../faust/gen/congas';
 import flute from '../faust/gen/flute';
 import piano from '../faust/gen/piano';
 import strings from '../faust/gen/strings';
-import vibes from '../faust/gen/vibes';
 import walk from '../faust/gen/walk';
 import { compile, FaustNode, loadProcessor, VoicePool } from '../faust/node';
 import type { FaustModel } from '../faust/types';
 import { clamp } from '../random';
 import { midiToFreq } from '../theory';
-import type { ModelHost, ModelName, ModelVoice, Stroke, VoiceMode } from './host';
+import type { ModelHost, ModelName, ModelVoice } from './host';
 
-const MODELS: Record<ModelName, FaustModel> = { flute, strings, choir, piano, vibes, arp, bells, walk, congas };
+const MODELS: Record<ModelName, FaustModel> = { flute, strings, choir, piano, bells, walk };
 
 /**
- * Output trims, so a model plays as loud as the synth voice it stands in for (matched by integrated loudness on
- * solo renders; see the models section of the smoke test). A/B comparisons are only fair at equal loudness.
+ * Output trims. They were set so each model plays as loud as the synth voice it replaced (integrated loudness of
+ * long solo renders), keeping the tiles' calibrated levels in tiles.ts valid; the flute and choir then came down a
+ * little, as they were asked to be softer.
  */
 const TRIM: Record<ModelName, number> = {
-  flute: 0.38,
+  flute: 0.29,
   strings: 0.32,
-  choir: 1.64,
-  piano: 0.4,
-  vibes: 0.41,
-  arp: 0.25,
+  choir: 1.5,
+  piano: 0.46,
   bells: 0.37,
-  walk: 3.15,
-  congas: 1.04,
+  walk: 1.95,
 };
 
 type Compiled = Awaited<ReturnType<typeof compile>>;
@@ -80,9 +75,7 @@ function held(
   };
 }
 
-const STROKES: Record<Stroke, number> = { open: 0, slap: 1, mute: 2 };
-
-/** Faust's vowel index for the synth choir's vowels; "ah" would pass through "i" and "e", so it stays a dark "o". */
+/** Faust's vowel index for the choir's vowels; "ah" would pass through "i" and "e" on its way, so it is a dark "o". */
 const VOWELS = { oo: 4, oh: 3, ah: 3.2 };
 
 const MAKERS: Record<ModelName, (ctx: BaseAudioContext, c: Compiled) => ModelVoice> = {
@@ -103,27 +96,15 @@ const MAKERS: Record<ModelName, (ctx: BaseAudioContext, c: Compiled) => ModelVoi
     return voice;
   },
   piano: (ctx, c) => held(ctx, 'piano', c, 8, 0.6, false).voice,
-  vibes: (ctx, c) => struck(ctx, 'vibes', c, 6, (m) => clamp(4.2 * Math.sqrt(262 / midiToFreq(m)), 1.8, 5)),
-  arp: (ctx, c) => struck(ctx, 'arp', c, 5, (m) => clamp(1.6 * Math.sqrt(262 / midiToFreq(m)), 0.7, 2.2)),
   bells: (ctx, c) => struck(ctx, 'bells', c, 4, () => 4.2),
+  // Each note is plucked afresh; the finger on the string damps the last one.
   walk: (ctx, c) => held(ctx, 'walk', c, 2, 0.15, false).voice,
-  congas: (ctx, c) => {
-    const { fx, output } = start(ctx, 'congas', c);
-    const pool = new VoicePool(4);
-    return {
-      output,
-      note(t, midi, _hold, vel, stroke = 'open') {
-        const { voice } = pool.take(t, midi, t, stroke === 'open' ? 0.5 : 0.15);
-        fx.strike(voice, t, { freq: midiToFreq(midi), vel: clamp(vel, 0, 1), stroke: STROKES[stroke] });
-      },
-    };
-  },
 };
 
 /** Loads the worklet and compiles every model, so tiles can create their voices synchronously afterwards. */
-export async function createModelHost(ctx: BaseAudioContext, mode: Exclude<VoiceMode, 'synth'>, ab: AudioNode): Promise<ModelHost> {
+export async function createModelHost(ctx: BaseAudioContext): Promise<ModelHost> {
   const names = Object.keys(MODELS) as ModelName[];
   const [, ...compiled] = await Promise.all([loadProcessor(ctx), ...names.map((n) => compile(MODELS[n]))]);
   const byName = Object.fromEntries(names.map((n, i) => [n, compiled[i]])) as Record<ModelName, Compiled>;
-  return { mode, ab, create: (name) => MAKERS[name](ctx, byName[name]) };
+  return { create: (name) => MAKERS[name](ctx, byName[name]) };
 }

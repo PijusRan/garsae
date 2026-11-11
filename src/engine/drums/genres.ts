@@ -5,8 +5,7 @@ import { chance, rand } from '../random';
 import type { Core, Instrument, StepInfo } from '../types';
 import { makeTracks, mutateOnce, parsePattern, type Track, type TrackDef } from './patterns';
 import { saturationCurve } from '../synth';
-import { playHit, type HitOpts, type Kit, type Voice } from './voices';
-import { voices, type ModelName, type Stroke } from '../models/host';
+import { playHit, type Kit, type Voice } from './voices';
 
 interface Chain {
   input: AudioNode;
@@ -24,8 +23,6 @@ interface GenreDef {
   /** 4-step fills that may replace the last beat of a 4-bar phrase. */
   fills: { voice: Voice; pattern: string; opts?: TrackDef['opts'] }[];
   chain(ctx: BaseAudioContext): Chain;
-  /** A physical model that can play some of the kit's voices: which note and stroke a hit becomes, or null. */
-  model?: { name: ModelName; hit(voice: Voice, opts?: HitOpts): { midi: number; stroke: Stroke } | null };
 }
 
 /** A drum bus: cleaned-up lows, a fast gentle compressor for punch, soft saturation for glue, a roll-off on top. */
@@ -154,16 +151,6 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'hands' | 'house' |
     ],
     fills: [{ voice: 'conga', pattern: '.ooX', opts: { tone: 1.32, decay: 0.8 } }],
     chain: (ctx) => drumBus(ctx, { highpass: 40, lowpass: 9000, drive: 1.15, threshold: -24, ratio: 2, release: 0.15, gain: 1 }),
-    model: {
-      name: 'congas',
-      hit(voice, opts) {
-        if (voice !== 'conga' && voice !== 'congaslap') return null;
-        // The conga voice's tone 1 is about 220 Hz (A3).
-        const midi = 57 + 12 * Math.log2(opts?.tone ?? 1);
-        if (voice === 'congaslap') return { midi, stroke: 'slap' };
-        return { midi, stroke: (opts?.decay ?? 1) < 0.5 ? 'mute' : 'open' };
-      },
-    },
   },
 
   // Deep house: a rounder kick than techno, a clap laid on top of a soft shuffle.
@@ -254,28 +241,18 @@ function createPatternGenre(def: GenreDef) {
     const chain = def.chain(ctx);
     const tracks: Track[] = makeTracks(def.tracks);
     const fills = def.fills.map((f) => ({ ...f, steps: parsePattern(f.pattern) }));
-    // Voices the genre's physical model plays: their synth hits go through the model switch.
-    const model = def.model ? voices(core, def.model.name, chain.input) : null;
-    const modelled = (voice: Voice) => def.model?.hit(voice, undefined) != null;
     const placed = new Map<Voice, AudioNode>();
     /** The input a voice plays into: through a panner of its own if it has a place in the kit. */
     const placeOf = (voice: Voice): AudioNode => {
-      const into = model && modelled(voice) ? model.synth : chain.input;
       const pan = KIT_PAN[voice];
-      if (pan === undefined) return into;
+      if (pan === undefined) return chain.input;
       let node = placed.get(voice);
       if (!node) {
         node = new StereoPannerNode(ctx, { pan });
-        node.connect(into);
+        node.connect(chain.input);
         placed.set(voice, node);
       }
       return node;
-    };
-    /** One hit, on the synth kit, the model, or both. */
-    const hit = (voice: Voice, dest: AudioNode, t: number, vel: number, opts?: HitOpts) => {
-      const m = model?.model && def.model?.hit(voice, opts);
-      if (m) model.model!.note(t, m.midi, 0, vel, m.stroke);
-      if (!m || model!.synthOn) playHit(kit, voice, dest, t, vel, opts);
     };
     let fillThisBar = false;
 
@@ -300,13 +277,13 @@ function createPatternGenre(def: GenreDef) {
           if (vel <= 0) continue;
           const at = Math.max(s.time, t + rand(-def.humanize, def.humanize));
           const v = vel * (tr.def.gain ?? 1) * rand(0.92, 1.05);
-          hit(tr.def.voice, placeOf(tr.def.voice), at, v, tr.def.opts);
+          playHit(kit, tr.def.voice, placeOf(tr.def.voice), at, v, tr.def.opts);
           if (tr.def.echo && chain.echo) playHit(kit, tr.def.voice, chain.echo, at, v, tr.def.opts);
         }
         if (fillThisBar && s.stepInBar >= 12) {
           for (const f of fills) {
             const vel = f.steps[s.stepInBar - 12];
-            if (vel > 0) hit(f.voice, placeOf(f.voice), t, vel * 0.8, f.opts);
+            if (vel > 0) playHit(kit, f.voice, placeOf(f.voice), t, vel * 0.8, f.opts);
           }
         }
       },
