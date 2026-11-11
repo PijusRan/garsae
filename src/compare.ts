@@ -1,65 +1,100 @@
-// Dev-only comparison page (compare.html, or npm run compare): each tile that has an alternate voice
-// (src/engine/alternates), played with both its own voice (A) and the alternate (B) on the very same notes,
-// so switching is instant and only the voice changes.
-import { ALTERNATES, ALTERNATE_TILES } from './engine/alternates';
+// Dev-only comparison page (compare.html, or npm run compare): each tile with alternates (src/engine/alternates) plays
+// its own voice (A) and every alternate (B, C, ...) on the very same notes, so switching is instant and only the
+// voice changes.
+import { ALTERNATE_TILES, ALTERNATES, prepareAlternates, slotLabels } from './engine/alternates';
 import { Engine } from './engine/engine';
-import { TILE_BY_ID, type TileId } from './tiles';
+import { CATEGORIES, TILE_BY_ID, type TileId } from './tiles';
 
-const COMPARED: TileId[] = ALTERNATE_TILES;
 const BACKING: TileId[] = ['pad', 'sub', 'lofi', 'brown'];
+const LETTERS = 'ABCDEFG';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const on = new Set<TileId>(COMPARED.slice(0, 1));
+const on = new Set<TileId>(ALTERNATE_TILES.slice(0, 1));
 const backing = new Set<TileId>();
 let engine: Engine | null = null;
-/** Which side is heard: 0 = A, 1 = B. */
-let side = 0;
-/** Blind mode swaps the sides at random, so A is not always the synth. */
-let swapped = false;
+/** The button picked (0 = A). */
+let picked = 0;
+/** Which voice each button plays: in order, or shuffled in blind mode. */
+let order: number[] = [0];
 
-function toggles(container: HTMLElement, ids: TileId[], set: Set<TileId>) {
-  for (const id of ids) {
-    const b = document.createElement('button');
-    b.textContent = TILE_BY_ID[id].name;
+function toggle(id: TileId, set: Set<TileId>): HTMLButtonElement {
+  const b = document.createElement('button');
+  b.textContent = TILE_BY_ID[id].name;
+  b.setAttribute('aria-pressed', String(set.has(id)));
+  b.onclick = () => {
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
     b.setAttribute('aria-pressed', String(set.has(id)));
-    b.onclick = () => {
-      if (set.has(id)) set.delete(id);
-      else set.add(id);
-      b.setAttribute('aria-pressed', String(set.has(id)));
-      apply();
-      labels();
-    };
-    container.append(b);
+    apply();
+    slots();
+  };
+  return b;
+}
+
+/** The tiles with alternates, by category. */
+function tileButtons() {
+  for (const cat of CATEGORIES) {
+    const ids = ALTERNATE_TILES.filter((id) => TILE_BY_ID[id].category === cat.id);
+    if (!ids.length) continue;
+    const group = document.createElement('div');
+    group.className = 'group';
+    const h = document.createElement('h3');
+    h.textContent = cat.name;
+    const row = document.createElement('div');
+    row.className = 'row';
+    for (const id of ids) row.append(toggle(id, on));
+    group.append(h, row);
+    $('tiles').append(group);
   }
 }
 
-/** Volumes a little under each tile's default, with the backing quieter still, so nothing hits the limiter. */
+/** Volumes at each tile's default, the backing quieter, so nothing hits the limiter. */
 function apply() {
   if (!engine) return;
-  for (const id of COMPARED) engine.setTile(id, on.has(id), TILE_BY_ID[id].defaultVolume);
-  for (const id of BACKING) engine.setTile(id, backing.has(id), TILE_BY_ID[id].defaultVolume * 0.7);
+  for (const id of ALTERNATE_TILES) engine.setTile(id, on.has(id), TILE_BY_ID[id].defaultVolume);
+  for (const id of BACKING) if (!ALTERNATES[id]) engine.setTile(id, backing.has(id), TILE_BY_ID[id].defaultVolume * 0.7);
 }
 
-/** What B is, for the tiles switched on. */
-function alternateName(): string {
-  const names = new Set([...on].map((id) => ALTERNATES[id as keyof typeof ALTERNATES]?.label ?? 'Alternate'));
-  return names.size === 1 ? [...names][0] : 'Alternates';
+/** What voice k is, for the tiles switched on. */
+function slotName(k: number): string {
+  const names = new Set([...on].map((id) => slotLabels(id)[k]).filter(Boolean));
+  return names.size === 1 ? [...names][0] : names.size ? [...names].join(' / ') : 'Current';
 }
 
-function labels() {
-  const blind = $<HTMLInputElement>('blind').checked;
-  const names = swapped ? [alternateName(), 'Current'] : ['Current', alternateName()];
-  $('a').innerHTML = `A<small>${blind ? '?' : names[0]}</small>`;
-  $('b').innerHTML = `B<small>${blind ? '?' : names[1]}</small>`;
-  $('a').setAttribute('aria-pressed', String(side === 0));
-  $('b').setAttribute('aria-pressed', String(side === 1));
+function blind(): boolean {
+  return $<HTMLInputElement>('blind').checked;
 }
 
-function hear(next: number) {
-  side = next;
-  // The alternate is heard when B is picked, unless blind mode swapped the sides.
-  engine?.setCompareMix((side === 1) !== swapped ? 1 : 0);
-  labels();
+/** One button per voice the switched-on tiles have. */
+function slots() {
+  const count = Math.max(1, ...[...on].map((id) => slotLabels(id).length));
+  if (order.length !== count) {
+    order = Array.from({ length: count }, (_, i) => i);
+    if (blind()) shuffle();
+    picked = Math.min(picked, count - 1);
+  }
+  const box = $('slots');
+  box.replaceChildren();
+  order.forEach((voice, i) => {
+    const b = document.createElement('button');
+    b.innerHTML = `${LETTERS[i]}<small>${blind() ? '?' : slotName(voice)}</small>`;
+    b.setAttribute('aria-pressed', String(i === picked));
+    b.onclick = () => hear(i);
+    box.append(b);
+  });
+}
+
+function shuffle() {
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+}
+
+function hear(i: number) {
+  picked = i;
+  engine?.setCompareChoice(order[i]);
+  slots();
 }
 
 async function togglePlay() {
@@ -70,8 +105,8 @@ async function togglePlay() {
     engine = new Engine(undefined, { alternates: ALTERNATES });
     engine.setBpm(Number($<HTMLInputElement>('bpm').value));
     engine.setEvolution(Number($<HTMLInputElement>('evolution').value) / 100);
-    await engine.ready;
-    hear(side);
+    await Promise.all([engine.ready, prepareAlternates(engine.ctx)]);
+    hear(picked);
     apply();
     play.disabled = false;
     $('status').textContent = '';
@@ -85,23 +120,20 @@ async function togglePlay() {
   }
 }
 
-toggles($('tiles'), COMPARED, on);
-toggles($('backing'), BACKING, backing);
-labels();
+tileButtons();
+for (const id of BACKING) if (!ALTERNATES[id]) $('backing').append(toggle(id, backing));
+slots();
 
 $('play').onclick = () => void togglePlay();
-$('a').onclick = () => hear(0);
-$('b').onclick = () => hear(1);
-$<HTMLInputElement>('blind').onchange = (e) => {
-  const blind = (e.target as HTMLInputElement).checked;
-  swapped = blind && Math.random() < 0.5;
-  $('reveal').hidden = !blind;
+$<HTMLInputElement>('blind').onchange = () => {
+  order = order.map((_, i) => i);
+  if (blind()) shuffle();
+  $('reveal').hidden = !blind();
   $('reveal-out').textContent = '';
-  hear(side);
+  hear(picked);
 };
 $('reveal').onclick = () => {
-  const alt = alternateName().toLowerCase();
-  $('reveal-out').textContent = swapped ? `A was the ${alt}, B the current voice.` : `A was the current voice, B the ${alt}.`;
+  $('reveal-out').textContent = order.map((voice, i) => `${LETTERS[i]} was ${slotName(voice).toLowerCase()}`).join(', ') + '.';
 };
 $<HTMLInputElement>('evolution').oninput = (e) => engine?.setEvolution(Number((e.target as HTMLInputElement).value) / 100);
 $<HTMLInputElement>('bpm').oninput = (e) => {
@@ -111,10 +143,10 @@ $<HTMLInputElement>('bpm').oninput = (e) => {
 };
 document.addEventListener('keydown', (e) => {
   if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
+  const letter = LETTERS.indexOf(e.key.toUpperCase());
   if (e.key === ' ') {
     e.preventDefault();
-    hear(1 - side);
-  } else if (e.key === 'a' || e.key === 'A') hear(0);
-  else if (e.key === 'b' || e.key === 'B') hear(1);
+    hear((picked + 1) % order.length);
+  } else if (letter >= 0 && letter < order.length) hear(letter);
   else if (e.key === 'p' || e.key === 'P') void togglePlay();
 });

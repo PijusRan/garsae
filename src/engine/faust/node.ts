@@ -65,9 +65,9 @@ export class FaustNode {
     return p;
   }
 
-  /** Sets controls of voice i (labels without the index) at time t. */
+  /** Sets controls of voice i (labels without the index) at time t. Controls the model doesn't use are skipped. */
   set(i: number, t: number, values: Record<string, number>): void {
-    for (const [label, v] of Object.entries(values)) this.param(`${label}${i}`).setValueAtTime(v, t);
+    for (const [label, v] of Object.entries(values)) this.params.get(`${label}${i}`)?.setValueAtTime(v, t);
   }
 
   /** A struck note: the gate's rising edge is the hit. */

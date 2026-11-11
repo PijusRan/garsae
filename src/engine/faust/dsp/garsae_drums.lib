@@ -1,0 +1,171 @@
+// Drum voices for the Faust drum kits (kit_*.dsp). Acoustic drums are physical models: membranes and bars as banks
+// of decaying modes, snare wires as noise that buzzes while the head moves, a shaker as beads colliding at random.
+// Electronic drums are models of the drum-machine circuits (TR-808, TR-909): resonators rung by a pulse, sines with
+// a pitch envelope through a waveshaper, square-wave metal, hand claps from a noise burst struck several times.
+// Every voice takes a hit (a one-sample impulse, see `hit`) and a velocity 0-1; levels are about equal at velocity 1.
+import("stdfaust.lib");
+
+// ---------------------------------------------------------------- helpers
+
+// A gate's rising edge, as a one-sample impulse.
+hit(gate) = gate : ba.impulsify;
+
+// Exponential decay to -60 dB in t60 seconds, back to 1 at each hit.
+fall(t60, h) = h : (max ~ *(p)) with { p = exp(-6.9078 / max(1, t60 * ma.SR)); };
+
+// A noise burst through a band, gone in about `t` seconds: clicks, ticks and slaps.
+burst(lo, hi, t, n, h) = n : fi.highpass(2, lo) : fi.lowpass(2, hi) : *(fall(t, h));
+
+// A bank of N decaying modes on a base frequency f: ratios R, gains G and T60s (times t60) T, as lists.
+modes(N, f, t60, R, G, T) = _ <: par(k, N, pm.modeFilter(fk(k), t60 * ba.take(k + 1, T), gk(k))) :> _
+with {
+  fk(k) = f * ba.take(k + 1, R);
+  gk(k) = select2(fk(k) < ma.SR / 2 - 300, 0, ba.take(k + 1, G));
+};
+
+// A pulse for exciting modes: an impulse rounded off at `hardness` Hz (a felt mallet a few hundred, a stick thousands).
+strike(hardness, vel, h) = h * vel : fi.lowpass(2, hardness);
+
+// Where a voice sits: equal-power pan p (0 left, 1 right) on two channels, and its send to the kit's echo on a third.
+place(p, echo) = _ <: *(sqrt(1 - p)), *(sqrt(p)), *(echo);
+
+// Sampler grit: the 12-bit, reduced-rate sound of the samplers hip-hop was made on.
+grit(bits, rate) = ba.downSample(rate) : quant
+with {
+  steps = 2 ^ (bits - 1);
+  quant(x) = floor(x * steps + 0.5) / steps;
+};
+
+// ---------------------------------------------------------------- acoustic
+
+// An ideal circular membrane's modes: the zeros of the Bessel functions, not harmonics.
+MEMBRANE = (1, 1.594, 2.136, 2.296, 2.653, 2.918, 3.156, 3.501);
+
+// A bass drum: a beater on a big head. f the head's pitch, t60 its ring (short when a pillow damps it), hardness the
+// beater (felt about 500 Hz, plastic about 3000). The pitch sags a few percent as the head relaxes after the blow.
+kick(f, t60, hardness, vel, h) = (strike(hardness, vel, h) <: modes(6, f * sag, t60, MEMBRANE, (1, 0.3, 0.2, 0.12, 0.08, 0.06), (1, 0.4, 0.3, 0.25, 0.2, 0.15))) * 0.2 + beater
+with {
+  sag = 1 + 0.2 * vel * fall(0.06, h);
+  beater = burst(hardness * 0.5, hardness * 2, 0.01, no.noises(8, 0), h) * vel * 0.06;
+};
+
+// A tom or a frame drum: the same as a kick, higher, with more of the upper modes.
+tom(f, t60, hardness, vel, h) = (strike(hardness, vel, h) <: modes(6, f * sag, t60, MEMBRANE, (1, 0.5, 0.35, 0.25, 0.18, 0.12), (1, 0.5, 0.4, 0.3, 0.25, 0.2))) * 0.2
+with {
+  sag = 1 + 0.12 * vel * fall(0.08, h);
+};
+
+// A snare drum: the batter head's modes, and the wires, which buzz for as long as the head moves (noise shaped by a
+// fall that lasts `snappy` times the head's ring). bright opens the stick and the wires' top.
+snare(f, t60, snappy, bright, vel, h) = head + wires
+with {
+  head = strike(2500 * bright, vel, h) <: modes(6, f, t60, MEMBRANE, (1, 0.7, 0.55, 0.45, 0.35, 0.3), (1, 0.6, 0.5, 0.45, 0.4, 0.35)) : *(0.16);
+  wires = no.noises(8, 1) : fi.highpass(2, 1400) : fi.lowpass(2, 7000 * bright) : *(fall(t60 * snappy, h) * vel * 0.35);
+};
+
+// A cross-stick: the stick laid across the snare, its tip on the head and its shaft cracking the rim. A woody click
+// from the rim and shell's short modes (f around 500 Hz) over a little of the head.
+crossstick(f, t60, vel, h) = rim + head
+with {
+  rim = strike(7000, vel, h) <: modes(4, f, t60, (1, 2.27, 3.41, 4.63), (1, 0.6, 0.4, 0.25), (1, 0.7, 0.5, 0.35)) : *(0.155);
+  head = strike(900, vel, h) <: modes(2, 185, t60 * 1.5, (1, 1.594), (1, 0.4), (1, 0.6)) : *(0.09);
+};
+
+// A hi-hat: two thin cymbals. Their hundreds of inharmonic modes are stood in for by noise through a cluster of
+// narrow bands at a cymbal's spacing, with a bright sizzle above; the stick tip ticks. Closed, they choke fast.
+HAT_BANDS = (3150, 4430, 5320, 6930, 8710, 10650);
+hat(bright, t60, vel, h) = ((bands + sizzle) * fall(t60, h) * vel + tip) * 0.12
+with {
+  n = no.noises(8, 2);
+  bands = n <: par(k, 6, fi.resonbp(ba.take(k + 1, HAT_BANDS) * bright, 7, 1)) :> *(0.25);
+  sizzle = n : fi.highpass(2, 7500 * bright) : *(0.35);
+  tip = burst(2500, 9000, 0.004, n, h) * vel * 0.5;
+};
+
+// A stick ride (a jazz or funk ride): a cluster of the cymbal's inharmonic modes, the high ones dying first, a wash
+// of noise that rings on, and the stick's tick. tone scales the cluster.
+RIDE_F = (612, 1063, 1527, 2234, 2981, 3672, 4418, 5361, 6670, 8125);
+RIDE_G = (0.1, 0.15, 0.2, 0.3, 0.4, 0.45, 0.45, 0.4, 0.3, 0.2);
+RIDE_T = (1.6, 1.4, 1.2, 1, 0.85, 0.7, 0.6, 0.5, 0.4, 0.3);
+ride(tone, t60, vel, h) = (strike(9000, vel, h) <: modes(10, tone, t60, RIDE_F, RIDE_G, RIDE_T)) * 0.016 + wash + tip
+with {
+  n = no.noises(8, 3);
+  wash = n : fi.resonbp(7000 * tone, 0.8, 1) : fi.highpass(2, 4500) : *(fall(1.3 * t60, h) * vel * 0.03);
+  tip = burst(3000, 8000, 0.006, n, h) * vel * 0.02;
+};
+
+// A shaker, after Cook's PhISEM: beads collide at random, more often the harder it is shaken, each collision a click
+// through the shell's resonances. The shake swells in over a few milliseconds and dies away over t60.
+shaker(bright, t60, vel, h) = beads <: fi.resonbp(3300 * bright, 3, 1), fi.resonbp(6200 * bright, 2.5, 1) :> fi.highpass(2, 1800) : *(0.18)
+with {
+  energy = (fall(t60, h) - fall(0.012, h)) * vel : max(0);
+  beads = (no.noises(8, 4) : abs) > (1 - 0.25 * energy) : *(no.noises(8, 5)) : *(energy);
+};
+
+// A conga: the head's modes struck by the hand. Open tones ring; a slap is a sharp hand with a pop of skin noise that
+// wakes the upper modes and dies fast; a muted stroke presses the head and damps it all. The pitch sags a little.
+CONGA_OPEN = (1, 0.55, 0.42, 0.3, 0.26, 0.2, 0.16, 0.13);
+CONGA_SLAP = (0.29, 0.29, 0.32, 0.29, 0.29, 0.26, 0.24, 0.23);
+conga(f, stroke, vel, h) = (hand <: par(k, 8, mode(k)) :> _) * 0.21 + pop
+with {
+  slap = stroke == 1;
+  muted = stroke == 2;
+  soft = select2(slap, select2(muted, 900, 500), 3500);
+  hand = strike(soft, vel, h) : fi.lowpass(2, soft);
+  sag = 1 + 0.035 * fall(0.06, h);
+  t60(k) = 0.5 / (1 + 0.45 * k) * select2(muted, select2(slap, 1, 0.45), 0.18);
+  level(k) = select2(slap, ba.take(k + 1, CONGA_OPEN), ba.take(k + 1, CONGA_SLAP));
+  mode(k) = pm.modeFilter(f * ba.take(k + 1, MEMBRANE) * select2(k == 0, 1, sag), t60(k), level(k));
+  pop = no.noises(8, 6) : fi.resonbp(2000, 1.2, 1) : *(fall(0.05, h) * vel * slap * 0.1);
+};
+
+// ---------------------------------------------------------------- drum machines
+
+// A sine from phase 0 at each hit, its pitch following `pitch`.
+sineFrom(pitch, h) = sin(2 * ma.PI * phase)
+with {
+  phase = (*(1 - h) : +(pitch / ma.SR) : ma.frac) ~ _;
+};
+
+// The TR-909 bass drum: a sine whose pitch dives from `bend` times the note to the note within tens of milliseconds,
+// through a soft clipper (the 909's waveshaper; drive is how hard), with a noise click for the beater.
+kick909(f, bend, t60, drive, vel, h) = shaped + click
+with {
+  pitch = f * (1 + bend * fall(0.04, h));
+  amp = fall(t60, h) * (1 - fall(0.0015, h)) * vel;
+  shaped = sineFrom(pitch, h) * amp * drive : ma.tanh : /(ma.tanh(drive)) : *(0.21);
+  click = burst(1200, 7000, 0.006, no.noises(8, 0), h) * vel * 0.08;
+};
+
+// The TR-808 bass drum: a bridged-T resonator rung by a pulse. Close to a pure sine with a soft knock at the start
+// and only a slight dip in pitch; a long boom when its decay is turned up.
+kick808(f, t60, vel, h) = (sineFrom(f * (1 + 0.25 * fall(0.012, h)), h) * fall(t60, h) * (1 - fall(0.002, h)) * vel + knock) * 0.27
+with {
+  knock = strike(1500, vel, h) : fi.highpass(2, 300) : *(8);
+};
+
+// The TR-909 snare: two tuned resonators (the shell) and noise through a highpass (the snappy wires), with its own
+// decay.
+snare909(tone, snappy, vel, h) = shell + wires
+with {
+  shell = strike(4000, vel, h) <: modes(2, 185 * tone, 0.11, (1, 1.78), (1, 0.6), (1, 0.7)) : *(0.24);
+  wires = no.noises(8, 1) : fi.highpass(2, 1800) : fi.lowpass(2, 9500) : *(fall(0.16 * snappy, h) * vel * 0.3);
+};
+
+// The TR-808 / 909 hand clap: band-passed noise struck four times in 30 ms (several hands not quite together), then
+// a reverberant tail.
+clap(tone, tail, vel, h) = n * env * vel
+with {
+  n = no.noises(8, 7) : fi.resonbp(1150 * tone, 1.6, 1) : fi.highpass(2, 700 * tone) : *(0.22);
+  later(s) = h @ int(s * ma.SR);
+  env = max(max(fall(0.012, h), fall(0.012, later(0.011))), max(fall(0.012, later(0.022)), fall(tail, later(0.032))));
+};
+
+// The TR-808's metal: six square waves at unrelated pitches, through a bandpass and a highpass. Its hats and cymbal
+// are this sound with different decays; the 909's hats are recordings of something very like it.
+METAL = (205.3, 304.4, 369.6, 522.7, 540, 800);
+metal(tone) = par(k, 6, os.square(ba.take(k + 1, METAL) * tone)) :> fi.resonbp(7200 * tone, 1.4, 1) : fi.highpass(2, 6500 * tone);
+hat808(tone, t60, vel, h) = metal(tone) * fall(t60, h) * (1 - fall(0.0008, h)) * vel * 0.32;
+
+// The TR-808 rim shot: two resonators (455 and 1667 Hz) struck sharply, through a highpass.
+rim808(tone, vel, h) = strike(8000, vel, h) <: modes(2, 455 * tone, 0.035, (1, 3.664), (1, 0.7), (1, 0.8)) : fi.highpass(2, 350) : *(0.29);

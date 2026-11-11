@@ -74,8 +74,17 @@
       }
       .ab {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         gap: 12px;
+      }
+      .group {
+        margin: 0 0 10px;
+      }
+      .group h3 {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-3);
+        margin: 0 0 6px;
       }
       .ab button {
         padding: 22px;
@@ -109,13 +118,13 @@
     <main>
       <h1>Compare voices</h1>
       <p>
-        Dev-only. A is the voice a tile ships with, B a candidate from <code>src/engine/alternates</code>. Both play
-        the same notes at the same loudness; switching only changes which one you hear.
-        <kbd>Space</kbd> switches, <kbd>A</kbd> and <kbd>B</kbd> pick one, <kbd>P</kbd> plays or stops.
+        Dev-only. A is the voice a tile ships with; B, C… are candidates from <code>src/engine/alternates</code>. All
+        play the same notes at the same loudness; switching only changes which one you hear.
+        <kbd>Space</kbd> steps through the voices, <kbd>A</kbd>, <kbd>B</kbd>, <kbd>C</kbd>… pick one, <kbd>P</kbd> plays or stops.
       </p>
 
       <h2>Sounds</h2>
-      <div class="row" id="tiles"></div>
+      <div id="tiles"></div>
 
       <h2>Under them (synth only, same in A and B)</h2>
       <div class="row" id="backing"></div>
@@ -128,10 +137,7 @@
         <span id="reveal-out"></span>
       </div>
       <p id="status"></p>
-      <div class="ab">
-        <button id="a" aria-pressed="true"></button>
-        <button id="b" aria-pressed="false"></button>
-      </div>
+      <div class="ab" id="slots"></div>
 
       <h2>Music</h2>
       <div class="row">

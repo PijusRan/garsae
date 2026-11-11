@@ -94,10 +94,7 @@ export class Engine {
     void import('./models/bank');
   }
 
-  /** Listening tests: 0 plays the tiles' own voices, 1 their alternates. */
-  private ab?: ConstantSourceNode;
-
-  /** `alternates` (listening tests only) gives tiles a second voice to compare against; see setCompareMix. */
+  /** `alternates` (listening tests only) gives tiles other voices to compare against; see setCompareChoice. */
   constructor(ctx?: BaseAudioContext, opts: { alternates?: Alternates } = {}) {
     this.ctx = ctx ?? new AudioContext({ latencyHint: 'playback' });
     this.master = new Master(this.ctx);
@@ -112,18 +109,17 @@ export class Engine {
       evolution: 0.3,
       models,
     };
-    if (opts.alternates) {
-      this.ab = new ConstantSourceNode(this.ctx, { offset: 0 });
-      this.ab.start();
-      this.core.compare = { alternates: opts.alternates, ab: this.ab };
-    }
+    if (opts.alternates) this.core.compare = { alternates: opts.alternates, choice: 0, listeners: new Set() };
     this.ready = models.ready.then(() => {});
     this.scheduler = new Scheduler(this.ctx, (step, time) => this.onStep(step, time), () => this.stepDur);
   }
 
-  /** Listening tests: 0 hears the tiles' own voices, 1 their alternates, crossfading in a few milliseconds. */
-  setCompareMix(x: number): void {
-    this.ab?.offset.setTargetAtTime(x, this.ctx.currentTime, 0.008);
+  /** Listening tests: 0 hears the tiles' own voices, k their k-th alternates (switching in a few milliseconds). */
+  setCompareChoice(k: number): void {
+    const compare = this.core.compare;
+    if (!compare || compare.choice === k) return;
+    compare.choice = k;
+    for (const follow of compare.listeners) follow();
   }
 
   private get stepDur(): number {

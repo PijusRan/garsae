@@ -1,7 +1,7 @@
 // Dev-only audio smoke test (open smoke.html, or run `npm run smoke`).
 // Renders each tile through the real engine in an OfflineAudioContext and
 // reports loudness, peaks, clipping and invalid samples.
-import { ALTERNATES, ALTERNATE_TILES } from './engine/alternates';
+import { ALTERNATES, ALTERNATE_TILES, prepareAlternates, slotLabels } from './engine/alternates';
 import { Engine } from './engine/engine';
 import { TILES, type TileId } from './tiles';
 
@@ -196,16 +196,19 @@ interface Scenario {
   bpm?: number;
   /** Turn these tiles off at this time (tests fade-out). */
   offAt?: { time: number; ids: TileId[] };
-  /** Play the tiles' alternate voices (src/engine/alternates) instead of their own. */
-  alternates?: boolean;
+  /** Play the tiles' k-th alternate (src/engine/alternates) instead of their own voice. */
+  alternate?: number;
 }
 
 async function render(s: Scenario): Promise<AudioBuffer> {
   const ctx = new OfflineAudioContext(2, SR * s.seconds, SR);
-  const engine = new Engine(ctx, s.alternates ? { alternates: ALTERNATES } : {});
+  const engine = new Engine(ctx, s.alternate ? { alternates: ALTERNATES } : {});
   // Tiles on physical models only play once those have loaded.
   await engine.ready;
-  if (s.alternates) engine.setCompareMix(1);
+  if (s.alternate) {
+    await prepareAlternates(ctx);
+    engine.setCompareChoice(s.alternate);
+  }
   engine.setBpm(s.bpm ?? 80);
   engine.setKey(9);
   engine.setEvolution(s.evolution ?? 0.5);
@@ -267,13 +270,16 @@ function toWav(buf: AudioBuffer): string {
  */
 async function runCompare(wavs: Record<string, string> | null) {
   const rows: (Stats & { ownLufs: number; trimBy: number })[] = [];
-  for (const id of ALTERNATE_TILES as TileId[]) {
+  for (const id of ALTERNATE_TILES) {
     const s = { tiles: { [id]: 0.3 }, seconds: 40, evolution: 0.6 };
     const own = analyse(id, await render(s), 5);
-    const buf = await render({ ...s, alternates: true });
-    const alt = analyse(`${id} (alternate)`, buf, 5);
-    if (wavs) wavs[`alternate ${id}`] = toWav(buf);
-    rows.push({ ...alt, ownLufs: own.lufs, trimBy: Math.round(10 ** ((own.lufs - alt.lufs) / 20) * 1000) / 1000 });
+    const labels = slotLabels(id);
+    for (let k = 1; k < labels.length; k++) {
+      const buf = await render({ ...s, alternate: k });
+      const alt = analyse(`${id}: ${labels[k]}`, buf, 5);
+      if (wavs) wavs[`${id} ${labels[k]}`] = toWav(buf);
+      rows.push({ ...alt, ownLufs: own.lufs, trimBy: Math.round(10 ** ((own.lufs - alt.lufs) / 20) * 1000) / 1000 });
+    }
   }
   return rows;
 }

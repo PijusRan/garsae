@@ -5,7 +5,7 @@ import { chance, clamp, pick, rand } from '../random';
 import { saturationCurve } from '../synth';
 import { DORIAN, midiToFreq, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
-import { tileVoice } from '../models/host';
+import { compared, tileVoice } from '../models/host';
 
 /** The MIDI note with pitch class `pc` closest to `ref`, kept inside [lo, hi]. */
 function nearest(pc: number, ref: number, lo: number, hi: number): number {
@@ -524,8 +524,10 @@ export function createFretless(core: Core): Instrument {
   let last = 43;
   const LO = 33;
   const HI = 55;
+  const voice = compared(core, 'fretless', lp, (dest) => ({ output: dest, note: (t, m, h, v) => synthNote(dest, t, m, h, v) }));
+  const note = voice.note;
 
-  function note(t: number, midi: number, dur: number, vel: number) {
+  function synthNote(dest: AudioNode, t: number, midi: number, dur: number, vel: number) {
     const f = midiToFreq(midi);
     const tri = new OscillatorNode(ctx, { type: 'triangle', frequency: f });
     const saw = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f });
@@ -548,7 +550,7 @@ export function createFretless(core: Core): Instrument {
     saw.connect(sawGain).connect(mwah);
     tri.connect(mwah);
     sine.connect(g);
-    mwah.connect(g).connect(lp);
+    mwah.connect(g).connect(dest);
     const end = envelope(g.gain, t, dur, { peak: 0.26 * vel, attack: 0.012, decay: 0.7, sustain: 0.55, release: 0.14 });
     for (const o of oscs) o.start(t);
     cleanupAt(oscs, end, [sawGain, mwah, g, vibDepth], () => {
@@ -598,15 +600,17 @@ export function create808(core: Core): Instrument {
   drive.connect(lp).connect(out);
   let shape = BOOMS[0];
   let current: GainNode | null = null;
+  // The note's hold is how long it booms.
+  const voice = compared(core, 'b808', drive, (dest) => ({ output: dest, note: (t, m, len, v) => boom(dest, t, m, len, v) }));
 
-  function boom(t: number, midi: number, len: number, vel: number) {
+  function boom(dest: AudioNode, t: number, midi: number, len: number, vel: number) {
     const f = midiToFreq(midi);
     current?.gain.setTargetAtTime(0, t - 0.006, 0.004);
     const osc = new OscillatorNode(ctx, { frequency: f * 2.1 });
     osc.frequency.setValueAtTime(f * 2.1, t);
     osc.frequency.exponentialRampToValueAtTime(f, t + 0.045);
     const g = new GainNode(ctx, { gain: 0 });
-    osc.connect(g).connect(drive);
+    osc.connect(g).connect(dest);
     const end = percussive(g.gain, t, 0.72 * vel, 0.003, len);
     osc.start(t);
     cleanupAt([osc], end, [g]);
@@ -632,7 +636,7 @@ export function create808(core: Core): Instrument {
 
   function note808(s: StepInfo, midi: number, next: number, idx: number) {
     const gap = (next - s.stepInBar) * s.stepDur;
-    boom(s.time, midi, clamp(gap * 1.3, 0.35, 1.8), idx === 0 ? 1 : 0.8);
+    voice.note(s.time, midi, clamp(gap * 1.3, 0.35, 1.8), idx === 0 ? 1 : 0.8);
   }
 }
 
@@ -658,8 +662,10 @@ export function createMuted(core: Core): Instrument {
   const level = new GainNode(ctx, { gain: 0.75 });
   lp.connect(sat).connect(level).connect(out);
   let riff = pick(MUTED_RIFFS);
+  const voice = compared(core, 'muted', lp, (dest) => ({ output: dest, note: (t, m, len, v) => synthNote(dest, t, m, v, len) }));
+  const note = (t: number, midi: number, vel: number, len: number) => voice.note(t, midi, len, vel);
 
-  function note(t: number, midi: number, vel: number, len: number) {
+  function synthNote(dest: AudioNode, t: number, midi: number, vel: number, len: number) {
     const f = midiToFreq(midi);
     const tri = new OscillatorNode(ctx, { type: 'triangle', frequency: f });
     const saw = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f });
@@ -667,12 +673,12 @@ export function createMuted(core: Core): Instrument {
     const g = new GainNode(ctx, { gain: 0 });
     tri.connect(g);
     saw.connect(sawGain).connect(g);
-    g.connect(lp);
+    g.connect(dest);
     const end = envelope(g.gain, t, len, { peak: 0.52 * vel, attack: 0.004, decay: 0.22, sustain: 0.3, release: 0.05 });
     const thud = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
     const thudLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 420 });
     const thudGain = new GainNode(ctx, { gain: 0 });
-    thud.connect(thudLp).connect(thudGain).connect(lp);
+    thud.connect(thudLp).connect(thudGain).connect(dest);
     percussive(thudGain.gain, t, 0.5 * vel, 0.002, 0.03);
     thud.start(t, rand(0, 1.5), 0.05);
     tri.start(t);

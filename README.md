@@ -73,10 +73,10 @@ Six acoustic tiles play on physical models, written in [Faust](https://faust.gra
 
 ```bash
 npm run faust      # recompiles src/engine/faust/dsp/*.dsp into src/engine/faust/gen/ (no Faust install needed)
-npm run compare    # listening tests: a tile's own voice (A) against an alternate (B), on the same notes
+npm run compare    # listening tests: a tile's own voice (A) against its alternates (B, C, ...), on the same notes
 ```
 
-`npm run compare` opens a dev-only A/B page. Each tile with an alternate voice in `src/engine/alternates` plays both voices on the very same notes at the same loudness; Space switches instantly, and a blind mode hides which is which. It starts with the synth voices the six models replaced. To test a new candidate, add its voice there and set its trim with `npm run smoke -- --compare`. Neither the page nor the alternates are part of the app.
+`npm run compare` opens a dev-only listening page. Each tile with alternates in `src/engine/alternates` plays its own voice (A) and every alternate (B, C, …) on the very same notes at the same loudness; Space steps through them, letters pick one, and a blind mode shuffles and hides them. The current round has a Faust kit for every drum genre (in `faust/dsp/garsae_drums.lib`: modal membranes and bars, wired snares, a PhISEM shaker, models of the TR-808 and TR-909 circuits, sampler grit for the genres made on samplers), Faust models of the fretless, muted and 808 basses, and the synth voices the six physical tiles replaced. To test a new candidate, add it there and set its trim with `npm run smoke -- --compare`. Neither the page nor the alternates are part of the app.
 
 The Faust libraries are LGPL with an exception for generated code; the compiler is only a dev dependency.
 
@@ -97,7 +97,7 @@ src/
     drums/                 synthesized drum voices, genre patterns and mutation rules
     faust/                 physical models: Faust sources (dsp/), compiled modules (gen/), the AudioWorklet runner
     models/                the model voices: loading, voice allocation, level trims, A/B hook
-    alternates/            candidate voices for listening tests (dev-only, compare.html)
+    alternates/            candidate voices and drum kits for listening tests (dev-only, compare.html)
   state/mix.ts             mix model, share-link encoding, saved mixes, Surprise me
   i18n/                    English and Lithuanian strings
   App.tsx, ui/             Preact UI and PWA helpers

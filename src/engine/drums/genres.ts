@@ -5,7 +5,9 @@ import { chance, rand } from '../random';
 import type { Core, Instrument, StepInfo } from '../types';
 import { makeTracks, mutateOnce, parsePattern, type Track, type TrackDef } from './patterns';
 import { saturationCurve } from '../synth';
-import { playHit, type Kit, type Voice } from './voices';
+import { playHit, type HitOpts, type Kit, type Voice } from './voices';
+import { alternatesOf, compareGains, type DrumKit } from '../models/host';
+import type { TileId } from '../../tiles';
 
 interface Chain {
   input: AudioNode;
@@ -234,22 +236,40 @@ function swingOffset(stepInBar: number, stepDur: number, swing: number): number 
   return stepInBar % 2 === 1 ? swing * stepDur : 0;
 }
 
-function createPatternGenre(def: GenreDef) {
+/**
+ * Where a genre's hits go: its synth kit into `input` (and `echo`), or in listening tests, its kit and each alternate
+ * kit (models/host.ts) side by side on the same hits, only the chosen one heard. `own` is where the synth kit plays.
+ */
+function kits(core: Core, id: TileId, input: AudioNode, echo: AudioNode | null) {
+  const alts = alternatesOf(core, id, 'hits');
+  if (!alts.length) return { own: input, ownEcho: echo, others: [] as DrumKit[] };
+  const main = compareGains(core, alts.length + 1, input);
+  const sends = echo ? compareGains(core, alts.length + 1, echo) : null;
+  const others = alts.map((a, i) => a.create(core, main[i + 1], sends?.[i + 1] ?? null));
+  return { own: main[0] as AudioNode, ownEcho: (sends?.[0] ?? null) as AudioNode | null, others };
+}
+
+function createPatternGenre(id: TileId, def: GenreDef) {
   return (core: Core): Instrument => {
     const { ctx } = core;
     const kit: Kit = { ctx, noise: core.noise };
     const chain = def.chain(ctx);
+    const { own, ownEcho, others } = kits(core, id, chain.input, chain.echo ?? null);
+    const hit = (voice: Voice, dest: AudioNode, t: number, vel: number, opts?: HitOpts) => {
+      playHit(kit, voice, dest, t, vel, opts);
+      for (const k of others) k.hit(voice, t, vel, opts);
+    };
     const tracks: Track[] = makeTracks(def.tracks);
     const fills = def.fills.map((f) => ({ ...f, steps: parsePattern(f.pattern) }));
     const placed = new Map<Voice, AudioNode>();
     /** The input a voice plays into: through a panner of its own if it has a place in the kit. */
     const placeOf = (voice: Voice): AudioNode => {
       const pan = KIT_PAN[voice];
-      if (pan === undefined) return chain.input;
+      if (pan === undefined) return own;
       let node = placed.get(voice);
       if (!node) {
         node = new StereoPannerNode(ctx, { pan });
-        node.connect(chain.input);
+        node.connect(own);
         placed.set(voice, node);
       }
       return node;
@@ -277,13 +297,14 @@ function createPatternGenre(def: GenreDef) {
           if (vel <= 0) continue;
           const at = Math.max(s.time, t + rand(-def.humanize, def.humanize));
           const v = vel * (tr.def.gain ?? 1) * rand(0.92, 1.05);
-          playHit(kit, tr.def.voice, placeOf(tr.def.voice), at, v, tr.def.opts);
-          if (tr.def.echo && chain.echo) playHit(kit, tr.def.voice, chain.echo, at, v, tr.def.opts);
+          hit(tr.def.voice, placeOf(tr.def.voice), at, v, tr.def.opts);
+          // Alternate kits send to the echo themselves.
+          if (tr.def.echo && ownEcho) playHit(kit, tr.def.voice, ownEcho, at, v, tr.def.opts);
         }
         if (fillThisBar && s.stepInBar >= 12) {
           for (const f of fills) {
             const vel = f.steps[s.stepInBar - 12];
-            if (vel > 0) playHit(kit, f.voice, placeOf(f.voice), t, vel * 0.8, f.opts);
+            if (vel > 0) hit(f.voice, placeOf(f.voice), t, vel * 0.8, f.opts);
           }
         }
       },
@@ -291,15 +312,15 @@ function createPatternGenre(def: GenreDef) {
   };
 }
 
-export const createLofi = createPatternGenre(GENRES.lofi);
-export const createTechno = createPatternGenre(GENRES.techno);
-export const createDub = createPatternGenre(GENRES.dub);
-export const createAmbientPulse = createPatternGenre(GENRES.ambient);
-export const createHandDrums = createPatternGenre(GENRES.hands);
-export const createHouse = createPatternGenre(GENRES.house);
-export const createTripHop = createPatternGenre(GENRES.triphop);
-export const createDnb = createPatternGenre(GENRES.dnb);
-export const createBossa = createPatternGenre(GENRES.bossa);
+export const createLofi = createPatternGenre('lofi', GENRES.lofi);
+export const createTechno = createPatternGenre('techno', GENRES.techno);
+export const createDub = createPatternGenre('dub', GENRES.dub);
+export const createAmbientPulse = createPatternGenre('ambient', GENRES.ambient);
+export const createHandDrums = createPatternGenre('hands', GENRES.hands);
+export const createHouse = createPatternGenre('house', GENRES.house);
+export const createTripHop = createPatternGenre('triphop', GENRES.triphop);
+export const createDnb = createPatternGenre('dnb', GENRES.dnb);
+export const createBossa = createPatternGenre('bossa', GENRES.bossa);
 
 // ---------------------------------------------------------------- breakbeat
 
@@ -328,6 +349,7 @@ export function createBreakbeat(core: Core): Instrument {
   const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 12000, Q: 0.4 });
   const output = new GainNode(ctx, { gain: 0.75 });
   input.connect(comp).connect(makeUp).connect(sat).connect(lp).connect(output);
+  const { own, others } = kits(core, 'breaks', input, null);
 
   return {
     output,
@@ -337,7 +359,9 @@ export function createBreakbeat(core: Core): Instrument {
       for (const tr of tracks) {
         const vel = tr.base[pos];
         if (vel <= 0) continue;
-        playHit(kit, tr.def.voice, input, Math.max(s.time, t + rand(-0.001, 0.001)), vel * (tr.def.gain ?? 1), tr.def.opts);
+        const at = Math.max(s.time, t + rand(-0.001, 0.001));
+        playHit(kit, tr.def.voice, own, at, vel * (tr.def.gain ?? 1), tr.def.opts);
+        for (const k of others) k.hit(tr.def.voice, at, vel * (tr.def.gain ?? 1), tr.def.opts);
       }
     },
   };

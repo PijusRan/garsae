@@ -25,13 +25,22 @@ function controls(items, out = []) {
   return out;
 }
 
+// Our own libraries (dsp/*.lib) go where the compiler looks for libraries, so a kit can say library("garsae_drums.lib").
+const faustFs = compiler.fs();
+for (const file of readdirSync(DSP_DIR).filter((f) => f.endsWith('.lib'))) {
+  faustFs.writeFile(`/usr/share/faust/${file}`, readFileSync(join(DSP_DIR, file), 'utf8'));
+}
+
 let failed = false;
 for (const file of readdirSync(DSP_DIR).filter((f) => f.endsWith('.dsp')).sort()) {
   const name = file.replace(/\.dsp$/, '');
   const code = readFileSync(join(DSP_DIR, file), 'utf8');
-  const factory = await compiler.createMonoDSPFactory(name, code, '-ftz 2');
+  const factory = await compiler.createMonoDSPFactory(name, code, '-ftz 2').catch((e) => {
+    console.error(`FAIL ${file}: ${e.message}`);
+    return null;
+  });
   if (!factory) {
-    console.error(`FAIL ${file}: ${compiler.getErrorMessage()}`);
+    if (compiler.getErrorMessage()) console.error(`FAIL ${file}: ${compiler.getErrorMessage()}`);
     failed = true;
     continue;
   }

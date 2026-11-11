@@ -3,9 +3,11 @@
 // The models load once per engine, in the background (models/bank.ts). A voice asked for before they have loaded
 // joins in as soon as they have; until then its notes are dropped, which the tile's fade-in covers.
 //
-// For listening tests (compare.html), a tile can also have an alternate voice: a candidate to compare against the
-// one it ships with. Both get the same notes, and one control crossfades between them. Alternates are registered in
-// engine/alternates, which only the compare page and the smoke test load; the app never does.
+// For listening tests (compare.html), a tile can also have alternates: candidate voices (or drum kits) to compare
+// against the one it ships with. All of them take the same notes, and only the chosen one is heard. Alternates are
+// registered in engine/alternates, which only the compare page and the smoke test load; the app never does.
+import type { HitOpts, Voice } from '../drums/voices';
+import type { TileId } from '../../tiles';
 import type { Core } from '../types';
 
 export type ModelName = 'flute' | 'strings' | 'choir' | 'piano' | 'bells' | 'walk';
@@ -23,18 +25,34 @@ export interface ModelHost {
   create(name: ModelName): ModelVoice;
 }
 
-/** A candidate voice for a tile: it plays into `dest` and takes the same notes as the tile's own voice. */
-export interface Alternate {
+/** A candidate voice for a melodic tile: it plays into `dest` and takes the same notes as the tile's own voice. */
+export interface NoteAlternate {
+  kind: 'notes';
   label: string;
   create(core: Core, dest: AudioNode): ModelVoice;
 }
 
-export type Alternates = Partial<Record<ModelName, Alternate>>;
+/** A candidate kit for a drum tile: it takes the same hits as the tile's own kit, into the genre's bus and echo. */
+export interface HitAlternate {
+  kind: 'hits';
+  label: string;
+  create(core: Core, main: AudioNode, echo: AudioNode | null): DrumKit;
+}
+
+export interface DrumKit {
+  hit(voice: Voice, t: number, vel: number, opts?: HitOpts): void;
+}
+
+export type Alternate = NoteAlternate | HitAlternate;
+
+/** Per tile, the candidates to compare against its own voice, in the order the compare page offers them (B, C, ...). */
+export type Alternates = Partial<Record<TileId, Alternate[]>>;
 
 export interface Compare {
   alternates: Alternates;
-  /** 0 hears the tiles' own voices, 1 the alternates. */
-  ab: AudioNode;
+  /** Which is heard: 0 the tiles' own voices, k their k-th alternate (tiles with fewer play their own). */
+  choice: number;
+  listeners: Set<() => void>;
 }
 
 export interface Models {
@@ -67,31 +85,44 @@ export function modelVoice(core: Core, name: ModelName, dest: AudioNode): ModelV
 }
 
 /**
- * The voice a tile plays its notes on: its physical model, or when comparing, the model and its alternate side by
- * side, crossfaded by the compare control.
+ * Listening tests: one gain per voice of a tile (its own first, then its alternates), all into `dest`, with only the
+ * chosen one open. They follow the compare choice as it changes.
  */
-export function tileVoice(core: Core, name: ModelName, dest: AudioNode): ModelVoice {
-  const alternate = core.compare?.alternates[name];
-  if (!core.compare || !alternate) return modelVoice(core, name, dest);
+export function compareGains(core: Core, count: number, dest: AudioNode): GainNode[] {
   const { ctx } = core;
-  const own = new GainNode(ctx, { gain: 1 });
-  const other = new GainNode(ctx, { gain: 0 });
-  const invert = new GainNode(ctx, { gain: -1 });
-  core.compare.ab.connect(other.gain);
-  core.compare.ab.connect(invert).connect(own.gain);
-  own.connect(dest);
-  other.connect(dest);
-  const a = modelVoice(core, name, own);
-  const b = alternate.create(core, other);
-  return {
-    output: own,
-    note(t, midi, hold, vel) {
-      a.note(t, midi, hold, vel);
-      b.note(t, midi, hold, vel);
-    },
-    setVowel(v, t) {
-      a.setVowel?.(v, t);
-      b.setVowel?.(v, t);
-    },
+  const gains = Array.from({ length: count }, () => new GainNode(ctx, { gain: 0 }));
+  for (const g of gains) g.connect(dest);
+  const follow = (at = ctx.currentTime) => {
+    const choice = core.compare && core.compare.choice < count ? core.compare.choice : 0;
+    gains.forEach((g, i) => g.gain.setTargetAtTime(i === choice ? 1 : 0, at, 0.008));
   };
+  follow(0);
+  core.compare?.listeners.add(() => follow());
+  return gains;
+}
+
+/** A tile's alternates of one kind (none outside listening tests). */
+export function alternatesOf<K extends Alternate['kind']>(core: Core, id: TileId, kind: K): Extract<Alternate, { kind: K }>[] {
+  return (core.compare?.alternates[id] ?? []).filter((a): a is Extract<Alternate, { kind: K }> => a.kind === kind);
+}
+
+/**
+ * The voice a melodic tile plays its notes on: `own` (its usual voice, built into the destination it is given), or in
+ * listening tests, its own and its alternates side by side, all taking the same notes, only the chosen one heard.
+ */
+export function compared(core: Core, id: TileId, dest: AudioNode, own: (dest: AudioNode) => ModelVoice): ModelVoice {
+  const alts = alternatesOf(core, id, 'notes');
+  if (!alts.length) return own(dest);
+  const gains = compareGains(core, alts.length + 1, dest);
+  const voices = [own(gains[0]), ...alts.map((a, i) => a.create(core, gains[i + 1]))];
+  return {
+    output: dest,
+    note: (t, midi, hold, vel) => voices.forEach((v) => v.note(t, midi, hold, vel)),
+    setVowel: (vowel, t) => voices.forEach((v) => v.setVowel?.(vowel, t)),
+  };
+}
+
+/** The voice a tile on a physical model plays its notes on (see `compared` for listening tests). */
+export function tileVoice(core: Core, name: ModelName, dest: AudioNode): ModelVoice {
+  return compared(core, name, dest, (d) => modelVoice(core, name, d));
 }
