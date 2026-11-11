@@ -286,3 +286,53 @@ export function synthWalk(core: Core, dest: AudioNode): ModelVoice {
     },
   };
 }
+
+/** Muted bass: a triangle and a little saw through the tile's dark filter, with a finger thud. */
+export function synthMuted(core: Core, dest: AudioNode): ModelVoice {
+  const { ctx } = core;
+  return {
+    output: dest,
+    note(t, midi, len, vel) {
+      const f = midiToFreq(midi);
+      const tri = new OscillatorNode(ctx, { type: 'triangle', frequency: f });
+      const saw = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f });
+      const sawGain = new GainNode(ctx, { gain: 0.25 });
+      const g = new GainNode(ctx, { gain: 0 });
+      tri.connect(g);
+      saw.connect(sawGain).connect(g);
+      g.connect(dest);
+      const end = envelope(g.gain, t, len, { peak: 0.52 * vel, attack: 0.004, decay: 0.22, sustain: 0.3, release: 0.05 });
+      const thud = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
+      const thudLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 420 });
+      const thudGain = new GainNode(ctx, { gain: 0 });
+      thud.connect(thudLp).connect(thudGain).connect(dest);
+      percussive(thudGain.gain, t, 0.5 * vel, 0.002, 0.03);
+      thud.start(t, rand(0, 1.5), 0.05);
+      tri.start(t);
+      saw.start(t);
+      cleanupAt([tri, saw], end, [sawGain, g, thud, thudLp, thudGain]);
+    },
+  };
+}
+
+/** 808 bass: a sine diving from twice the note into a long decay, each boom cutting off the last. */
+export function synth808(core: Core, dest: AudioNode): ModelVoice {
+  const { ctx } = core;
+  let current: GainNode | null = null;
+  return {
+    output: dest,
+    note(t, midi, len, vel) {
+      const f = midiToFreq(midi);
+      current?.gain.setTargetAtTime(0, t - 0.006, 0.004);
+      const osc = new OscillatorNode(ctx, { frequency: f * 2.1 });
+      osc.frequency.setValueAtTime(f * 2.1, t);
+      osc.frequency.exponentialRampToValueAtTime(f, t + 0.045);
+      const g = new GainNode(ctx, { gain: 0 });
+      osc.connect(g).connect(dest);
+      const end = percussive(g.gain, t, 0.72 * vel, 0.003, len);
+      osc.start(t);
+      cleanupAt([osc], end, [g]);
+      current = g;
+    },
+  };
+}

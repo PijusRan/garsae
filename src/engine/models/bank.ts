@@ -1,4 +1,4 @@
-// The physical models and how each tile plays its own. Loaded by the engine with a dynamic import, so the page can
+// The physical models and Faust drum kits, and how each tile plays its own. Loaded by the engine with a dynamic import, so the page can
 // draw before the models' WebAssembly has arrived.
 import bells from '../faust/gen/bells';
 import choir from '../faust/gen/choir';
@@ -6,18 +6,36 @@ import flute from '../faust/gen/flute';
 import piano from '../faust/gen/piano';
 import strings from '../faust/gen/strings';
 import walk from '../faust/gen/walk';
+import kitAmbient from '../faust/gen/kit_ambient';
+import kitDub from '../faust/gen/kit_dub';
+import kitLofi from '../faust/gen/kit_lofi';
+import kitTechno from '../faust/gen/kit_techno';
+import kitTriphop from '../faust/gen/kit_triphop';
+import bass808 from '../faust/gen/bass_808';
+import bassMuted from '../faust/gen/bass_muted';
+import type { Voice } from '../drums/voices';
+import { createKit } from '../faust/kit';
 import { compile, FaustNode, loadProcessor, VoicePool } from '../faust/node';
 import type { FaustModel } from '../faust/types';
 import { clamp } from '../random';
 import { midiToFreq } from '../theory';
-import type { ModelHost, ModelName, ModelVoice } from './host';
+import type { KitName, ModelHost, ModelName, ModelVoice } from './host';
 
-const MODELS: Record<ModelName, FaustModel> = { flute, strings, choir, piano, bells, walk };
+const MODELS: Record<ModelName, FaustModel> = { flute, strings, choir, piano, bells, walk, muted: bassMuted, b808: bass808 };
+
+/** The genres that play on Faust kits: the model, its voices in slot order, and a trim. */
+const KITS: Record<KitName, { model: FaustModel; slots: Voice[]; trim: number }> = {
+  lofi: { model: kitLofi, slots: ['kick', 'snare', 'hat'], trim: 2.24 },
+  techno: { model: kitTechno, slots: ['kick', 'clap', 'openhat', 'hat', 'rim'], trim: 2.37 },
+  dub: { model: kitDub, slots: ['kick', 'rim', 'hat', 'tom'], trim: 2.11 },
+  ambient: { model: kitAmbient, slots: ['kick', 'shaker', 'tom'], trim: 2.14 },
+  triphop: { model: kitTriphop, slots: ['kick', 'snare', 'hat', 'rim'], trim: 1.64 },
+};
 
 /**
  * Output trims. They were set so each model plays as loud as the synth voice it replaced (integrated loudness of
  * long solo renders), keeping the tiles' calibrated levels in tiles.ts valid; the flute and choir then came down a
- * little, as they were asked to be softer.
+ * little, as they were asked to be softer. The kits' trims (KITS) were matched the same way.
  */
 const TRIM: Record<ModelName, number> = {
   flute: 0.29,
@@ -26,6 +44,8 @@ const TRIM: Record<ModelName, number> = {
   piano: 0.46,
   bells: 0.37,
   walk: 1.95,
+  muted: 9.1,
+  b808: 4.3,
 };
 
 type Compiled = Awaited<ReturnType<typeof compile>>;
@@ -69,7 +89,8 @@ function held(
       note(t, midi, hold, vel) {
         const until = t + Math.max(hold, 0.05);
         const v = pool.take(t, midi, until, tail, legato);
-        fx.hold(v.voice, t, until, { freq: midiToFreq(midi), vel: clamp(vel, 0, 1), ...extra(midi) }, v.legato);
+        // "len" is the hold, for a model that shapes its decay by it (the 808); the others have no such control.
+        fx.hold(v.voice, t, until, { freq: midiToFreq(midi), vel: clamp(vel, 0, 1), len: hold, ...extra(midi) }, v.legato);
       },
     },
   };
@@ -99,12 +120,42 @@ const MAKERS: Record<ModelName, (ctx: BaseAudioContext, c: Compiled) => ModelVoi
   bells: (ctx, c) => struck(ctx, 'bells', c, 4, () => 4.2),
   // Each note is plucked afresh; the finger on the string damps the last one.
   walk: (ctx, c) => held(ctx, 'walk', c, 2, 0.15, false).voice,
+  muted: (ctx, c) => held(ctx, 'muted', c, 2, 0.1, false).voice,
+  b808: (ctx, c) => {
+    // One boom at a time: each new note chokes the one before, which otherwise rings past it.
+    const { voice, fx } = held(ctx, 'b808', c, 2, 0.05, false);
+    let last: { voice: number; until: number } | null = null;
+    let turn = 0;
+    return {
+      output: voice.output,
+      note(t, midi, hold, vel) {
+        if (last && last.until > t) {
+          const gate = fx.param(`gate${last.voice}`);
+          gate.cancelScheduledValues(t - 0.01);
+          gate.setValueAtTime(0, t - 0.005);
+        }
+        const v = turn++ % 2;
+        const until = t + Math.max(hold, 0.05);
+        fx.hold(v, t, until, { freq: midiToFreq(midi), vel: clamp(vel, 0, 1), len: hold }, false);
+        last = { voice: v, until };
+      },
+    };
+  },
 };
 
 /** Loads the worklet and compiles every model, so tiles can create their voices synchronously afterwards. */
 export async function createModelHost(ctx: BaseAudioContext): Promise<ModelHost> {
   const names = Object.keys(MODELS) as ModelName[];
-  const [, ...compiled] = await Promise.all([loadProcessor(ctx), ...names.map((n) => compile(MODELS[n]))]);
+  const kits = Object.keys(KITS) as KitName[];
+  const [, ...compiled] = await Promise.all([
+    loadProcessor(ctx),
+    ...names.map((n) => compile(MODELS[n])),
+    ...kits.map((k) => compile(KITS[k].model)),
+  ]);
   const byName = Object.fromEntries(names.map((n, i) => [n, compiled[i]])) as Record<ModelName, Compiled>;
-  return { create: (name) => MAKERS[name](ctx, byName[name]) };
+  const kitsByName = Object.fromEntries(kits.map((k, i) => [k, compiled[names.length + i]])) as Record<KitName, Compiled>;
+  return {
+    create: (name) => MAKERS[name](ctx, byName[name]),
+    createKit: (name, main, echo) => createKit(ctx, kitsByName[name], KITS[name].slots, KITS[name].trim, main, echo),
+  };
 }

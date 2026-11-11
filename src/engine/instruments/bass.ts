@@ -1,11 +1,11 @@
 // Bass generators. All follow the hidden chord engine's roots.
 import { movementDepth, noteDensity } from '../evolution';
-import { cleanupAt, envelope, glide, percussive } from '../params';
+import { cleanupAt, envelope, glide } from '../params';
 import { chance, clamp, pick, rand } from '../random';
 import { saturationCurve } from '../synth';
 import { DORIAN, midiToFreq, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
-import { compared, tileVoice } from '../models/host';
+import { compared, modelVoice, tileVoice } from '../models/host';
 
 /** The MIDI note with pitch class `pc` closest to `ref`, kept inside [lo, hi]. */
 function nearest(pc: number, ref: number, lo: number, hi: number): number {
@@ -589,8 +589,8 @@ export function createFretless(core: Core): Instrument {
 const BOOMS = [[0, 10], [0, 7, 10], [0, 8], [0, 6, 14], [0]];
 
 /**
- * The long sine of a TR-808 kick played as a bass: a quick drop in pitch for the punch, then a slow decay, gently
- * driven so its overtones carry the note on small speakers. One at a time, each new note cutting off the last.
+ * A TR-808 kick played as a bass, on a model of its bridged-T circuit: a quick drop in pitch for the punch, then a long
+ * boom, driven so its overtones carry the note on small speakers. One at a time, each new note choking the last.
  */
 export function create808(core: Core): Instrument {
   const { ctx } = core;
@@ -599,23 +599,8 @@ export function create808(core: Core): Instrument {
   const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2600, Q: 0.5 });
   drive.connect(lp).connect(out);
   let shape = BOOMS[0];
-  let current: GainNode | null = null;
-  // The note's hold is how long it booms.
-  const voice = compared(core, 'b808', drive, (dest) => ({ output: dest, note: (t, m, len, v) => boom(dest, t, m, len, v) }));
-
-  function boom(dest: AudioNode, t: number, midi: number, len: number, vel: number) {
-    const f = midiToFreq(midi);
-    current?.gain.setTargetAtTime(0, t - 0.006, 0.004);
-    const osc = new OscillatorNode(ctx, { frequency: f * 2.1 });
-    osc.frequency.setValueAtTime(f * 2.1, t);
-    osc.frequency.exponentialRampToValueAtTime(f, t + 0.045);
-    const g = new GainNode(ctx, { gain: 0 });
-    osc.connect(g).connect(dest);
-    const end = percussive(g.gain, t, 0.72 * vel, 0.003, len);
-    osc.start(t);
-    cleanupAt([osc], end, [g]);
-    current = g;
-  }
+  // A TR-808 bass drum's circuit tuned to the note (models/host.ts); the note's hold is how long it booms.
+  const voice = compared(core, 'b808', drive, (dest) => modelVoice(core, 'b808', dest));
 
   return {
     output: out,
@@ -628,9 +613,6 @@ export function create808(core: Core): Instrument {
       const midi = idx > 0 && chance(0.2) ? nearest(s.chord.pcs[2], root + 7, 31, 45) : root;
       // Rings until nearly the next note, up to a couple of beats.
       note808(s, midi, next, idx);
-    },
-    deactivate() {
-      current = null;
     },
   };
 
@@ -652,7 +634,8 @@ const MUTED_RIFFS: { step: number; deg: 0 | 1 | 2 | 3 }[][] = [
 
 /**
  * A short-scale bass with old flatwounds and foam under the strings, as on 1960s soul records: all thump and no
- * ring. A triangle and a little saw through a dark filter, a finger thud, and the warm squash of tape.
+ * ring. A string so damped it barely rings, plucked with the thumb (models/host.ts), through a dark filter and the warm
+ * squash of tape.
  */
 export function createMuted(core: Core): Instrument {
   const { ctx } = core;
@@ -662,29 +645,8 @@ export function createMuted(core: Core): Instrument {
   const level = new GainNode(ctx, { gain: 0.75 });
   lp.connect(sat).connect(level).connect(out);
   let riff = pick(MUTED_RIFFS);
-  const voice = compared(core, 'muted', lp, (dest) => ({ output: dest, note: (t, m, len, v) => synthNote(dest, t, m, v, len) }));
+  const voice = compared(core, 'muted', lp, (dest) => modelVoice(core, 'muted', dest));
   const note = (t: number, midi: number, vel: number, len: number) => voice.note(t, midi, len, vel);
-
-  function synthNote(dest: AudioNode, t: number, midi: number, vel: number, len: number) {
-    const f = midiToFreq(midi);
-    const tri = new OscillatorNode(ctx, { type: 'triangle', frequency: f });
-    const saw = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f });
-    const sawGain = new GainNode(ctx, { gain: 0.25 });
-    const g = new GainNode(ctx, { gain: 0 });
-    tri.connect(g);
-    saw.connect(sawGain).connect(g);
-    g.connect(dest);
-    const end = envelope(g.gain, t, len, { peak: 0.52 * vel, attack: 0.004, decay: 0.22, sustain: 0.3, release: 0.05 });
-    const thud = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
-    const thudLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 420 });
-    const thudGain = new GainNode(ctx, { gain: 0 });
-    thud.connect(thudLp).connect(thudGain).connect(dest);
-    percussive(thudGain.gain, t, 0.5 * vel, 0.002, 0.03);
-    thud.start(t, rand(0, 1.5), 0.05);
-    tri.start(t);
-    saw.start(t);
-    cleanupAt([tri, saw], end, [sawGain, g, thud, thudLp, thudGain]);
-  }
 
   return {
     output: out,

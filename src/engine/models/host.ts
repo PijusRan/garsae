@@ -1,16 +1,21 @@
-// Physical-model voices (Faust models running in an AudioWorklet, see ../faust) for the tape flute, string ensemble,
-// choir, felt piano, glass bells and walking bass. The tile's generator decides every note; the model plays it.
+// Faust voices (models running in an AudioWorklet, see ../faust): physical models for the tape flute, string
+// ensemble, choir, felt piano, glass bells and the walking, muted and 808 basses, and drum kits for the lo-fi, techno,
+// dub, ambient pulse and trip hop genres. The tile's generator decides every note and hit; the model plays it.
 // The models load once per engine, in the background (models/bank.ts). A voice asked for before they have loaded
 // joins in as soon as they have; until then its notes are dropped, which the tile's fade-in covers.
 //
 // For listening tests (compare.html), a tile can also have alternates: candidate voices (or drum kits) to compare
 // against the one it ships with. All of them take the same notes, and only the chosen one is heard. Alternates are
 // registered in engine/alternates, which only the compare page and the smoke test load; the app never does.
-import type { HitOpts, Voice } from '../drums/voices';
+import type { DrumKit } from '../faust/kit';
 import type { TileId } from '../../tiles';
 import type { Core } from '../types';
 
-export type ModelName = 'flute' | 'strings' | 'choir' | 'piano' | 'bells' | 'walk';
+export type { DrumKit };
+
+export type ModelName = 'flute' | 'strings' | 'choir' | 'piano' | 'bells' | 'walk' | 'muted' | 'b808';
+/** The genres that play on Faust kits. */
+export type KitName = 'lofi' | 'techno' | 'dub' | 'ambient' | 'triphop';
 export type Vowel = 'oo' | 'oh' | 'ah';
 
 export interface ModelVoice {
@@ -23,6 +28,7 @@ export interface ModelVoice {
 
 export interface ModelHost {
   create(name: ModelName): ModelVoice;
+  createKit(name: KitName, main: AudioNode, echo: AudioNode | null): DrumKit;
 }
 
 /** A candidate voice for a melodic tile: it plays into `dest` and takes the same notes as the tile's own voice. */
@@ -39,9 +45,6 @@ export interface HitAlternate {
   create(core: Core, main: AudioNode, echo: AudioNode | null): DrumKit;
 }
 
-export interface DrumKit {
-  hit(voice: Voice, t: number, vel: number, opts?: HitOpts): void;
-}
 
 export type Alternate = NoteAlternate | HitAlternate;
 
@@ -104,6 +107,15 @@ export function compareGains(core: Core, count: number, dest: AudioNode): GainNo
 /** A tile's alternates of one kind (none outside listening tests). */
 export function alternatesOf<K extends Alternate['kind']>(core: Core, id: TileId, kind: K): Extract<Alternate, { kind: K }>[] {
   return (core.compare?.alternates[id] ?? []).filter((a): a is Extract<Alternate, { kind: K }> => a.kind === kind);
+}
+
+/** A genre's Faust kit, playing into `main` and `echo`; hits before the kits have loaded are dropped. */
+export function modelKit(core: Core, name: KitName, main: AudioNode, echo: AudioNode | null): DrumKit {
+  let kit: DrumKit | null = null;
+  const attach = (host: ModelHost) => (kit = host.createKit(name, main, echo));
+  if (core.models.host) attach(core.models.host);
+  else core.models.ready.then(attach, () => {});
+  return { hit: (voice, t, vel, opts, echo) => kit?.hit(voice, t, vel, opts, echo) };
 }
 
 /**

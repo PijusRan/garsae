@@ -21,7 +21,7 @@ Guiding principle: it is a **background player, never a distractor.** All change
   - filter / texture movement
   - note density
   - which instruments play (handovers, below)
-- **Per sound:** under the slider, a folded "Per sound" list gives each tile that is on its own Evolution. Untouched rows show Auto and follow the main slider with a dimmed track; moving one makes it custom, with a reset beside it. Tiles that ignore Evolution (`steady` in `src/tiles.ts`: Breakbeat, crackle, hum, the noise colours, the effects) are not listed. Harmony stays on the main slider, since every tile shares it.
+- **Per sound:** under the slider, a folded "Per sound" list gives each tile that is on its own Evolution. Untouched rows show Auto and follow the main slider with a dimmed track; moving one makes it custom, with a reset beside it. Tiles that ignore Evolution (`steady` in `src/tiles.ts`: crackle, hum, the noise colours, the effects) are not listed. Harmony stays on the main slider, since every tile shares it.
 
 ### Handovers
 - Evolution's slowest move: when the chord loop comes round to its first chord, a tile may **hand over** to an off tile of the same **family** (`family` in `src/tiles.ts`), which takes its volume and its own Evolution. The two crossfade from the downbeat over two bars (one for drums, so two grooves never clash for long), and the light moves across the grid. No toast.
@@ -44,7 +44,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 
 ### Pads / melodies
 - **Each instrument defines its own generator**; there is no single global method. For example, the chord pad drifts between chords, the bells play sparse notes, and the arpeggio arpeggiates.
-- Acoustic instruments copy the physics that makes them recognisable rather than a general synth patch. The tape flute, strings, choir, felt piano, glass bells and walking bass are physical models (Faust, in an AudioWorklet): a jet-driven flute, a bowed string, formant voices, a felt hammer on stiff-string modes, a struck free bar, a plucked upright. The vibraphone stays additive, its bars tuned 1:4:10 with a motor tremolo.
+- Acoustic instruments copy the physics that makes them recognisable rather than a general synth patch. The tape flute, strings, choir, felt piano, glass bells and walking, muted and 808 basses are physical models (Faust, in an AudioWorklet): a jet-driven flute, a bowed string, formant voices, a felt hammer on stiff-string modes, a struck free bar, a plucked upright, a foam-damped flatwound, the TR-808's bridged-T circuit. Lo-fi, techno, dub, ambient pulse and trip hop play on Faust drum kits built from the drums each genre is played on. The vibraphone stays additive, its bars tuned 1:4:10 with a motor tremolo.
 
 ### Focus-aid tiles
 - **Noise colours**: brown / pink / green noise variants (Texture).
@@ -64,7 +64,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 
 ## Drums
 - Each **drum genre is its own tile with its own volume**. Several genres can be on at once and **layer** together.
-- Genres: **Lo-fi hip hop, Minimal techno/house, Dub/downtempo, Ambient pulse, Breakbeat** (amen / scatter-break flavour), **Hand drums** (a calm conga tumbao), **Deep house, Trip hop, Liquid drum and bass** (the two-step at double time), **Bossa nova**. Ten per category, in two rows of five on desktop. Hats, shakers and rims sit a little off centre (`KIT_PAN` in `drums/genres.ts`); kick, snare and clap stay in the middle.
+- Genres: **Lo-fi hip hop, Minimal techno/house, Dub/downtempo, Ambient pulse, Breakbeat** (fast, tight breaks: the Amen and others), **Hand drums** (a calm conga tumbao), **Deep house, Trip hop, Liquid drum and bass** (the two-step at double time), **Bossa nova**. Ten per category, in two rows of five on desktop. Hats, shakers and rims sit a little off centre (`KIT_PAN` in `drums/genres.ts`); kick, snare and clap stay in the middle.
 
 ### Mutation rules (all genres except breakbeat)
 - Every few bars, a pattern may: add/remove a ghost hit, shift a hit by one step, swap in a small fill on the last bar, or change the velocity/accent pattern.
@@ -72,7 +72,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 - Evolution scales how often and how much.
 
 ### Breakbeat
-- The **Amen break**, the most sampled drum break there is: G. C. Coleman's four bars from The Winstons' "Amen, Brother" (1969), as recorded, tight and compressed. It is the one tile that never mutates, whatever Evolution says, because its value is that people recognise it. The original runs at about 136 BPM, just above the tempo slider's 130.
+- Fast and tight, as breaks are played in breakbeat, big beat and jungle: at calm tempos the break runs at double time (120-180 bpm), near-quantized and hard-compressed. It plays the **Amen break** (G. C. Coleman's four bars from The Winstons' "Amen, Brother", 1969, as recorded) and three other standard breaks (two-step, funk, big beat), changes break between four-bar phrases (more often with Evolution), and may end a phrase with a roll, a stutter or a drop.
 
 ## Session features (v1)
 - **Save/load mixes** locally (browser storage, no account).
