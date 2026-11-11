@@ -7,7 +7,7 @@ import { chance, clamp, pick, rand, randInt } from '../random';
 import { createChorus, createDrift } from '../synth';
 import { chordInPentatonic, midiToFreq, notesInRange, pentatonicNotes, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
-import { modelVoice } from '../models/host';
+import { tileVoice } from '../models/host';
 
 /** A slow lowpass LFO shared by several instruments for "filter / texture movement". */
 function movingFilter(core: Core, base: number, maxDepth: number, baseRate: number, q = 0.5) {
@@ -110,7 +110,7 @@ export function createBells(core: Core): Instrument {
   const out = new GainNode(ctx, { gain: 1 });
   const tone = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 14000 });
   tone.connect(out);
-  const bars = modelVoice(core, 'bells', tone);
+  const bars = tileVoice(core, 'bells', tone);
   let nextAllowed = 0;
   let last = 79;
   const bell = (t: number, midi: number, vel: number) => bars.note(t, midi, 0, vel);

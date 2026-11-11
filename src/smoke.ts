@@ -1,6 +1,7 @@
 // Dev-only audio smoke test (open smoke.html, or run `npm run smoke`).
 // Renders each tile through the real engine in an OfflineAudioContext and
 // reports loudness, peaks, clipping and invalid samples.
+import { ALTERNATES, ALTERNATE_TILES } from './engine/alternates';
 import { Engine } from './engine/engine';
 import { TILES, type TileId } from './tiles';
 
@@ -195,13 +196,16 @@ interface Scenario {
   bpm?: number;
   /** Turn these tiles off at this time (tests fade-out). */
   offAt?: { time: number; ids: TileId[] };
+  /** Play the tiles' alternate voices (src/engine/alternates) instead of their own. */
+  alternates?: boolean;
 }
 
 async function render(s: Scenario): Promise<AudioBuffer> {
   const ctx = new OfflineAudioContext(2, SR * s.seconds, SR);
-  const engine = new Engine(ctx);
+  const engine = new Engine(ctx, s.alternates ? { alternates: ALTERNATES } : {});
   // Tiles on physical models only play once those have loaded.
   await engine.ready;
+  if (s.alternates) engine.setCompareMix(1);
   engine.setBpm(s.bpm ?? 80);
   engine.setKey(9);
   engine.setEvolution(s.evolution ?? 0.5);
@@ -256,7 +260,29 @@ function toWav(buf: AudioBuffer): string {
   return btoa(bin);
 }
 
-export async function runSmoke(opts: { wavs?: boolean } = {}) {
+/**
+ * Each tile with an alternate voice, rendered with its own voice and with the alternate: loudness side by side, and
+ * what to multiply the alternate's trim by (alternates/index.ts) so A/B comparisons are at equal loudness. Played at
+ * a low volume so the master limiter stays out of it, and long, since the notes are random.
+ */
+async function runCompare(wavs: Record<string, string> | null) {
+  const rows: (Stats & { ownLufs: number; trimBy: number })[] = [];
+  for (const id of ALTERNATE_TILES as TileId[]) {
+    const s = { tiles: { [id]: 0.3 }, seconds: 40, evolution: 0.6 };
+    const own = analyse(id, await render(s), 5);
+    const buf = await render({ ...s, alternates: true });
+    const alt = analyse(`${id} (alternate)`, buf, 5);
+    if (wavs) wavs[`alternate ${id}`] = toWav(buf);
+    rows.push({ ...alt, ownLufs: own.lufs, trimBy: Math.round(10 ** ((own.lufs - alt.lufs) / 20) * 1000) / 1000 });
+  }
+  return rows;
+}
+
+export async function runSmoke(opts: { wavs?: boolean; compare?: boolean } = {}) {
+  if (opts.compare) {
+    const wavs: Record<string, string> = {};
+    return { solo: [], scenes: [], compare: await runCompare(opts.wavs ? wavs : null), wavs, reference: await meterReference() };
+  }
   const solo: Stats[] = [];
   for (const t of TILES) {
     if (t.effect) continue;

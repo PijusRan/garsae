@@ -11,7 +11,7 @@ import { HANDOVER_GRACE_LOOPS, handoverChance, handoverCooldownBars } from './ev
 import { chance, pick } from './random';
 import { createArp, createBells, createDrone, createPad } from './instruments/pads';
 import { Master, type ModulationSettings } from './master';
-import type { Models } from './models/host';
+import type { Alternates, Models } from './models/host';
 import { NoiseBank } from './noise';
 import { Scheduler } from './scheduler';
 import { Tile } from './tile';
@@ -94,7 +94,11 @@ export class Engine {
     void import('./models/bank');
   }
 
-  constructor(ctx?: BaseAudioContext) {
+  /** Listening tests: 0 plays the tiles' own voices, 1 their alternates. */
+  private ab?: ConstantSourceNode;
+
+  /** `alternates` (listening tests only) gives tiles a second voice to compare against; see setCompareMix. */
+  constructor(ctx?: BaseAudioContext, opts: { alternates?: Alternates } = {}) {
     this.ctx = ctx ?? new AudioContext({ latencyHint: 'playback' });
     this.master = new Master(this.ctx);
     const models: Models = { host: null, ready: import('./models/bank').then(({ createModelHost }) => createModelHost(this.ctx)) };
@@ -108,8 +112,18 @@ export class Engine {
       evolution: 0.3,
       models,
     };
+    if (opts.alternates) {
+      this.ab = new ConstantSourceNode(this.ctx, { offset: 0 });
+      this.ab.start();
+      this.core.compare = { alternates: opts.alternates, ab: this.ab };
+    }
     this.ready = models.ready.then(() => {});
     this.scheduler = new Scheduler(this.ctx, (step, time) => this.onStep(step, time), () => this.stepDur);
+  }
+
+  /** Listening tests: 0 hears the tiles' own voices, 1 their alternates, crossfading in a few milliseconds. */
+  setCompareMix(x: number): void {
+    this.ab?.offset.setTargetAtTime(x, this.ctx.currentTime, 0.008);
   }
 
   private get stepDur(): number {

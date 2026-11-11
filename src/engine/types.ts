@@ -1,5 +1,5 @@
 import type { Master } from './master';
-import type { Models } from './models/host';
+import type { Compare, Models } from './models/host';
 import type { NoiseBank } from './noise';
 import type { ChordInfo } from './theory';
 
@@ -57,6 +57,8 @@ export interface Core {
   evolution: number;
   /** The physical models some tiles play on (see models/host.ts). */
   models: Models;
+  /** Listening tests only: alternate voices and the A/B control. */
+  compare?: Compare;
 }
 
 export type InstrumentFactory = (core: Core) => Instrument;

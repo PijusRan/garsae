@@ -7,7 +7,7 @@ import { chance, clamp, pick, rand, randInt } from '../random';
 import { createChorus } from '../synth';
 import { chordInPentatonic, midiToFreq, notesInRange, pentatonicNotes, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
-import { modelVoice, type Vowel } from '../models/host';
+import { tileVoice, type Vowel } from '../models/host';
 
 /** The chord's tones as a close voicing from `lo` upwards, with an optional 9th on top. */
 function voicing(s: StepInfo, lo: number, ninth: boolean): number[] {
@@ -111,7 +111,7 @@ export function createChoir(core: Core): Instrument {
   const out = new GainNode(ctx, { gain: 1 });
   const chorus = createChorus(ctx, { wet: 0.7, rate: 0.35, depth: 0.0022 });
   chorus.output.connect(out);
-  const singers = modelVoice(core, 'choir', chorus.input);
+  const singers = tileVoice(core, 'choir', chorus.input);
   let vowel: Vowel = 'oo';
   let soundingUntil = 0;
 
@@ -147,7 +147,7 @@ export function createFeltPiano(core: Core): Instrument {
   const felt = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 7500, Q: 0.35 });
   const body = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 190, Q: 0.9, gain: 2.5 });
   felt.connect(body).connect(out);
-  const piano = modelVoice(core, 'piano', felt);
+  const piano = tileVoice(core, 'piano', felt);
   let nextNote = 0;
   let last = 67;
   const note = piano.note;
@@ -206,7 +206,7 @@ export function createStrings(core: Core): Instrument {
   hp.connect(body).connect(sheen).connect(lp).connect(fast.input);
   fast.output.connect(slow.input);
   slow.output.connect(out);
-  const section = modelVoice(core, 'strings', hp);
+  const section = tileVoice(core, 'strings', hp);
   let soundingUntil = 0;
 
   function playChord(s: StepInfo, bars: number) {
@@ -335,7 +335,7 @@ export function createTapeFlute(core: Core): Instrument {
   const wet = new GainNode(ctx, { gain: 0.2 });
   lp.connect(delay).connect(loopFilter).connect(feedback).connect(delay);
   loopFilter.connect(wet).connect(out);
-  const flute = modelVoice(core, 'flute', hp);
+  const flute = tileVoice(core, 'flute', hp);
   let phrase: { step: number; midi: number; beats: number }[] = [];
   let last = 69;
 

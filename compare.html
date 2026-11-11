@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Garsae: compare voices</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --text: #f9f7e9;
+        --text-2: #c4c1b5;
+        --text-3: #8e8e8e;
+        --line: oklch(1 0 0 / 0.14);
+        --surface: oklch(1 0 0 / 0.05);
+        --on: #6e9dff;
+      }
+      body {
+        margin: 0;
+        background: #000;
+        color: var(--text);
+        font: 15px/1.5 system-ui, sans-serif;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 32px 20px 64px;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        margin: 28px 0 10px;
+      }
+      p {
+        color: var(--text-2);
+        margin: 0 0 8px;
+      }
+      kbd {
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 0 5px;
+        font: 12px ui-monospace, monospace;
+      }
+      button {
+        font: inherit;
+        color: var(--text);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px 14px;
+        cursor: pointer;
+      }
+      button[aria-pressed='true'] {
+        border-color: var(--on);
+        background: oklch(0.62 0.15 260 / 0.25);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .ab {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .ab button {
+        padding: 22px;
+        font-size: 20px;
+        font-weight: 600;
+        border-radius: 16px;
+      }
+      .ab small {
+        display: block;
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--text-2);
+      }
+      label {
+        color: var(--text-2);
+      }
+      input[type='range'] {
+        width: 200px;
+        vertical-align: middle;
+      }
+      #status {
+        min-height: 1.5em;
+        color: var(--text-3);
+      }
+      #reveal-out {
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Compare voices</h1>
+      <p>
+        Dev-only. A is the voice a tile ships with, B a candidate from <code>src/engine/alternates</code>. Both play
+        the same notes at the same loudness; switching only changes which one you hear.
+        <kbd>Space</kbd> switches, <kbd>A</kbd> and <kbd>B</kbd> pick one, <kbd>P</kbd> plays or stops.
+      </p>
+
+      <h2>Sounds</h2>
+      <div class="row" id="tiles"></div>
+
+      <h2>Under them (synth only, same in A and B)</h2>
+      <div class="row" id="backing"></div>
+
+      <h2>Listen</h2>
+      <div class="row">
+        <button id="play">Play</button>
+        <label><input type="checkbox" id="blind" /> Blind (hide which is which)</label>
+        <button id="reveal" hidden>Reveal</button>
+        <span id="reveal-out"></span>
+      </div>
+      <p id="status"></p>
+      <div class="ab">
+        <button id="a" aria-pressed="true"></button>
+        <button id="b" aria-pressed="false"></button>
+      </div>
+
+      <h2>Music</h2>
+      <div class="row">
+        <label>Evolution <input type="range" id="evolution" min="0" max="100" value="50" /></label>
+        <label>Tempo <input type="range" id="bpm" min="56" max="120" value="76" /> <span id="bpm-out">76</span> bpm</label>
+      </div>
+    </main>
+    <script type="module" src="/src/compare.ts"></script>
+  </body>
+</html>

@@ -5,7 +5,7 @@ import { chance, clamp, pick, rand } from '../random';
 import { saturationCurve } from '../synth';
 import { DORIAN, midiToFreq, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
-import { modelVoice } from '../models/host';
+import { tileVoice } from '../models/host';
 
 /** The MIDI note with pitch class `pc` closest to `ref`, kept inside [lo, hi]. */
 function nearest(pc: number, ref: number, lo: number, hi: number): number {
@@ -81,7 +81,7 @@ export function createWalk(core: Core): Instrument {
   const out = new GainNode(ctx, { gain: 1 });
   const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 3200, Q: 0.5 });
   lp.connect(out);
-  const bass = modelVoice(core, 'walk', lp);
+  const bass = tileVoice(core, 'walk', lp);
   const LO = 31;
   const HI = 55;
   let last = 43;

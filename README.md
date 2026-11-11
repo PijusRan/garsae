@@ -61,6 +61,7 @@ Pushes to `main` deploy to GitHub Pages through `.github/workflows/deploy.yml`, 
 npm run typecheck
 npm run smoke                  # renders every tile offline in headless Chromium and prints loudness, peaks, clipping
 npm run smoke -- --wavs        # also writes listening WAVs to smoke-output/
+npm run smoke -- --compare     # tiles with an alternate voice: loudness of each against its own, and the trim to match
 npm run build && npm run ui-check   # drives the built app: play, toggle, share link, phone layout, screenshots
 ```
 
@@ -72,7 +73,10 @@ Six acoustic tiles play on physical models, written in [Faust](https://faust.gra
 
 ```bash
 npm run faust      # recompiles src/engine/faust/dsp/*.dsp into src/engine/faust/gen/ (no Faust install needed)
+npm run compare    # listening tests: a tile's own voice (A) against an alternate (B), on the same notes
 ```
+
+`npm run compare` opens a dev-only A/B page. Each tile with an alternate voice in `src/engine/alternates` plays both voices on the very same notes at the same loudness; Space switches instantly, and a blind mode hides which is which. It starts with the synth voices the six models replaced. To test a new candidate, add its voice there and set its trim with `npm run smoke -- --compare`. Neither the page nor the alternates are part of the app.
 
 The Faust libraries are LGPL with an exception for generated code; the compiler is only a dev dependency.
 
@@ -92,7 +96,8 @@ src/
     instruments/           pads, keys, bass, atmosphere and noise colours, effect tiles
     drums/                 synthesized drum voices, genre patterns and mutation rules
     faust/                 physical models: Faust sources (dsp/), compiled modules (gen/), the AudioWorklet runner
-    models/                the model voices: loading, voice allocation, level trims
+    models/                the model voices: loading, voice allocation, level trims, A/B hook
+    alternates/            candidate voices for listening tests (dev-only, compare.html)
   state/mix.ts             mix model, share-link encoding, saved mixes, Surprise me
   i18n/                    English and Lithuanian strings
   App.tsx, ui/             Preact UI and PWA helpers
