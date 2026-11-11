@@ -25,7 +25,7 @@ Guiding principle: it is a **background player, never a distractor.** All change
 
 ### Handovers
 - Evolution's slowest move: when the chord loop comes round to its first chord, a tile may **hand over** to an off tile of the same **family** (`family` in `src/tiles.ts`), which takes its volume and its own Evolution. The two crossfade from the downbeat over two bars (one for drums, so two grooves never clash for long), and the light moves across the grid. No toast.
-- Families: sustained pads (warm pad, drone, choir, strings, tape flute), melodic pads (bells, arpeggio, electric piano, felt piano, vibraphone), deep bass (sub, 808, glide, Reese), moving bass (walking, fretless, muted, pulse, FM, rolling), calm drums (lo-fi, ambient pulse, brushes, bossa nova, dub, trip hop), driving drums (techno, deep house, liquid DnB). Breakbeat, texture and effects never swap.
+- Families: sustained pads (warm pad, drone, choir, strings, tape flute), melodic pads (bells, arpeggio, electric piano, felt piano, vibraphone), deep bass (sub, 808, glide, Reese), moving bass (walking, fretless, muted, pulse, FM, rolling), calm drums (lo-fi, ambient pulse, hand drums, bossa nova, dub, trip hop), driving drums (techno, deep house, liquid DnB). Breakbeat, texture and effects never swap.
 - How often (`src/engine/evolution.ts`): never below 0.4. Above that, each tile has a `0.01 + 0.32 × (e − 0.4)` chance per loop pass, read from its own Evolution; at most one handover per pass, and at least `64 − 32 × e` bars between any two in the mix. A tile plays two loops before it can hand over, and nothing changes in the first two loops after Play. With four tiles at 75 bpm that measures roughly one handover every 5-6 minutes at 0.5, every 3-4 at 0.7 and every 2-3 at full.
 
 ## Sound source
@@ -64,7 +64,7 @@ Each instrument is a tile. Pads, bass and arps read from a shared hidden chord e
 
 ## Drums
 - Each **drum genre is its own tile with its own volume**. Several genres can be on at once and **layer** together.
-- Genres: **Lo-fi hip hop, Minimal techno/house, Dub/downtempo, Ambient pulse, Breakbeat** (amen / scatter-break flavour), **Brushes** (soft jazz swing), **Deep house, Trip hop, Liquid drum and bass** (the two-step at double time), **Bossa nova**. Ten per category, in two rows of five on desktop. Hats, shakers and rims sit a little off centre (`KIT_PAN` in `drums/genres.ts`); kick, snare and clap stay in the middle.
+- Genres: **Lo-fi hip hop, Minimal techno/house, Dub/downtempo, Ambient pulse, Breakbeat** (amen / scatter-break flavour), **Hand drums** (a calm conga tumbao), **Deep house, Trip hop, Liquid drum and bass** (the two-step at double time), **Bossa nova**. Ten per category, in two rows of five on desktop. Hats, shakers and rims sit a little off centre (`KIT_PAN` in `drums/genres.ts`); kick, snare and clap stay in the middle.
 
 ### Mutation rules (all genres except breakbeat)
 - Every few bars, a pattern may: add/remove a ghost hit, shift a hit by one step, swap in a small fill on the last bar, or change the velocity/accent pattern.

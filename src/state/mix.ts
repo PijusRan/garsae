@@ -74,6 +74,8 @@ export function encodeMix(m: MixState): string {
   return q.toString().replace(/%2C/g, ',');
 }
 
+const RENAMED: Record<string, TileId> = { brushes: 'hands' };
+
 /** Parses a share string. Unknown or broken parts are ignored; returns null if nothing usable. */
 export function decodeMix(input: string): MixState | null {
   const q = new URLSearchParams(input.replace(/^#/, ''));
@@ -83,7 +85,9 @@ export function decodeMix(input: string): MixState | null {
   for (const raw of t.split(',')) {
     if (!raw) continue;
     const off = raw.startsWith('-');
-    const [id, vol, evo] = (off ? raw.slice(1) : raw).split('.');
+    const [name, vol, evo] = (off ? raw.slice(1) : raw).split('.');
+    // Tiles that were replaced: old links and saved mixes get the tile that took their place.
+    const id = RENAMED[name] ?? name;
     if (!isTileId(id)) continue;
     const v = Number(vol);
     const ev = evo === undefined || evo === '' ? NaN : Number(evo);
@@ -228,7 +232,7 @@ export function surpriseMix(): MixState {
   }
   if (bed !== 'tune' && Math.random() < 0.55) on[pickOne(basses)] = between(0.35, 0.55);
   if (Math.random() < 0.75) {
-    const drum = pickOne<TileId>(['lofi', 'lofi', 'dub', 'ambient', 'ambient', 'brushes', 'brushes', 'bossa', 'triphop', 'house', 'techno', 'breaks', 'dnb']);
+    const drum = pickOne<TileId>(['lofi', 'lofi', 'dub', 'ambient', 'ambient', 'hands', 'hands', 'bossa', 'triphop', 'house', 'techno', 'breaks', 'dnb']);
     const busy = drum === 'breaks' || drum === 'techno' || drum === 'dnb' || drum === 'house';
     on[drum] = busy ? between(0.3, 0.42) : between(0.35, 0.55);
   }

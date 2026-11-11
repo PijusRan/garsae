@@ -1,11 +1,11 @@
 // Drum genres. Each genre is its own tile with its own volume, and several can layer.
-import { drumMutationChance, drumMutationInterval, drumMutationSize, noteDensity } from '../evolution';
+import { drumMutationChance, drumMutationInterval, drumMutationSize } from '../evolution';
 import { glide } from '../params';
-import { chance, clamp, rand } from '../random';
+import { chance, rand } from '../random';
 import type { Core, Instrument, StepInfo } from '../types';
 import { makeTracks, mutateOnce, parsePattern, type Track, type TrackDef } from './patterns';
 import { saturationCurve } from '../synth';
-import { playHit, type HitOpts, type Kit, type Voice } from './voices';
+import { playHit, type Kit, type Voice } from './voices';
 
 interface Chain {
   input: AudioNode;
@@ -39,7 +39,7 @@ function drumBus(
   return { input, output };
 }
 
-const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop' | 'dnb' | 'bossa', GenreDef> = {
+const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'hands' | 'house' | 'triphop' | 'dnb' | 'bossa', GenreDef> = {
   // Lo-fi hip hop: lazy boom-bap, heavy swing, dusty and darkened.
   lofi: {
     swing: 0.2,
@@ -135,6 +135,24 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop'
     },
   },
 
+  // Hand drums: a calm conga tumbao. Heel and toe murmur through the bar, a slap on 2, two open tones on 4 and its "and"
+  // (the second on the low tumba), a high quinto that wanders, a frame drum underneath and a soft shaker.
+  hands: {
+    swing: 0.1,
+    humanize: 0.007,
+    tracks: [
+      { voice: 'congaslap', pattern: '....x...........', core: true, gain: 0.8 },
+      { voice: 'conga', pattern: '............X...', core: true, gain: 0.85 },
+      { voice: 'conga', pattern: '..............x.', core: true, gain: 0.85, opts: { tone: 0.78, decay: 1.25 } },
+      { voice: 'conga', pattern: 'g.g...g.g.g.....', gain: 0.6, opts: { decay: 0.3 } },
+      { voice: 'conga', pattern: '.......g.....g..', gain: 0.6, opts: { tone: 1.32, decay: 0.8 } },
+      { voice: 'tom', pattern: 'x.......o.......', gain: 0.3, opts: { tone: 0.55, decay: 1.2 } },
+      { voice: 'shaker', pattern: 'o.g.o.g.o.g.o.g.', gain: 0.9, opts: { decay: 1.3 } },
+    ],
+    fills: [{ voice: 'conga', pattern: '.ooX', opts: { tone: 1.32, decay: 0.8 } }],
+    chain: (ctx) => drumBus(ctx, { highpass: 40, lowpass: 9000, drive: 1.15, threshold: -24, ratio: 2, release: 0.15, gain: 1 }),
+  },
+
   // Deep house: a rounder kick than techno, a clap laid on top of a soft shuffle.
   house: {
     swing: 0.13,
@@ -210,7 +228,7 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'house' | 'triphop'
  * Where each voice sits across the kit, as a drummer's kit is heard from the room. Kick, snare and clap stay centred:
  * they carry the weight, and the master keeps the lows mono anyway.
  */
-const KIT_PAN: Partial<Record<Voice, number>> = { hat: 0.16, openhat: 0.22, shaker: -0.22, rim: -0.12, tom: -0.14 };
+const KIT_PAN: Partial<Record<Voice, number>> = { hat: 0.16, openhat: 0.22, shaker: -0.22, rim: -0.12, tom: -0.14, conga: 0.14, congaslap: 0.14 };
 
 function swingOffset(stepInBar: number, stepDur: number, swing: number): number {
   return stepInBar % 2 === 1 ? swing * stepDur : 0;
@@ -277,6 +295,7 @@ export const createLofi = createPatternGenre(GENRES.lofi);
 export const createTechno = createPatternGenre(GENRES.techno);
 export const createDub = createPatternGenre(GENRES.dub);
 export const createAmbientPulse = createPatternGenre(GENRES.ambient);
+export const createHandDrums = createPatternGenre(GENRES.hands);
 export const createHouse = createPatternGenre(GENRES.house);
 export const createTripHop = createPatternGenre(GENRES.triphop);
 export const createDnb = createPatternGenre(GENRES.dnb);
@@ -320,90 +339,6 @@ export function createBreakbeat(core: Core): Instrument {
         if (vel <= 0) continue;
         playHit(kit, tr.def.voice, input, Math.max(s.time, t + rand(-0.001, 0.001)), vel * (tr.def.gain ?? 1), tr.def.opts);
       }
-    },
-  };
-}
-
-// ---------------------------------------------------------------- brushes (jazz)
-
-/**
- * Swing ratio (long : short) of a jazz ride at a given tempo. Measured players swing hardest
- * at slow tempos (around 2.5-3 : 1) and flatten towards even eighths as the tempo rises.
- */
-const swingRatio = (bpm: number): number => clamp(2.6 - ((bpm - 60) / 70) * 0.5, 2.1, 2.6);
-
-/** Per-limb timing offsets in seconds: the ride pushes ahead, the snare hand lays back. */
-const FEEL = { ride: -0.006, hat: 0, slap: 0.012, kick: 0.004, brush: -0.01 };
-
-/**
- * A brushes trio drummer, played beat by beat rather than from a 16th-note grid, so the
- * swung notes fall where a player puts them:
- * - ride "ding, DING-a, ding, DING-a", accented on 2 and 4, with the skip note at the
- *   tempo's swing ratio, and now and then an extra skip or a triplet
- * - the left hand sweeping a circle on the snare through every beat, alternating direction
- * - brush pats on 2 and 4, laid back; the hi-hat foot crisp on 2 and 4
- * - a feathered kick on all four beats, barely heard, with an occasional accented "bomb"
- * - sparse snare comping on swung offbeats and triplet fills at phrase ends
- */
-export function createBrushes(core: Core): Instrument {
-  const { ctx } = core;
-  const kit: Kit = { ctx, noise: core.noise };
-  const input = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 12000, Q: 0.4 });
-  const output = new GainNode(ctx, { gain: 1 });
-  input.connect(output);
-  let sweepDown = false;
-  let fillThisBar = false;
-
-  /** A hit with its limb's feel, a few milliseconds of human looseness and a little level variation. */
-  function hit(voice: Voice, limb: keyof typeof FEEL, t: number, vel: number, opts?: HitOpts) {
-    const at = Math.max(ctx.currentTime, t + FEEL[limb] + rand(-0.004, 0.004));
-    playHit(kit, voice, input, at, vel * rand(0.88, 1.08), opts);
-  }
-
-  function beat(s: StepInfo, b: number) {
-    const tb = s.time;
-    const B = s.stepDur * 4;
-    const r = swingRatio(s.bpm);
-    const skip = tb + (B * r) / (1 + r);
-    const busy = noteDensity(s.evolution);
-    const backbeat = b === 1 || b === 3;
-
-    // Ride: quarters, accented on 2 and 4, with the skip note after 2 and 4.
-    if (fillThisBar && b === 3) {
-      // Triplet fill on the snare instead of the last beat's ride.
-      for (let k = 0; k < 3; k++) hit('slap', 'slap', tb + (k * B) / 3, 0.35 + 0.15 * k, { tone: 1.05 });
-    } else {
-      hit('jazzride', 'ride', tb, backbeat ? 0.85 : 0.65, { decay: 1.3 });
-      if (backbeat || chance(0.1 * busy)) hit('jazzride', 'ride', skip, 0.5, { decay: 0.7 });
-      else if (chance(0.05 * busy)) {
-        // The occasional triplet "let-ta" on the ride.
-        hit('jazzride', 'ride', tb + B / 3, 0.4, { decay: 0.6 });
-        hit('jazzride', 'ride', tb + (2 * B) / 3, 0.45, { decay: 0.6 });
-      }
-    }
-
-    // Left hand: one sweep through the whole beat, alternating direction like a circle.
-    sweepDown = !sweepDown;
-    hit('brush', 'brush', tb, backbeat ? 0.95 : 0.8, { decay: (B * 1.05) / 0.32, down: sweepDown });
-
-    if (backbeat) {
-      hit('slap', 'slap', tb, 0.55);
-      hit('chick', 'hat', tb, 0.5);
-    }
-
-    // Feathered kick: felt more than heard. Sometimes a bomb on the "and" of 4 or on 3.
-    hit('kick', 'kick', tb, 0.12, { tone: 0.8, decay: 0.7 });
-    if ((b === 2 || b === 3) && chance(0.06 * busy)) hit('kick', 'kick', b === 3 ? skip : tb, 0.55, { tone: 0.8, decay: 1 });
-
-    // Snare comping: a soft "chatter" on a swung offbeat.
-    if (!(fillThisBar && b === 3) && chance(0.13 * busy)) hit('slap', 'slap', skip, rand(0.28, 0.45), { tone: 1.1 });
-  }
-
-  return {
-    output,
-    step(s) {
-      if (s.stepInBar === 0) fillThisBar = s.bar % 4 === 3 && chance(0.2 + 0.4 * s.evolution);
-      if (s.stepInBar % 4 === 0) beat(s, s.stepInBar / 4);
     },
   };
 }

@@ -2,7 +2,7 @@
 // the UI only sends commands such as setTile / setTileVolume / setEvolution.
 import { TILES, TILE_BY_ID, type TileId } from '../tiles';
 import { ChordEngine } from './chords';
-import { createAmbientPulse, createBossa, createBreakbeat, createBrushes, createDnb, createDub, createHouse, createLofi, createTechno, createTripHop } from './drums/genres';
+import { createAmbientPulse, createBossa, createBreakbeat, createDnb, createDub, createHandDrums, createHouse, createLofi, createTechno, createTripHop } from './drums/genres';
 import { create808, createFmBass, createFretless, createGlide, createMuted, createPulse, createReese, createRolling, createSub, createWalk } from './instruments/bass';
 import { createChoir, createEPiano, createFeltPiano, createStrings, createTapeFlute, createVibes } from './instruments/keys';
 import { createCrackle, createHum, createNoise, createWind } from './instruments/atmosphere';
@@ -43,7 +43,7 @@ const FACTORIES: Record<TileId, InstrumentFactory> = {
   dub: createDub,
   ambient: createAmbientPulse,
   breaks: createBreakbeat,
-  brushes: createBrushes,
+  hands: createHandDrums,
   house: createHouse,
   triphop: createTripHop,
   dnb: createDnb,

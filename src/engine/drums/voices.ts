@@ -4,15 +4,13 @@ import { rand } from '../random';
 import { saturationCurve } from '../synth';
 import type { NoiseBank } from '../noise';
 
-export type Voice = 'kick' | 'snare' | 'rim' | 'clap' | 'hat' | 'openhat' | 'shaker' | 'tom' | 'ride' | 'brush' | 'slap' | 'jazzride' | 'chick';
+export type Voice = 'kick' | 'snare' | 'rim' | 'clap' | 'hat' | 'openhat' | 'shaker' | 'tom' | 'ride' | 'conga' | 'congaslap';
 
 export interface HitOpts {
   /** Pitch multiplier. */
   tone?: number;
   /** Decay multiplier. */
   decay?: number;
-  /** Brush sweeps only: the colour moves down instead of up (the return half of a circle). */
-  down?: boolean;
 }
 
 export interface Kit {
@@ -23,7 +21,7 @@ export interface Kit {
 function noiseSource(kit: Kit, t: number, dur: number): AudioBufferSourceNode {
   const buffer = kit.noise.hit;
   const src = new AudioBufferSourceNode(kit.ctx, { buffer });
-  // A random start, but never so late that a long hit (a slow brush sweep) runs off the buffer's end.
+  // A random start, but never so late that a long hit runs off the buffer's end.
   src.start(t, rand(0, Math.max(0, buffer.duration - dur - 0.06)), dur + 0.05);
   return src;
 }
@@ -191,163 +189,66 @@ function tom(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
 }
 
 /**
- * A brush swept in a circle across a coated snare head. Two layers of noise: the bristles'
- * scratch (1.5-5 kHz) and the head itself answering in the mids (500-1000 Hz), which is what
- * makes it a drum rather than hiss. A slow random tremor on the level is the bristles catching
- * the coating. The stroke speeds up into the beat and trails off, so the circle has a pulse.
- * It is a bed under the pats and the ride, not a lead: on records you feel it more than hear it.
+ * A conga played with the hands. A struck skin: its fundamental settling a few percent in pitch as the head relaxes,
+ * the membrane's overtones (about 1.5 and 2.2 times, not a string's 2 and 3) fading first, and the soft thud of the
+ * palm. Open tones ring; a short decay makes the muted heel and toe strokes. Tone 1 is a conga around 220 Hz.
  */
-function brush(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
+function conga(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const { ctx } = kit;
-  const tone = o.tone ?? 1;
-  const len = 0.32 * (o.decay ?? 1);
-  const n = noiseSource(kit, t, len + 0.05);
-
-  const scratch = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 2600 * tone, Q: 0.7 });
-  // The brush moves faster through the middle of the circle, and faster means brighter.
-  const [from, to] = o.down ? [3000, 2100] : [2100, 3000];
-  scratch.frequency.setValueAtTime(from * tone, t);
-  scratch.frequency.linearRampToValueAtTime(to * tone, t + len * 0.6);
-  scratch.frequency.linearRampToValueAtTime(((from + to) / 2) * tone, t + len);
-  const scratchTop = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 4500 * tone, Q: 0.5 });
-  const scratchGain = new GainNode(ctx, { gain: 0.7 });
-  const head = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 700 * tone, Q: 0.9 });
-  const headGain = new GainNode(ctx, { gain: 1.6 });
-
-  // Grain: the level wobbles by about +-25% at a few tens of hertz. White noise lowpassed
-  // at 35 Hz keeps about 4% of its level (sqrt(35 / 22050)), hence the depth of 6.
-  const grain = new GainNode(ctx, { gain: 1 });
-  const wobble = noiseSource(kit, t, len + 0.05);
-  const wobbleLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 35, Q: 0.7 });
-  const wobbleDepth = new GainNode(ctx, { gain: 6 });
-  wobble.connect(wobbleLp).connect(wobbleDepth).connect(grain.gain);
-
-  const g = new GainNode(ctx, { gain: 0 });
-  n.connect(scratch).connect(scratchTop).connect(scratchGain).connect(grain);
-  n.connect(head).connect(headGain).connect(grain);
-  grain.connect(g).connect(dest);
-  // Eased in with the beat, a gentle peak, then a long tail into the next stroke.
-  const peak = 0.05 * vel;
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(peak * 0.5, t + 0.06);
-  g.gain.linearRampToValueAtTime(peak, t + len * 0.35);
-  g.gain.linearRampToValueAtTime(peak * 0.3, t + len * 0.85);
-  g.gain.linearRampToValueAtTime(0, t + len);
-  release(n, [scratch, scratchTop, scratchGain, head, headGain, grain, g]);
-  release(wobble, [wobbleLp, wobbleDepth]);
-}
-
-/**
- * A brush slapped onto the snare: a soft "pfft". Mostly the wires (a burst of mid-high noise
- * that the bristles smear over a few ms, so no stick crack), with the head's thud under it.
- */
-function slap(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
-  const { ctx } = kit;
-  const tone = o.tone ?? 1;
-  const decay = 0.17 * (o.decay ?? 1);
-  const n = noiseSource(kit, t, decay + 0.05);
-  // The head: a short band of low mids.
-  const head = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 450 * tone, Q: 1 });
-  const hg = new GainNode(ctx, { gain: 0 });
-  n.connect(head).connect(hg).connect(dest);
-  percussive(hg.gain, t, 0.55 * vel, 0.004, decay * 0.45);
-  // The wires: most of a brush pat. Rounded off on top so it's a "pfft", not a "tss".
-  const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 1200 * tone, Q: 0.5 });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 5500 * tone, Q: 0.5 });
-  const wg = new GainNode(ctx, { gain: 0 });
-  n.connect(hp).connect(lp).connect(wg).connect(dest);
-  percussive(wg.gain, t, 0.75 * vel, 0.008, decay);
-  release(n, [head, hg, hp, lp, wg]);
-  const body = new OscillatorNode(ctx, { frequency: 200 * tone });
-  body.frequency.setValueAtTime(215 * tone, t);
-  body.frequency.exponentialRampToValueAtTime(195 * tone, t + 0.05);
-  const bg = new GainNode(ctx, { gain: 0 });
-  body.connect(bg).connect(dest);
-  const end = percussive(bg.gain, t, 0.06 * vel, 0.003, 0.08);
-  body.start(t);
-  body.stop(end);
-  release(body, [bg]);
-}
-
-/**
- * A jazz ride played with a stick: a bright "ping" from a cluster of inharmonic sine partials
- * (the higher ones fade first, as on a real cymbal), a soft wash of high noise that rings on,
- * and a tiny wooden tick from the stick tip. The partials are a cymbal's, not a chord's, so
- * it shimmers instead of buzzing.
- */
-const JAZZ_RIDE_PARTIALS: [number, number, number][] = [
-  // [Hz, level, decay s]
-  [612, 0.12, 1.6],
-  [1063, 0.2, 1.4],
-  [1527, 0.26, 1.2],
-  [2234, 0.32, 1.0],
-  [2981, 0.32, 0.8],
-  [3672, 0.28, 0.6],
-  [4418, 0.2, 0.45],
-  [5361, 0.14, 0.35],
-  [6670, 0.08, 0.25],
-  [8125, 0.05, 0.2],
-];
-
-function jazzRide(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
-  const { ctx } = kit;
-  const tone = o.tone ?? 1;
-  const decay = o.decay ?? 1;
-  const sum = new GainNode(ctx, { gain: 0.07 * vel });
-  // The partials alone are a little pure; a highpass keeps the ride off the piano's range.
-  const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 900, Q: 0.5 });
-  sum.connect(hp).connect(dest);
-  const oscs: OscillatorNode[] = [];
-  const nodes: AudioNode[] = [sum, hp];
-  for (const [f, level, d] of JAZZ_RIDE_PARTIALS) {
-    const osc = new OscillatorNode(ctx, { frequency: f * tone * rand(0.995, 1.005) });
+  const f = 220 * (o.tone ?? 1);
+  const len = 0.34 * (o.decay ?? 1);
+  for (const [ratio, level, d] of [
+    [1, 0.6, len],
+    [1.52, 0.16, len * 0.45],
+    [2.24, 0.05, len * 0.25],
+  ]) {
+    const osc = new OscillatorNode(ctx, { frequency: f * ratio });
+    osc.frequency.setValueAtTime(f * ratio * 1.05, t);
+    osc.frequency.exponentialRampToValueAtTime(f * ratio, t + 0.035);
     const g = new GainNode(ctx, { gain: 0 });
-    osc.connect(g).connect(sum);
-    const end = percussive(g.gain, t, level, 0.001, d * decay);
+    osc.connect(g).connect(dest);
+    const end = percussive(g.gain, t, level * vel, 0.002, d);
     osc.start(t);
     osc.stop(end);
-    oscs.push(osc);
-    nodes.push(g);
+    release(osc, [g]);
   }
-  // Release everything once the longest partial is done.
-  const longest = oscs[0];
-  longest.onended = () => {
-    for (const s of oscs) s.disconnect();
-    for (const nd of nodes) nd.disconnect();
-  };
-
-  // The wash: high noise, swelling out of the ping and ringing on.
-  const wash = noiseSource(kit, t, 1.3 * decay);
-  const wbp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 6500 * tone, Q: 0.7 });
-  const whp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 4500 });
-  const wg = new GainNode(ctx, { gain: 0 });
-  wash.connect(wbp).connect(whp).connect(wg).connect(dest);
-  percussive(wg.gain, t, 0.1 * vel, 0.008, 1.2 * decay);
-  release(wash, [wbp, whp, wg]);
-
-  // The stick tip: a few ms of bright noise.
-  const tick = noiseSource(kit, t, 0.015);
-  const tbp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 5200, Q: 1.2 });
-  const tg = new GainNode(ctx, { gain: 0 });
-  tick.connect(tbp).connect(tg).connect(dest);
-  percussive(tg.gain, t, 0.12 * vel, 0.0005, 0.01);
-  release(tick, [tbp, tg]);
+  // The palm landing: a few ms of muffled noise.
+  const n = noiseSource(kit, t, 0.03);
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1300 * (o.tone ?? 1), Q: 0.7 });
+  const ng = new GainNode(ctx, { gain: 0 });
+  n.connect(lp).connect(ng).connect(dest);
+  percussive(ng.gain, t, 0.3 * vel, 0.001, 0.02);
+  release(n, [lp, ng]);
 }
 
-/** The hi-hat played with the foot: two cymbals closing, a soft "chk" with a little sizzle and no ring. */
-function chick(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
+/**
+ * A conga slap: cupped fingers snapping on the edge. A short pop of mid-high noise with the skin's overtone under it
+ * and little of the fundamental. Rounded off on top, so it pops rather than cracks.
+ */
+function congaSlap(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const { ctx } = kit;
   const tone = o.tone ?? 1;
-  const n = noiseSource(kit, t, 0.08);
-  const body = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 2400 * tone, Q: 1.3 });
-  const bg = new GainNode(ctx, { gain: 0 });
-  n.connect(body).connect(bg).connect(dest);
-  percussive(bg.gain, t, 1.1 * vel, 0.003, 0.035);
-  const sizzle = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 8000 * tone, Q: 0.9 });
-  const sg = new GainNode(ctx, { gain: 0 });
-  n.connect(sizzle).connect(sg).connect(dest);
-  percussive(sg.gain, t, 0.3 * vel, 0.002, 0.05);
-  release(n, [body, bg, sizzle, sg]);
+  const f = 220 * tone;
+  const n = noiseSource(kit, t, 0.1);
+  const bp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 1900 * tone, Q: 1 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 5000, Q: 0.5 });
+  const ng = new GainNode(ctx, { gain: 0 });
+  n.connect(bp).connect(lp).connect(ng).connect(dest);
+  percussive(ng.gain, t, 2.4 * vel, 0.002, 0.07 * (o.decay ?? 1));
+  release(n, [bp, lp, ng]);
+  for (const [ratio, level, d] of [
+    [1, 0.2, 0.07],
+    [1.52, 0.28, 0.09],
+  ]) {
+    const osc = new OscillatorNode(ctx, { frequency: f * ratio * 1.03 });
+    osc.frequency.exponentialRampToValueAtTime(f * ratio, t + 0.03);
+    const g = new GainNode(ctx, { gain: 0 });
+    osc.connect(g).connect(dest);
+    const end = percussive(g.gain, t, level * vel, 0.002, d);
+    osc.start(t);
+    osc.stop(end);
+    release(osc, [g]);
+  }
 }
 
 const RIDE_RATIOS = [2, 3, 4.16, 5.43, 6.79, 8.21];
@@ -389,13 +290,9 @@ export function playHit(kit: Kit, voice: Voice, dest: AudioNode, t: number, vel:
       return tom(kit, dest, t, vel, o);
     case 'ride':
       return ride(kit, dest, t, vel, o);
-    case 'brush':
-      return brush(kit, dest, t, vel, o);
-    case 'slap':
-      return slap(kit, dest, t, vel, o);
-    case 'jazzride':
-      return jazzRide(kit, dest, t, vel, o);
-    case 'chick':
-      return chick(kit, dest, t, vel, o);
+    case 'conga':
+      return conga(kit, dest, t, vel, o);
+    case 'congaslap':
+      return congaSlap(kit, dest, t, vel, o);
   }
 }
