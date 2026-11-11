@@ -4,7 +4,7 @@ import { movementDepth, noteDensity } from '../evolution';
 import { cleanupAt, envelope, glide, percussive } from '../params';
 import { chance, clamp, pick, rand, randInt } from '../random';
 import { startLoop } from '../noise';
-import { createChorus, createDrift, saturationCurve } from '../synth';
+import { createChorus, createDrift } from '../synth';
 import { chordInPentatonic, midiToFreq, notesInRange, pentatonicNotes, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
 
@@ -452,19 +452,20 @@ export function createVibes(core: Core): Instrument {
 // ---------------------------------------------------------------- tape flute
 
 /**
- * A flute on a tape-replay keyboard: a near-sine with a few soft harmonics and real breath, a vibrato that arrives late,
- * and the slow pitch sag of tape running through the whole thing. Short phrases of long notes, then bars of rest.
+ * A flute on a tape-replay keyboard: a near-sine with a few soft harmonics and a little breath, a vibrato that arrives
+ * late, and the slow pitch sag of tape running through the whole thing. Played low and dark, like an alto flute on a
+ * worn tape: the top octave of a real flute is piercing. Short phrases of long notes, then bars of rest.
  */
 export function createTapeFlute(core: Core): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 220, Q: 0.6 });
-  const sat = new WaveShaperNode(ctx, { curve: saturationCurve(1.4), oversample: '2x' });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 8000, Q: 0.4 });
-  hp.connect(sat).connect(lp).connect(out);
+  const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 200, Q: 0.6 });
+  // Tape loses the top: everything above a few kHz is what made it shrill.
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2800, Q: 0.4 });
+  hp.connect(lp).connect(out);
   const delay = new DelayNode(ctx, { maxDelayTime: 3, delayTime: 0.75 });
   const feedback = new GainNode(ctx, { gain: 0.25 });
-  const loopFilter = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1800 });
+  const loopFilter = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1500 });
   const wet = new GainNode(ctx, { gain: 0.2 });
   lp.connect(delay).connect(loopFilter).connect(feedback).connect(delay);
   loopFilter.connect(wet).connect(out);
@@ -475,7 +476,7 @@ export function createTapeFlute(core: Core): Instrument {
   vibrato.start();
   wow.start();
   let phrase: { step: number; midi: number; beats: number }[] = [];
-  let last = 72;
+  let last = 69;
 
   function note(t: number, midi: number, hold: number, vel: number) {
     const f = midiToFreq(midi);
@@ -484,13 +485,12 @@ export function createTapeFlute(core: Core): Instrument {
     amp.connect(pan).connect(hp);
     const vibDepth = new GainNode(ctx, { gain: 0 });
     vibrato.connect(vibDepth);
-    vibDepth.gain.setValueAtTime(0, t + 0.35);
-    vibDepth.gain.linearRampToValueAtTime(11, t + 1.1);
+    vibDepth.gain.setValueAtTime(0, t + 0.4);
+    vibDepth.gain.linearRampToValueAtTime(8, t + 1.2);
     const oscs = [
       { ratio: 1, gain: 1 },
-      { ratio: 2, gain: 0.3 },
-      { ratio: 3, gain: 0.14 },
-      { ratio: 4, gain: 0.05 },
+      { ratio: 2, gain: 0.16 },
+      { ratio: 3, gain: 0.05 },
     ].map((p) => {
       const o = new OscillatorNode(ctx, { frequency: f * p.ratio });
       const g = new GainNode(ctx, { gain: p.gain });
@@ -499,11 +499,24 @@ export function createTapeFlute(core: Core): Instrument {
       wowDepth.connect(o.detune);
       return { o, g };
     });
+    // Breath: a soft chiff as the note speaks, settling to a little air under the tone.
     const breath = new AudioBufferSourceNode(ctx, { buffer: core.noise.get('pink'), loop: true });
-    const breathBp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: f * 2.5, Q: 0.8 });
-    const breathGain = new GainNode(ctx, { gain: 0.8 });
+    const breathBp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: f * 2, Q: 1.1 });
+    const breathGain = new GainNode(ctx, { gain: 0 });
+    breathGain.gain.setValueAtTime(0, t);
+    breathGain.gain.linearRampToValueAtTime(0.5, t + 0.06);
+    breathGain.gain.setTargetAtTime(0.18, t + 0.06, 0.15);
     breath.connect(breathBp).connect(breathGain).connect(amp);
-    const end = envelope(amp.gain, t, hold, { peak: 0.16 * vel, attack: 0.09, decay: 0.4, sustain: 0.82, release: 0.55 });
+    // Blown in slowly, swelling a little into the note, then easing off as the breath runs out.
+    const peak = 0.1 * vel;
+    const attack = 0.2;
+    const relStart = t + Math.max(attack + 0.1, hold);
+    amp.gain.setValueAtTime(0, t);
+    amp.gain.linearRampToValueAtTime(peak * 0.8, t + attack);
+    amp.gain.linearRampToValueAtTime(peak, t + attack + (relStart - t - attack) * 0.4);
+    amp.gain.linearRampToValueAtTime(peak * 0.7, relStart);
+    amp.gain.setTargetAtTime(0, relStart, 0.12);
+    const end = relStart + 0.7;
     for (const { o } of oscs) o.start(t);
     startLoop(breath, t);
     const sources = oscs.map((x) => x.o);
@@ -514,7 +527,7 @@ export function createTapeFlute(core: Core): Instrument {
   }
 
   function makePhrase(s: StepInfo) {
-    const pool = pentatonicNotes(s.root, 65, 84);
+    const pool = pentatonicNotes(s.root, 60, 77);
     let idx = pool.findIndex((m) => m >= last);
     if (idx < 0) idx = pool.length - 1;
     const length = randInt(2, 4);

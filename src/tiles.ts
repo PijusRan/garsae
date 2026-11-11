@@ -50,7 +50,7 @@ export const TILES: TileMeta[] = [
   { id: 'piano', category: 'pads', name: 'Felt piano', hint: 'Quiet hammers, sparse notes', defaultVolume: 0.5, level: 1.29, reverb: 0.4, family: 'melodic' },
   { id: 'strings', category: 'pads', name: 'String ensemble', hint: 'Wide, slow swells', defaultVolume: 0.5, level: 0.887, reverb: 0.45, family: 'sustained' },
   { id: 'vibes', category: 'pads', name: 'Vibraphone', hint: 'Soft mallets, slow shimmer', defaultVolume: 0.5, level: 1.68, reverb: 0.4, family: 'melodic' },
-  { id: 'flute', category: 'pads', name: 'Tape flute', hint: 'Long, breathy notes', defaultVolume: 0.45, level: 0.802, reverb: 0.4, family: 'sustained' },
+  { id: 'flute', category: 'pads', name: 'Tape flute', hint: 'Long, breathy notes', defaultVolume: 0.45, level: 0.9, reverb: 0.4, family: 'sustained' },
 
   { id: 'sub', category: 'bass', name: 'Sub bass', hint: 'Deep chord roots', defaultVolume: 0.55, level: 0.382, reverb: 0, family: 'deep' },
   { id: 'walk', category: 'bass', name: 'Walking bass', hint: 'Warm, wandering', defaultVolume: 0.55, level: 0.664, reverb: 0.05, family: 'moving' },
