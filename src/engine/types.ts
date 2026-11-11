@@ -1,4 +1,5 @@
 import type { Master } from './master';
+import type { ModelHost } from './models/host';
 import type { NoiseBank } from './noise';
 import type { ChordInfo } from './theory';
 
@@ -54,6 +55,8 @@ export interface Core {
   root: number;
   bpm: number;
   evolution: number;
+  /** Physical-model voices, when they are switched on (see models/host.ts). */
+  models?: ModelHost;
 }
 
 export type InstrumentFactory = (core: Core) => Instrument;

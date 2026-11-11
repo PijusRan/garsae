@@ -5,6 +5,7 @@ import { chance, clamp, pick, rand } from '../random';
 import { saturationCurve } from '../synth';
 import { DORIAN, midiToFreq, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
+import { voices } from '../models/host';
 
 /** The MIDI note with pitch class `pc` closest to `ref`, kept inside [lo, hi]. */
 function nearest(pc: number, ref: number, lo: number, hi: number): number {
@@ -66,15 +67,21 @@ export function createWalk(core: Core): Instrument {
   const out = new GainNode(ctx, { gain: 1 });
   const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 3200, Q: 0.5 });
   lp.connect(out);
+  const v = voices(core, 'walk', lp);
   let last = 43;
   const LO = 36;
   const HI = 55;
+
+  function note(t: number, midi: number, dur: number, vel: number) {
+    if (v.synthOn) synthNote(t, midi, dur, vel);
+    v.model?.note(t, midi, dur, vel);
+  }
 
   /**
    * Upright-style pluck: a saw and a triangle through a lowpass that closes after the
    * attack, a pitch that settles from a few cents sharp, and a soft finger thump.
    */
-  function note(t: number, midi: number, dur: number, vel: number) {
+  function synthNote(t: number, midi: number, dur: number, vel: number) {
     const f = midiToFreq(midi);
     const g = new GainNode(ctx, { gain: 0 });
     const tone = new BiquadFilterNode(ctx, { type: 'lowpass', Q: 0.9, frequency: 500 + 900 * vel });
@@ -88,12 +95,12 @@ export function createWalk(core: Core): Instrument {
     }
     a.connect(sawGain).connect(tone);
     b.connect(tone);
-    tone.connect(g).connect(lp);
+    tone.connect(g).connect(v.synth);
     const end = envelope(g.gain, t, dur, { peak: 0.34 * vel, attack: 0.006, decay: 0.45, sustain: 0.35, release: 0.12 });
     const thump = new AudioBufferSourceNode(ctx, { buffer: core.noise.hit });
     const thumpLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 380 });
     const thumpGain = new GainNode(ctx, { gain: 0 });
-    thump.connect(thumpLp).connect(thumpGain).connect(lp);
+    thump.connect(thumpLp).connect(thumpGain).connect(v.synth);
     percussive(thumpGain.gain, t, 0.5 * vel, 0.002, 0.035);
     thump.start(t, rand(0, 1.5), 0.06);
     a.start(t);

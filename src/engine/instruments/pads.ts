@@ -7,6 +7,7 @@ import { chance, clamp, pick, rand, randInt } from '../random';
 import { createChorus, createDrift } from '../synth';
 import { chordInPentatonic, midiToFreq, notesInRange, pentatonicNotes, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
+import { voices } from '../models/host';
 
 /** A slow lowpass LFO shared by several instruments for "filter / texture movement". */
 function movingFilter(core: Core, base: number, maxDepth: number, baseRate: number, q = 0.5) {
@@ -116,14 +117,20 @@ export function createBells(core: Core): Instrument {
   const out = new GainNode(ctx, { gain: 1 });
   const tone = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 14000 });
   tone.connect(out);
+  const v = voices(core, 'bells', tone);
   let nextAllowed = 0;
   let last = 79;
 
   function bell(t: number, midi: number, vel: number) {
+    if (v.synthOn) synthBell(t, midi, vel);
+    v.model?.note(t, midi, 0, vel);
+  }
+
+  function synthBell(t: number, midi: number, vel: number) {
     const f = midiToFreq(midi);
     const pan = new StereoPannerNode(ctx, { pan: rand(-0.6, 0.6) });
     const amp = new GainNode(ctx, { gain: vel });
-    amp.connect(pan).connect(tone);
+    amp.connect(pan).connect(v.synth);
     const oscs: OscillatorNode[] = [];
     const nodes: AudioNode[] = [amp, pan];
     let end = t;
@@ -216,15 +223,21 @@ export function createArp(core: Core): Instrument {
   filter.connect(delay);
   delay.connect(loopFilter).connect(feedback).connect(delay);
   loopFilter.connect(wet).connect(out);
+  const v = voices(core, 'arp', filter);
 
   let phrase: { step: number; midi: number; vel: number }[] = [];
   let last = 64;
 
   function note(t: number, midi: number, vel: number) {
+    if (v.synthOn) synthNote(t, midi, vel);
+    v.model?.note(t, midi, 0, vel);
+  }
+
+  function synthNote(t: number, midi: number, vel: number) {
     const f = midiToFreq(midi);
     const amp = new GainNode(ctx, { gain: 1 });
     const pan = new StereoPannerNode(ctx, { pan: clamp((midi - 64) / 24, -0.4, 0.4) });
-    amp.connect(pan).connect(filter);
+    amp.connect(pan).connect(v.synth);
     // Low bars ring longer than high ones.
     const ring = clamp(1.5 * Math.sqrt(262 / f), 0.7, 2);
     const oscs: OscillatorNode[] = [];

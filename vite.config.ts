@@ -14,7 +14,9 @@ function precacheList(): Plugin {
     name: 'garsae-precache-list',
     apply: 'build',
     generateBundle(_options, bundle) {
-      const files = ['./', ...Object.keys(bundle).filter((f) => !f.endsWith('.map')), ...PUBLIC_FILES];
+      // The physical models (engine/models/bank.ts) only load behind the ?voices=model flag: not worth storing offline.
+      const isModels = (f: string) => bundle[f].type === 'chunk' && bundle[f].name === 'bank';
+      const files = ['./', ...Object.keys(bundle).filter((f) => !f.endsWith('.map') && !isModels(f)), ...PUBLIC_FILES];
       this.emitFile({ type: 'asset', fileName: 'precache.json', source: JSON.stringify(files) });
     },
   };
@@ -23,4 +25,6 @@ function precacheList(): Plugin {
 export default defineConfig({
   base: './',
   plugins: [preact(), precacheList()],
+  // The physical-model chunk is mostly WebAssembly, and loads only on request.
+  build: { chunkSizeWarningLimit: 700 },
 });

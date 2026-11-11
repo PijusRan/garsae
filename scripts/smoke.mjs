@@ -1,10 +1,12 @@
 // Renders every tile offline in headless Chromium and prints audio stats.
-// Usage: npm run smoke [-- --wavs]   (needs Chromium; set CHROME_PATH if it is not /usr/bin/chromium-browser)
+// Usage: npm run smoke [-- --wavs] [-- --models]   (needs Chromium; set CHROME_PATH if it is not /usr/bin/chromium-browser)
+// --models renders only the tiles with a physical model, against their synth voices.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createServer } from 'vite';
 import puppeteer from 'puppeteer-core';
 
 const wantWavs = process.argv.includes('--wavs');
+const wantModels = process.argv.includes('--models');
 const server = await createServer({ server: { port: 5199, strictPort: false }, logLevel: 'error' });
 await server.listen();
 const url = server.resolvedUrls.local[0];
@@ -25,17 +27,22 @@ try {
   });
   await page.goto(`${url}smoke.html`);
   await page.waitForFunction(() => typeof window.runSmoke === 'function');
-  const result = await page.evaluate((w) => window.runSmoke({ wavs: w }), wantWavs);
+  const result = await page.evaluate((w, m) => window.runSmoke({ wavs: w, models: m }), wantWavs, wantModels);
   console.log(`\nMeter reference (997 Hz, 0 dBFS, one channel): ${result.reference} LUFS, should be about -3.0`);
   if (Math.abs(result.reference + 3.01) > 0.2) {
     failed = true;
     console.error('FAIL the loudness meter is out of calibration');
   }
-  console.log('\nSolo tiles at full volume (stats after the fade-in):');
-  console.table(result.solo);
-  console.log('\nScenes:');
-  console.table(result.scenes);
-  for (const s of [...result.solo, ...result.scenes]) {
+  if (wantModels) {
+    console.log('\nPhysical models, solo at a low volume, against their synth voices:');
+    console.table(result.models);
+  } else {
+    console.log('\nSolo tiles at full volume (stats after the fade-in):');
+    console.table(result.solo);
+    console.log('\nScenes:');
+    console.table(result.scenes);
+  }
+  for (const s of [...result.solo, ...result.scenes, ...(result.models ?? [])]) {
     if (s.nans > 0 || s.clipped > 0) {
       failed = true;
       console.error(`FAIL ${s.name}: ${s.nans} invalid samples, ${s.clipped} clipped samples`);

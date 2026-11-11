@@ -61,10 +61,22 @@ Pushes to `main` deploy to GitHub Pages through `.github/workflows/deploy.yml`, 
 npm run typecheck
 npm run smoke                  # renders every tile offline in headless Chromium and prints loudness, peaks, clipping
 npm run smoke -- --wavs        # also writes listening WAVs to smoke-output/
+npm run smoke -- --models      # physical models against their synth voices: loudness and the trim to match
 npm run build && npm run ui-check   # drives the built app: play, toggle, share link, phone layout, screenshots
 ```
 
 `smoke` and `ui-check` need Chromium. Set `CHROME_PATH` if it is not at `/usr/bin/chromium-browser`.
+
+## Physical models (prototype)
+
+Nine acoustic tiles have a second voice built from physical models, written in [Faust](https://faust.grame.fr) and run as WebAssembly in an AudioWorklet: tape flute (the STK jet-driven waveguide flute), string ensemble (Faust's bowed violin string), choir (FOF formant voices), felt piano (a felt hammer on stiff-string modes), vibraphone, glass bells and marimba (struck bars, modal), walking bass (an extended Karplus-Strong string) and the hand drums' congas (a circular membrane's modes). The tile's generator still decides every note; only the voice changes. The synth voices remain the default, and the models' WebAssembly loads only on request.
+
+```bash
+npm run compare    # A/B page: both voices play the same notes at the same loudness; Space switches, with a blind mode
+npm run faust      # recompiles src/engine/faust/dsp/*.dsp into src/engine/faust/gen/ (no Faust install needed)
+```
+
+The app also takes `?voices=model` to play the models in the full UI. Each model was tuned by measuring the pitch it actually plays at 44.1 and 48 kHz and correcting for it, and trimmed to the synth voice's loudness with `npm run smoke -- --models`. The Faust libraries are LGPL with an exception for generated code; the compiler is only a dev dependency.
 
 ## Layout
 
@@ -81,6 +93,8 @@ src/
     synth.ts               shared sound design: ensemble chorus, analog pitch drift, saturation
     instruments/           pads, keys, bass, atmosphere and noise colours, effect tiles
     drums/                 synthesized drum voices, genre patterns and mutation rules
+    faust/                 physical models: Faust sources (dsp/), compiled modules (gen/), the AudioWorklet runner
+    models/                which voice plays a tile (synth, model or A/B), and the model voices
   state/mix.ts             mix model, share-link encoding, saved mixes, Surprise me
   i18n/                    English and Lithuanian strings
   App.tsx, ui/             Preact UI and PWA helpers
@@ -101,7 +115,7 @@ public/sw.js               service worker, only used after "Download for offline
 - **Surprise me guardrails.** Every surprise mix has a harmonic bed, picked evenly from warm pad, drone, choir, or a soft arpeggio, glass bells or electric piano over a bass, and at most 6 tiles. It picks at most one extra melodic layer, one bass, one drum genre, one atmosphere and one noise colour. Breakbeat and techno are rarer and quieter. Effect tiles are never picked, and Evolution stays between 0.15 and 0.5.
 - **Focus presets.** These are not built yet, because the design puts them after the prototype. The engine already exposes amplitude modulation rate and depth through `setModulation`, and the AM tile uses it at 16 Hz.
 - **Generative textures.** Tape wobble adds gentle wow and flutter to the whole mix, and drones have their own tile. The Experimental category (binaural, isochronic, granular cloud) was removed.
-- **Sound design.** Plain oscillators sound like an old game, so every voice borrows a standard studio-synth recipe. The electric piano is DX7-style FM (algorithm 5: a body pair and a 14:1 tine pair that fades fast) with a suitcase tremolo, and the choir sings detuned saws with delayed vibrato and breath through vowel formants. The glide bass runs through two cascaded lowpasses (24 dB, Moog-like), and the FM bass is the DX7 electric-bass recipe: a sine with a 1:1 modulator whose index drops quickly after each note. The congas are struck membranes: a fundamental that settles a few percent in pitch, overtones at a skin's 1.52 and 2.24 times (fading first) and a muffled palm thud; the slap is a pop of mid-high noise over the skin's overtone. The warm pad stacks three detuned, drifting saws per note through a filter that opens with the swell and a Juno-style ensemble chorus. Glass bells are additive struck bars (partials at 1, 2.76 and 5.40 times the fundamental, with a slowly beating twin and a mallet tick). The arpeggio is a felt-mallet marimba (partials at 1, 4 and 9.8 times the fundamental, low notes ringing longer, a soft wooden knock). The drone is built to sit still: soft flute-organ tones on the root, a just fifth and the octaves (so nothing beats), in the tenor register rather than the sub-bass, with no pitch drift or chorus. Only the upper voices move, each swelling on its own slow breath-paced cycle. The walking bass is an upright-style pluck with a pitch settle and finger thump, and the pulse bass is two detuned saws, gently saturated. The kick has a beater click and soft drive, the snare has two shell modes plus wires, and the hats use the TR-808's six square-wave metal cluster. All of it is plain Web Audio nodes, with no AudioWorklet or samples.
+- **Sound design.** Plain oscillators sound like an old game, so every voice borrows a standard studio-synth recipe. The electric piano is DX7-style FM (algorithm 5: a body pair and a 14:1 tine pair that fades fast) with a suitcase tremolo, and the choir sings detuned saws with delayed vibrato and breath through vowel formants. The glide bass runs through two cascaded lowpasses (24 dB, Moog-like), and the FM bass is the DX7 electric-bass recipe: a sine with a 1:1 modulator whose index drops quickly after each note. The congas are struck membranes: a fundamental that settles a few percent in pitch, overtones at a skin's 1.52 and 2.24 times (fading first) and a muffled palm thud; the slap is a pop of mid-high noise over the skin's overtone. The warm pad stacks three detuned, drifting saws per note through a filter that opens with the swell and a Juno-style ensemble chorus. Glass bells are additive struck bars (partials at 1, 2.76 and 5.40 times the fundamental, with a slowly beating twin and a mallet tick). The arpeggio is a felt-mallet marimba (partials at 1, 4 and 9.8 times the fundamental, low notes ringing longer, a soft wooden knock). The drone is built to sit still: soft flute-organ tones on the root, a just fifth and the octaves (so nothing beats), in the tenor register rather than the sub-bass, with no pitch drift or chorus. Only the upper voices move, each swelling on its own slow breath-paced cycle. The walking bass is an upright-style pluck with a pitch settle and finger thump, and the pulse bass is two detuned saws, gently saturated. The kick has a beater click and soft drive, the snare has two shell modes plus wires, and the hats use the TR-808's six square-wave metal cluster. All of it is plain Web Audio nodes, with no AudioWorklet or samples (the physical-model prototype above is the exception, and opt-in).
 - **Volume curve.** Sliders map to gain as volume squared. Each tile also has a loudness level, calibrated with `npm run smoke` so that tiles sound roughly equally loud at the same slider position.
 - **Last mix.** The current mix is remembered in browser storage and restored on the next visit. A share link takes priority over it.
 

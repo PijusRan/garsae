@@ -2,6 +2,7 @@
 // Renders each tile through the real engine in an OfflineAudioContext and
 // reports loudness, peaks, clipping and invalid samples.
 import { Engine } from './engine/engine';
+import { MODEL_TILES, type VoiceMode } from './engine/models/host';
 import { TILES, type TileId } from './tiles';
 
 const SR = 44100;
@@ -195,11 +196,13 @@ interface Scenario {
   bpm?: number;
   /** Turn these tiles off at this time (tests fade-out). */
   offAt?: { time: number; ids: TileId[] };
+  voices?: VoiceMode;
 }
 
 async function render(s: Scenario): Promise<AudioBuffer> {
   const ctx = new OfflineAudioContext(2, SR * s.seconds, SR);
-  const engine = new Engine(ctx);
+  const engine = new Engine(ctx, { voices: s.voices });
+  await engine.ready;
   engine.setBpm(s.bpm ?? 80);
   engine.setKey(9);
   engine.setEvolution(s.evolution ?? 0.5);
@@ -253,7 +256,29 @@ function toWav(buf: AudioBuffer): string {
   return btoa(bin);
 }
 
-export async function runSmoke(opts: { wavs?: boolean } = {}) {
+/**
+ * Each tile with a physical model, rendered with its synth voice and with the model: loudness side by side, and what
+ * to multiply the model's trim by (models/index.ts TRIM) to make it as loud as the synth. Played at a low volume so the
+ * master limiter stays out of it, and long, since the notes are random.
+ */
+async function runModels(wavs: Record<string, string> | null) {
+  const rows: (Stats & { synthLufs: number; trimBy: number })[] = [];
+  for (const id of Object.keys(MODEL_TILES) as TileId[]) {
+    const s = { tiles: { [id]: 0.3 }, seconds: 40, evolution: 0.6 };
+    const synth = analyse(id, await render(s), 5);
+    const buf = await render({ ...s, voices: 'model' });
+    const model = analyse(`${id} (model)`, buf, 5);
+    if (wavs) wavs[`model ${id}`] = toWav(buf);
+    rows.push({ ...model, synthLufs: synth.lufs, trimBy: Math.round(10 ** ((synth.lufs - model.lufs) / 20) * 1000) / 1000 });
+  }
+  return rows;
+}
+
+export async function runSmoke(opts: { wavs?: boolean; models?: boolean } = {}) {
+  if (opts.models) {
+    const wavs: Record<string, string> = {};
+    return { solo: [], scenes: [], models: await runModels(opts.wavs ? wavs : null), wavs, reference: await meterReference() };
+  }
   const solo: Stats[] = [];
   for (const t of TILES) {
     if (t.effect) continue;

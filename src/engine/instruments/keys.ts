@@ -7,6 +7,7 @@ import { startLoop } from '../noise';
 import { createChorus, createDrift } from '../synth';
 import { chordInPentatonic, midiToFreq, notesInRange, pentatonicNotes, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
+import { voices } from '../models/host';
 
 /** The chord's tones as a close voicing from `lo` upwards, with an optional 9th on top. */
 function voicing(s: StepInfo, lo: number, ninth: boolean): number[] {
@@ -128,32 +129,39 @@ export function createChoir(core: Core): Instrument {
   const out = new GainNode(ctx, { gain: 1 });
   const chorus = createChorus(ctx, { wet: 0.7, rate: 0.35, depth: 0.0022 });
   chorus.output.connect(out);
-  const voices = new GainNode(ctx, { gain: 1 });
+  const singers = new GainNode(ctx, { gain: 1 });
   const formants = VOWELS.oo.map((v) => {
     const bp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: v.f, Q: 7 });
     const g = new GainNode(ctx, { gain: v.g });
-    voices.connect(bp).connect(g).connect(chorus.input);
+    singers.connect(bp).connect(g).connect(chorus.input);
     return { bp, g };
   });
+  const v = voices(core, 'choir', singers, chorus.input);
   const drift = createDrift(ctx, 5, 0.09);
   const vibrato = new OscillatorNode(ctx, { frequency: 5.1 });
   vibrato.start();
   let vowel: Vowel = 'oo';
   let soundingUntil = 0;
 
-  function setVowel(v: Vowel, timeConstant: number) {
-    vowel = v;
-    VOWELS[v].forEach((p, i) => {
+  function setVowel(next: Vowel, timeConstant: number) {
+    vowel = next;
+    v.model?.setVowel?.(next, ctx.currentTime);
+    VOWELS[next].forEach((p, i) => {
       glide(ctx, formants[i].bp.frequency, p.f, timeConstant);
       glide(ctx, formants[i].g.gain, p.g, timeConstant);
     });
   }
 
   function voice(midi: number, t: number, hold: number, peak: number, pan: number) {
+    if (v.synthOn) synthVoice(midi, t, hold, peak, pan);
+    v.model?.note(t, midi, hold, 0.8);
+  }
+
+  function synthVoice(midi: number, t: number, hold: number, peak: number, pan: number) {
     const f = midiToFreq(midi);
     const g = new GainNode(ctx, { gain: 0 });
     const p = new StereoPannerNode(ctx, { pan });
-    g.connect(p).connect(voices);
+    g.connect(p).connect(v.synth);
     // Vibrato fades in after the attack, like a held sung note.
     const vibDepth = new GainNode(ctx, { gain: 0 });
     vibrato.connect(vibDepth);
@@ -223,14 +231,20 @@ export function createFeltPiano(core: Core): Instrument {
   const felt = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 7500, Q: 0.35 });
   const body = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 190, Q: 0.9, gain: 2.5 });
   felt.connect(body).connect(out);
+  const v = voices(core, 'piano', felt);
   let nextNote = 0;
   let last = 67;
 
   function note(t: number, midi: number, hold: number, vel: number) {
+    if (v.synthOn) synthNote(t, midi, hold, vel);
+    v.model?.note(t, midi, hold, vel);
+  }
+
+  function synthNote(t: number, midi: number, hold: number, vel: number) {
     const f = midiToFreq(midi);
     const pan = new StereoPannerNode(ctx, { pan: clamp((midi - 62) / 32, -0.45, 0.45) });
     const amp = new GainNode(ctx, { gain: 0.15 });
-    amp.connect(pan).connect(felt);
+    amp.connect(pan).connect(v.synth);
     // Low strings ring far longer than high ones.
     const ring = clamp(7 * Math.sqrt(220 / f), 2.5, 9);
     const count = clamp(Math.floor(9000 / f), 4, 14);
@@ -323,13 +337,19 @@ export function createStrings(core: Core): Instrument {
   hp.connect(body).connect(sheen).connect(lp).connect(fast.input);
   fast.output.connect(slow.input);
   slow.output.connect(out);
+  const v = voices(core, 'strings', hp);
   const drift = createDrift(ctx, 4, 0.08);
   let soundingUntil = 0;
 
   function voice(midi: number, t: number, hold: number, peak: number) {
+    if (v.synthOn) synthVoice(midi, t, hold, peak);
+    v.model?.note(t, midi, hold, 0.75);
+  }
+
+  function synthVoice(midi: number, t: number, hold: number, peak: number) {
     const f = midiToFreq(midi);
     const g = new GainNode(ctx, { gain: 0 });
-    g.connect(hp);
+    g.connect(v.synth);
     const oscs = [-7, 0.5, 8].map((d) => {
       const o = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f, detune: d + rand(-1.5, 1.5) });
       o.connect(g);
@@ -391,13 +411,19 @@ export function createVibes(core: Core): Instrument {
   rotor.connect(panDepth).connect(sweep.pan);
   rotor.start();
   tone.connect(motor).connect(sweep).connect(out);
+  const v = voices(core, 'vibes', tone);
   let nextHit = 0;
 
   function note(t: number, midi: number, vel: number) {
+    if (v.synthOn) synthNote(t, midi, vel);
+    v.model?.note(t, midi, 0, vel);
+  }
+
+  function synthNote(t: number, midi: number, vel: number) {
     const f = midiToFreq(midi);
     const amp = new GainNode(ctx, { gain: 0.16 * vel });
     const pan = new StereoPannerNode(ctx, { pan: clamp((midi - 67) / 28, -0.4, 0.4) });
-    amp.connect(pan).connect(tone);
+    amp.connect(pan).connect(v.synth);
     const ring = clamp(4.6 * Math.sqrt(262 / f), 2, 5.5);
     const oscs: OscillatorNode[] = [];
     const nodes: AudioNode[] = [amp, pan];
@@ -463,6 +489,7 @@ export function createTapeFlute(core: Core): Instrument {
   // Tape loses the top: everything above a few kHz is what made it shrill.
   const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2800, Q: 0.4 });
   hp.connect(lp).connect(out);
+  const v = voices(core, 'flute', hp);
   const delay = new DelayNode(ctx, { maxDelayTime: 3, delayTime: 0.75 });
   const feedback = new GainNode(ctx, { gain: 0.25 });
   const loopFilter = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1500 });
@@ -479,10 +506,15 @@ export function createTapeFlute(core: Core): Instrument {
   let last = 69;
 
   function note(t: number, midi: number, hold: number, vel: number) {
+    if (v.synthOn) synthNote(t, midi, hold, vel);
+    v.model?.note(t, midi, hold, vel);
+  }
+
+  function synthNote(t: number, midi: number, hold: number, vel: number) {
     const f = midiToFreq(midi);
     const amp = new GainNode(ctx, { gain: 0 });
     const pan = new StereoPannerNode(ctx, { pan: rand(-0.2, 0.2) });
-    amp.connect(pan).connect(hp);
+    amp.connect(pan).connect(v.synth);
     const vibDepth = new GainNode(ctx, { gain: 0 });
     vibrato.connect(vibDepth);
     vibDepth.gain.setValueAtTime(0, t + 0.4);

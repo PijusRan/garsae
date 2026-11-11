@@ -71,6 +71,8 @@ const initialMix = (): MixState => getBoot().mix;
 
 /** Matches the .welcome transition in styles.css. */
 const WELCOME_LEAVE_MS = 500;
+/** Prototype: which voices the acoustic tiles use. ?voices=model tries the physical models in the app. */
+const MODEL_VOICES = new URLSearchParams(window.location.search).get('voices') === 'model' ? 'model' : 'synth';
 
 /** The session timer starts fading this long before it ends. */
 const TIMER_FADE_MS = 30_000;
@@ -190,7 +192,9 @@ export function App() {
     let engine = engineRef.current;
     if (!engine) {
       // Created inside the tap so iOS lets the AudioContext start.
-      engine = new Engine();
+      engine = new Engine(undefined, { voices: MODEL_VOICES });
+      // Prototype: ?voices=model plays the acoustic tiles on their physical models, once they have loaded.
+      if (MODEL_VOICES !== 'synth') await engine.ready;
       engine.onChord = setChord;
       // The engine has already crossfaded; the mix only catches up, so the light moves across the grid.
       engine.onHandover = (from, to) =>

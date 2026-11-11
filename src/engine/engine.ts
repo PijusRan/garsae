@@ -11,6 +11,7 @@ import { HANDOVER_GRACE_LOOPS, handoverChance, handoverCooldownBars } from './ev
 import { chance, pick } from './random';
 import { createArp, createBells, createDrone, createPad } from './instruments/pads';
 import { Master, type ModulationSettings } from './master';
+import type { VoiceMode } from './models/host';
 import { NoiseBank } from './noise';
 import { Scheduler } from './scheduler';
 import { Tile } from './tile';
@@ -85,8 +86,12 @@ export class Engine {
   private onSince = new Map<TileId, number>();
   private quietUntilLoop = HANDOVER_GRACE_LOOPS;
   private lastHandoverBar = -Infinity;
+  /** Resolves once the voices are ready: at once for the synth voices, after loading for the physical models. */
+  readonly ready: Promise<void>;
+  /** A/B mode: 0 hears the synth voices, 1 the physical models. */
+  private ab?: ConstantSourceNode;
 
-  constructor(ctx?: BaseAudioContext) {
+  constructor(ctx?: BaseAudioContext, opts: { voices?: VoiceMode } = {}) {
     this.ctx = ctx ?? new AudioContext({ latencyHint: 'playback' });
     this.master = new Master(this.ctx);
     this.core = {
@@ -98,6 +103,23 @@ export class Engine {
       evolution: 0.3,
     };
     this.scheduler = new Scheduler(this.ctx, (step, time) => this.onStep(step, time), () => this.stepDur);
+    const mode = opts.voices ?? 'synth';
+    if (mode === 'synth') {
+      this.ready = Promise.resolve();
+    } else {
+      const ab = new ConstantSourceNode(this.ctx, { offset: mode === 'model' ? 1 : 0 });
+      ab.start();
+      this.ab = ab;
+      // Loaded on demand: the models' WebAssembly stays out of the app unless asked for.
+      this.ready = import('./models/bank').then(async ({ createModelHost }) => {
+        this.core.models = await createModelHost(this.ctx, mode, ab);
+      });
+    }
+  }
+
+  /** A/B mode: 0 plays the synth voices, 1 the physical models, crossfading in a few milliseconds. */
+  setModelMix(x: number): void {
+    this.ab?.offset.setTargetAtTime(x, this.ctx.currentTime, 0.008);
   }
 
   private get stepDur(): number {
