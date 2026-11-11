@@ -192,9 +192,10 @@ function tom(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
 
 /**
  * A brush swept in a circle across a coated snare head. Two layers of noise: the bristles'
- * scratch (2-7 kHz) and the head itself answering in the mids (500-1200 Hz), which is what
+ * scratch (1.5-5 kHz) and the head itself answering in the mids (500-1000 Hz), which is what
  * makes it a drum rather than hiss. A slow random tremor on the level is the bristles catching
  * the coating. The stroke speeds up into the beat and trails off, so the circle has a pulse.
+ * It is a bed under the pats and the ride, not a lead: on records you feel it more than hear it.
  */
 function brush(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const { ctx } = kit;
@@ -202,64 +203,67 @@ function brush(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const len = 0.32 * (o.decay ?? 1);
   const n = noiseSource(kit, t, len + 0.05);
 
-  const scratch = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 4000 * tone, Q: 0.55 });
+  const scratch = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 2600 * tone, Q: 0.7 });
   // The brush moves faster through the middle of the circle, and faster means brighter.
-  const [from, to] = o.down ? [4800, 3200] : [3200, 4800];
+  const [from, to] = o.down ? [3000, 2100] : [2100, 3000];
   scratch.frequency.setValueAtTime(from * tone, t);
   scratch.frequency.linearRampToValueAtTime(to * tone, t + len * 0.6);
   scratch.frequency.linearRampToValueAtTime(((from + to) / 2) * tone, t + len);
-  const scratchTop = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 6500 * tone, Q: 0.5 });
-  const scratchGain = new GainNode(ctx, { gain: 0.8 });
-  const head = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 800 * tone, Q: 0.8 });
-  const headGain = new GainNode(ctx, { gain: 2.2 });
+  const scratchTop = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 4500 * tone, Q: 0.5 });
+  const scratchGain = new GainNode(ctx, { gain: 0.7 });
+  const head = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 700 * tone, Q: 0.9 });
+  const headGain = new GainNode(ctx, { gain: 1.6 });
 
-  // Grain: the level wobbles by about +-30% at a few tens of hertz. White noise lowpassed
-  // at 35 Hz keeps only about 4% of its level, hence the large depth.
+  // Grain: the level wobbles by about +-25% at a few tens of hertz. White noise lowpassed
+  // at 35 Hz keeps about 4% of its level (sqrt(35 / 22050)), hence the depth of 6.
   const grain = new GainNode(ctx, { gain: 1 });
   const wobble = noiseSource(kit, t, len + 0.05);
   const wobbleLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 35, Q: 0.7 });
-  const wobbleDepth = new GainNode(ctx, { gain: 28 });
+  const wobbleDepth = new GainNode(ctx, { gain: 6 });
   wobble.connect(wobbleLp).connect(wobbleDepth).connect(grain.gain);
 
   const g = new GainNode(ctx, { gain: 0 });
   n.connect(scratch).connect(scratchTop).connect(scratchGain).connect(grain);
   n.connect(head).connect(headGain).connect(grain);
   grain.connect(g).connect(dest);
-  // In with the beat over a few tens of ms, a gentle peak, then a long tail into the next stroke.
-  const peak = 0.09 * vel;
+  // Eased in with the beat, a gentle peak, then a long tail into the next stroke.
+  const peak = 0.05 * vel;
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(peak * 0.75, t + 0.03);
-  g.gain.linearRampToValueAtTime(peak, t + len * 0.3);
-  g.gain.linearRampToValueAtTime(peak * 0.35, t + len * 0.85);
+  g.gain.linearRampToValueAtTime(peak * 0.5, t + 0.06);
+  g.gain.linearRampToValueAtTime(peak, t + len * 0.35);
+  g.gain.linearRampToValueAtTime(peak * 0.3, t + len * 0.85);
   g.gain.linearRampToValueAtTime(0, t + len);
   release(n, [scratch, scratchTop, scratchGain, head, headGain, grain, g]);
   release(wobble, [wobbleLp, wobbleDepth]);
 }
 
-/** A brush slapped onto the snare: the head's thump, a burst of wires and a faint shell tone. */
+/**
+ * A brush slapped onto the snare: a soft "pfft". Mostly the wires (a burst of mid-high noise
+ * that the bristles smear over a few ms, so no stick crack), with the head's thud under it.
+ */
 function slap(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const { ctx } = kit;
   const tone = o.tone ?? 1;
-  const decay = 0.15 * (o.decay ?? 1);
+  const decay = 0.17 * (o.decay ?? 1);
   const n = noiseSource(kit, t, decay + 0.05);
-  // The head: a short band of mids. This is most of a brush pat's weight.
-  const head = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 700 * tone, Q: 0.9 });
+  // The head: a short band of low mids.
+  const head = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 450 * tone, Q: 1 });
   const hg = new GainNode(ctx, { gain: 0 });
   n.connect(head).connect(hg).connect(dest);
-  percussive(hg.gain, t, 0.8 * vel, 0.004, decay * 0.5);
-  // The wires: brighter and a little longer. Bristles land over a few ms, so no stick crack.
-  const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 1800 * tone, Q: 0.5 });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 8000 * tone });
+  percussive(hg.gain, t, 0.55 * vel, 0.004, decay * 0.45);
+  // The wires: most of a brush pat. Rounded off on top so it's a "pfft", not a "tss".
+  const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 1200 * tone, Q: 0.5 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 5500 * tone, Q: 0.5 });
   const wg = new GainNode(ctx, { gain: 0 });
   n.connect(hp).connect(lp).connect(wg).connect(dest);
-  percussive(wg.gain, t, 0.32 * vel, 0.006, decay);
+  percussive(wg.gain, t, 0.75 * vel, 0.008, decay);
   release(n, [head, hg, hp, lp, wg]);
   const body = new OscillatorNode(ctx, { frequency: 200 * tone });
   body.frequency.setValueAtTime(215 * tone, t);
   body.frequency.exponentialRampToValueAtTime(195 * tone, t + 0.05);
   const bg = new GainNode(ctx, { gain: 0 });
   body.connect(bg).connect(dest);
-  const end = percussive(bg.gain, t, 0.12 * vel, 0.003, 0.09);
+  const end = percussive(bg.gain, t, 0.06 * vel, 0.003, 0.08);
   body.start(t);
   body.stop(end);
   release(body, [bg]);
@@ -273,16 +277,16 @@ function slap(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
  */
 const JAZZ_RIDE_PARTIALS: [number, number, number][] = [
   // [Hz, level, decay s]
-  [612, 0.08, 1.6],
-  [1063, 0.14, 1.4],
-  [1527, 0.18, 1.2],
-  [2234, 0.3, 1.0],
-  [2981, 0.4, 0.85],
-  [3672, 0.5, 0.7],
-  [4418, 0.5, 0.6],
-  [5361, 0.45, 0.5],
-  [6670, 0.35, 0.4],
-  [8125, 0.25, 0.3],
+  [612, 0.12, 1.6],
+  [1063, 0.2, 1.4],
+  [1527, 0.26, 1.2],
+  [2234, 0.32, 1.0],
+  [2981, 0.32, 0.8],
+  [3672, 0.28, 0.6],
+  [4418, 0.2, 0.45],
+  [5361, 0.14, 0.35],
+  [6670, 0.08, 0.25],
+  [8125, 0.05, 0.2],
 ];
 
 function jazzRide(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
@@ -314,7 +318,7 @@ function jazzRide(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts)
 
   // The wash: high noise, swelling out of the ping and ringing on.
   const wash = noiseSource(kit, t, 1.3 * decay);
-  const wbp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 7500 * tone, Q: 0.7 });
+  const wbp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 6500 * tone, Q: 0.7 });
   const whp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 4500 });
   const wg = new GainNode(ctx, { gain: 0 });
   wash.connect(wbp).connect(whp).connect(wg).connect(dest);
@@ -326,7 +330,7 @@ function jazzRide(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts)
   const tbp = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 5200, Q: 1.2 });
   const tg = new GainNode(ctx, { gain: 0 });
   tick.connect(tbp).connect(tg).connect(dest);
-  percussive(tg.gain, t, 0.22 * vel, 0.0005, 0.01);
+  percussive(tg.gain, t, 0.12 * vel, 0.0005, 0.01);
   release(tick, [tbp, tg]);
 }
 
@@ -339,7 +343,7 @@ function chick(kit: Kit, dest: AudioNode, t: number, vel: number, o: HitOpts) {
   const bg = new GainNode(ctx, { gain: 0 });
   n.connect(body).connect(bg).connect(dest);
   percussive(bg.gain, t, 1.1 * vel, 0.003, 0.035);
-  const sizzle = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 7000 * tone, Q: 0.5 });
+  const sizzle = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 8000 * tone, Q: 0.9 });
   const sg = new GainNode(ctx, { gain: 0 });
   n.connect(sizzle).connect(sg).connect(dest);
   percussive(sg.gain, t, 0.3 * vel, 0.002, 0.05);
