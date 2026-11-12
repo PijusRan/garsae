@@ -10,7 +10,7 @@ import kitHands from '../faust/gen/kit_hands';
 import kitHouse from '../faust/gen/kit_house';
 import bassFretless from '../faust/gen/bass_fretless';
 import type { Alternate, Alternates, HitAlternate, ModelVoice, NoteAlternate } from '../models/host';
-import { createMotifArp } from './arp';
+import { createFigureEveryBarArp } from './arp';
 import type { Core } from '../types';
 import type { TileId } from '../../tiles';
 import { faustKit, faustVoice, prepareFaust } from './faust';
@@ -36,6 +36,8 @@ const oldSynthKit: HitAlternate = { kind: 'hits', label: 'Old synth kit', create
 export interface Round {
   round: number;
   title: string;
+  /** Decided and in the app: nothing left to test in it. */
+  shipped?: boolean;
   /** What the test is for, and what to listen for. */
   listen: string;
 }
@@ -45,11 +47,13 @@ export const ROUNDS: Round[] = [
   {
     round: 1,
     title: 'Physical models',
+    shipped: true,
     listen: 'Shipped. The synth voices the physical models replaced, kept for reference.',
   },
   {
     round: 2,
     title: 'Faust kits and basses',
+    shipped: true,
     listen:
       'Lo-fi, techno, dub, ambient, trip hop, muted and 808 shipped on Faust; B is the synth they replaced. ' +
       'Hand drums, deep house, liquid DnB, bossa nova and fretless were not chosen; B is the Faust candidate.',
@@ -57,10 +61,10 @@ export const ROUNDS: Round[] = [
   {
     round: 3,
     title: 'Arp motif, for focus',
+    shipped: true,
     listen:
-      'A writes a new figure every bar. B keeps one rhythm and shape, changing it only as the chord loop comes round ' +
-      'and replacing it every few loops. The notes differ, so judge the feel, not the phrase: which one you stop ' +
-      'noticing, and whether B ever sticks in your head. Try Evolution low and around 70, then work an hour on each.',
+      'Shipped. A keeps one rhythm and shape, changing it only as the chord loop comes round and replacing it every ' +
+      'few loops. B is the writer it replaced, a new figure every bar. The notes differ, so judge the feel.',
   },
 ];
 
@@ -95,8 +99,8 @@ export const ALTERNATES: Alternates = {
   dnb: inRound(2, faustKit(FAUST_KIT, kitDnb, ['kick', 'snare', 'hat', 'shaker', 'openhat'], 6.5)),
   bossa: inRound(2, faustKit(FAUST_KIT, kitBossa, ['kick', 'rim', 'shaker', 'hat'], 1.88)),
   fretless: inRound(2, faustVoice(FAUST_BASS, bassFretless, 2, 0.2, 1.93)),
-  // Round 3: a rhythm motif for the arpeggio, against a new figure every bar.
-  arp: inRound(3, { kind: 'generator', label: 'Rhythm motif', create: createMotifArp }),
+  // Round 3: the writer the arp's rhythm motif replaced.
+  arp: inRound(3, { kind: 'generator', label: 'Figure every bar', create: createFigureEveryBarArp }),
 };
 
 export const ALTERNATE_TILES = Object.keys(ALTERNATES) as TileId[];

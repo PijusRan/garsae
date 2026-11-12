@@ -46,7 +46,9 @@ function tileButtons() {
     const group = document.createElement('section');
     group.className = current ? 'round current' : 'round';
     const h = document.createElement('h3');
-    h.innerHTML = `<span class="num">Round ${r.round}</span> ${r.title}${current ? ' <span class="badge">Test this</span>' : ''}`;
+    // The newest round is marked to test, or as shipped once it is decided, so a finished round never asks for a test.
+    const badge = !current ? '' : r.shipped ? ' <span class="badge done">Shipped, nothing new to test</span>' : ' <span class="badge">Test this</span>';
+    h.innerHTML = `<span class="num">Round ${r.round}</span> ${r.title}${badge}`;
     const note = document.createElement('p');
     note.className = 'listen';
     note.textContent = r.listen;
