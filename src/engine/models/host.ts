@@ -9,7 +9,7 @@
 // registered in engine/alternates, which only the compare page and the smoke test load; the app never does.
 import type { DrumKit } from '../faust/kit';
 import type { TileId } from '../../tiles';
-import type { Core } from '../types';
+import type { Core, Instrument } from '../types';
 
 export type { DrumKit };
 
@@ -45,8 +45,20 @@ export interface HitAlternate {
   create(core: Core, main: AudioNode, echo: AudioNode | null): DrumKit;
 }
 
+/**
+ * A candidate generator for a tile: a whole instrument that decides its own notes. It runs beside the tile's own
+ * generator, so switching is still instant, but the two play different notes: it compares what is played, not how.
+ */
+export interface GeneratorAlternate {
+  kind: 'generator';
+  label: string;
+  create(core: Core): Instrument;
+}
 
-export type Alternate = NoteAlternate | HitAlternate;
+export type Alternate = (NoteAlternate | HitAlternate | GeneratorAlternate) & {
+  /** The listening round it was added in; the compare page puts the newest round first, marked for testing. */
+  round: number;
+};
 
 /** Per tile, the candidates to compare against its own voice, in the order the compare page offers them (B, C, ...). */
 export type Alternates = Partial<Record<TileId, Alternate[]>>;
@@ -131,6 +143,28 @@ export function compared(core: Core, id: TileId, dest: AudioNode, own: (dest: Au
     output: dest,
     note: (t, midi, hold, vel) => voices.forEach((v) => v.note(t, midi, hold, vel)),
     setVowel: (vowel, t) => voices.forEach((v) => v.setVowel?.(vowel, t)),
+  };
+}
+
+/**
+ * A tile's instrument: `own`, or in listening tests, its own and its alternate generators running side by side, each
+ * deciding its own notes, only the chosen one heard.
+ */
+export function comparedGenerator(core: Core, id: TileId, own: Instrument): Instrument {
+  const alts = alternatesOf(core, id, 'generator');
+  if (!alts.length) return own;
+  const all = [own, ...alts.map((a) => a.create(core))];
+  const output = new GainNode(core.ctx, { gain: 1 });
+  const gains = compareGains(core, all.length, output);
+  all.forEach((inst, i) => inst.output?.connect(gains[i]));
+  return {
+    output,
+    activate: (t) => all.forEach((i) => i.activate?.(t)),
+    deactivate: () => all.forEach((i) => i.deactivate?.()),
+    step: (s) => all.forEach((i) => i.step?.(s)),
+    setEvolution: (e) => all.forEach((i) => i.setEvolution?.(e)),
+    setKey: (root) => all.forEach((i) => i.setKey?.(root)),
+    setTempo: (bpm) => all.forEach((i) => i.setTempo?.(bpm)),
   };
 }
 

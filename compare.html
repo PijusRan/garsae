@@ -77,14 +77,58 @@
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         gap: 12px;
       }
-      .group {
+      .round {
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      .round h3 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-2);
+        margin: 0 0 4px;
+      }
+      .round .num {
+        font: 12px ui-monospace, monospace;
+        color: var(--text-3);
+        margin-right: 6px;
+      }
+      .round .listen {
+        font-size: 13px;
+        color: var(--text-3);
         margin: 0 0 10px;
       }
-      .group h3 {
-        font-size: 13px;
-        font-weight: 500;
+      .round.current {
+        border-color: var(--on);
+        background: oklch(0.62 0.15 260 / 0.1);
+      }
+      .round.current h3 {
+        color: var(--text);
+      }
+      .round.current .num {
+        color: var(--on);
+      }
+      .round.current .listen {
+        color: var(--text-2);
+      }
+      .badge {
+        font-size: 11px;
+        font-weight: 600;
+        color: #000;
+        background: var(--on);
+        border-radius: 4px;
+        padding: 1px 6px;
+        margin-left: 6px;
+        vertical-align: 2px;
+      }
+      .earlier summary {
+        cursor: pointer;
         color: var(--text-3);
-        margin: 0 0 6px;
+        margin: 4px 0 10px;
+      }
+      .earlier .round {
+        opacity: 0.75;
       }
       .ab button {
         padding: 22px;
@@ -118,8 +162,9 @@
     <main>
       <h1>Compare voices</h1>
       <p>
-        Dev-only. A is the voice a tile ships with; B, C… are candidates from <code>src/engine/alternates</code>. All
-        play the same notes at the same loudness; switching only changes which one you hear.
+        Dev-only. A is what a tile ships with; B, C… are candidates from <code>src/engine/alternates</code>, at the same
+        loudness. Voice and kit candidates play the same notes as A; generator candidates write their own. Tiles are
+        grouped by listening round: the newest is open and marked, earlier ones are folded below it.
         <kbd>Space</kbd> steps through the voices, <kbd>A</kbd>, <kbd>B</kbd>, <kbd>C</kbd>… pick one, <kbd>P</kbd> plays or stops.
       </p>
 

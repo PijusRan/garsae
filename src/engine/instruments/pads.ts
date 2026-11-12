@@ -170,7 +170,59 @@ const ARP_RHYTHMS = [
 
 type Contour = 'up' | 'down' | 'arch';
 
-export function createArp(core: Core): Instrument {
+export interface ArpNote {
+  step: number;
+  midi: number;
+  vel: number;
+}
+
+/** A one-bar arp figure before it meets a chord: when the notes fall, how the line moves, and how hard each is hit. */
+export interface ArpFigure {
+  steps: number[];
+  /** Moves through the chord tones between one note and the next (one fewer than steps). */
+  moves: number[];
+  vels: number[];
+}
+
+/** A new figure: a rhythm (livelier settings reach further down the list), a contour and gentle dynamics. */
+export function arpFigure(evolution: number): ArpFigure {
+  const reach = Math.round(2 + 4 * evolution);
+  const rhythm = ARP_RHYTHMS[randInt(0, clamp(reach, 0, ARP_RHYTHMS.length - 1))];
+  const steps = [...rhythm].map((c, i) => (c === 'x' ? i : -1)).filter((i) => i >= 0);
+  const contour = pick<Contour>(['up', 'up', 'down', 'arch']);
+  const moves = steps.slice(1).map((_, i) => {
+    const goingUp = contour === 'up' || (contour === 'arch' && i + 1 < steps.length / 2);
+    return (goingUp ? 1 : -1) * (chance(0.2) ? 2 : 1);
+  });
+  const vels = steps.map((_, i) => (i === 0 ? 0.8 : i === steps.length - 1 ? 0.5 : rand(0.55, 0.7)));
+  return { steps, moves, vels };
+}
+
+/** A figure on this bar's chord tones, starting near `last` so consecutive phrases connect. */
+export function placeArp(s: StepInfo, figure: ArpFigure, last: number): ArpNote[] {
+  const pool = notesInRange(chordInPentatonic(s.root, s.chord), 55, 74);
+  let idx = pool.findIndex((m) => m >= last);
+  if (idx < 0) idx = pool.length - 1;
+  // A rising line starts a little lower and a falling one a little higher, so it has room.
+  if (figure.moves.length && figure.moves.every((m) => m > 0)) idx = clamp(idx - 2, 0, pool.length - 1);
+  if (figure.moves.length && figure.moves.every((m) => m < 0)) idx = clamp(idx + 2, 0, pool.length - 1);
+  return figure.steps.map((step, i) => {
+    if (i > 0) idx = clamp(idx + figure.moves[i - 1], 0, pool.length - 1);
+    return { step, midi: pool[idx], vel: figure.vels[i] };
+  });
+}
+
+/** Writes the arp's phrase for each bar it plays. Each arp gets its own, so a writer can remember what it played. */
+export interface ArpWriter {
+  /** Called on every downbeat, played or rested, so a writer can follow the chord loop. */
+  bar?(s: StepInfo): void;
+  phrase(s: StepInfo, last: number): ArpNote[];
+}
+
+/** The arp's own writer: a new figure every bar. */
+export const freshFigures = (): ArpWriter => ({ phrase: (s, last) => placeArp(s, arpFigure(s.evolution), last) });
+
+export function createArp(core: Core, writer: ArpWriter = freshFigures()): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const { filter, setEvolution } = movingFilter(core, 7000, 1500, 0.06, 0.5);
@@ -184,7 +236,7 @@ export function createArp(core: Core): Instrument {
   delay.connect(loopFilter).connect(feedback).connect(delay);
   loopFilter.connect(wet).connect(out);
 
-  let phrase: { step: number; midi: number; vel: number }[] = [];
+  let phrase: ArpNote[] = [];
   let last = 64;
 
   function note(t: number, midi: number, vel: number) {
@@ -216,27 +268,6 @@ export function createArp(core: Core): Instrument {
     cleanupAt(oscs, end, [...nodes, knock, knockLp, knockGain]);
   }
 
-  /** A short broken-chord phrase for one bar: a rhythm, a contour and gentle dynamics. */
-  function makePhrase(s: StepInfo) {
-    const pool = notesInRange(chordInPentatonic(s.root, s.chord), 55, 74);
-    const reach = Math.round(2 + 4 * s.evolution);
-    const rhythm = ARP_RHYTHMS[randInt(0, clamp(reach, 0, ARP_RHYTHMS.length - 1))];
-    const steps = [...rhythm].map((c, i) => (c === 'x' ? i : -1)).filter((i) => i >= 0);
-    const contour = pick<Contour>(['up', 'up', 'down', 'arch']);
-    // Start near the last phrase so consecutive phrases connect.
-    let idx = pool.findIndex((m) => m >= last);
-    if (idx < 0) idx = pool.length - 1;
-    if (contour === 'up') idx = clamp(idx - 2, 0, pool.length - 1);
-    if (contour === 'down') idx = clamp(idx + 2, 0, pool.length - 1);
-    phrase = steps.map((step, i) => {
-      const goingUp = contour === 'up' || (contour === 'arch' && i < steps.length / 2);
-      if (i > 0) idx = clamp(idx + (goingUp ? 1 : -1) * (chance(0.2) ? 2 : 1), 0, pool.length - 1);
-      const vel = i === 0 ? 0.8 : i === steps.length - 1 ? 0.5 : rand(0.55, 0.7);
-      return { step, midi: pool[idx], vel };
-    });
-    last = phrase[phrase.length - 1]?.midi ?? last;
-  }
-
   return {
     output: out,
     setEvolution,
@@ -245,9 +276,13 @@ export function createArp(core: Core): Instrument {
     },
     step(s) {
       if (s.stepInBar === 0) {
+        writer.bar?.(s);
         // Whole bars of rest let the phrases breathe; livelier settings rest less.
         if (chance(0.4 - 0.2 * s.evolution)) phrase = [];
-        else makePhrase(s);
+        else {
+          phrase = writer.phrase(s, last);
+          last = phrase[phrase.length - 1]?.midi ?? last;
+        }
       }
       const hit = phrase.find((n) => n.step === s.stepInBar);
       if (hit) note(s.time + rand(0, 0.008), hit.midi, hit.vel * rand(0.9, 1));

@@ -1,15 +1,16 @@
 // Dev-only comparison page (compare.html, or npm run compare): each tile with alternates (src/engine/alternates) plays
-// its own voice (A) and every alternate (B, C, ...) on the very same notes, so switching is instant and only the
-// voice changes.
-import { ALTERNATE_TILES, ALTERNATES, prepareAlternates, slotLabels } from './engine/alternates';
+// its own voice (A) and every alternate (B, C, ...) side by side, so switching is instant. Voice and kit alternates
+// take the very same notes; generator alternates write their own. Tiles are grouped by listening round, the newest
+// first and marked as the one to test, the earlier ones folded away.
+import { ALTERNATE_TILES, ALTERNATES, CURRENT_ROUND, ROUNDS, prepareAlternates, roundOf, slotLabels } from './engine/alternates';
 import { Engine } from './engine/engine';
-import { CATEGORIES, TILE_BY_ID, type TileId } from './tiles';
+import { TILE_BY_ID, type TileId } from './tiles';
 
 const BACKING: TileId[] = ['pad', 'sub', 'lofi', 'brown'];
 const LETTERS = 'ABCDEFG';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const on = new Set<TileId>(ALTERNATE_TILES.slice(0, 1));
+const on = new Set<TileId>(ALTERNATE_TILES.filter((id) => roundOf(id) === CURRENT_ROUND));
 const backing = new Set<TileId>();
 let engine: Engine | null = null;
 /** The button picked (0 = A). */
@@ -31,21 +32,31 @@ function toggle(id: TileId, set: Set<TileId>): HTMLButtonElement {
   return b;
 }
 
-/** The tiles with alternates, by category. */
+/** The tiles with alternates, by round: the current round first and open, the earlier ones folded. */
 function tileButtons() {
-  for (const cat of CATEGORIES) {
-    const ids = ALTERNATE_TILES.filter((id) => TILE_BY_ID[id].category === cat.id);
+  const earlier = document.createElement('details');
+  earlier.className = 'earlier';
+  const summary = document.createElement('summary');
+  summary.textContent = 'Earlier rounds';
+  earlier.append(summary);
+  for (const r of [...ROUNDS].reverse()) {
+    const ids = ALTERNATE_TILES.filter((id) => roundOf(id) === r.round);
     if (!ids.length) continue;
-    const group = document.createElement('div');
-    group.className = 'group';
+    const current = r.round === CURRENT_ROUND;
+    const group = document.createElement('section');
+    group.className = current ? 'round current' : 'round';
     const h = document.createElement('h3');
-    h.textContent = cat.name;
+    h.innerHTML = `<span class="num">Round ${r.round}</span> ${r.title}${current ? ' <span class="badge">Test this</span>' : ''}`;
+    const note = document.createElement('p');
+    note.className = 'listen';
+    note.textContent = r.listen;
     const row = document.createElement('div');
     row.className = 'row';
     for (const id of ids) row.append(toggle(id, on));
-    group.append(h, row);
-    $('tiles').append(group);
+    group.append(h, note, row);
+    (current ? $('tiles') : earlier).append(group);
   }
+  if (earlier.children.length > 1) $('tiles').append(earlier);
 }
 
 /** Volumes at each tile's default, the backing quieter, so nothing hits the limiter. */

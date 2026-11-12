@@ -23,6 +23,8 @@ export interface StepInfo {
   nextChord: ChordInfo;
   /** True on the first step of a bar where a new chord starts. */
   chordChanged: boolean;
+  /** True on the first step of the bar where the chord loop comes back round to its first chord. */
+  loopStarted: boolean;
   /** Bars left in the current chord, including this one. */
   barsLeftInChord: number;
 }

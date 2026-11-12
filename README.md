@@ -76,7 +76,7 @@ npm run faust      # recompiles src/engine/faust/dsp/*.dsp into src/engine/faust
 npm run compare    # listening tests: a tile's own voice (A) against its alternates (B, C, ...), on the same notes
 ```
 
-`npm run compare` opens a dev-only listening page. Each tile with alternates in `src/engine/alternates` plays its own voice (A) and every alternate (B, C, …) on the very same notes at the same loudness; Space steps through them, letters pick one, and a blind mode shuffles and hides them. It has the synth voices and kits the Faust tiles replaced, and the round 2 candidates that were not chosen: Faust kits for hand drums, deep house, liquid DnB and bossa nova, and a Faust fretless bass. To test a new candidate, add it there and set its trim with `npm run smoke -- --compare`. Neither the page nor the alternates are part of the app.
+`npm run compare` opens a dev-only listening page. Each tile with alternates in `src/engine/alternates` plays what it ships with (A) and every alternate (B, C, …) side by side at the same loudness: voices and kits on the very same notes, whole generators writing their own. Space steps through them, letters pick one, and a blind mode shuffles and hides them. Tiles are grouped by listening round, the newest open and marked to test, with what to listen for: round 3 is a rhythm motif for the soft arpeggio, and the earlier rounds keep the synth voices and kits the Faust tiles replaced and the round 2 candidates that were not chosen. To test a new candidate, add it there in the next round and set its trim with `npm run smoke -- --compare`. Neither the page nor the alternates are part of the app.
 
 The Faust libraries are LGPL with an exception for generated code; the compiler is only a dev dependency.
 
@@ -97,7 +97,7 @@ src/
     drums/                 synthesized drum voices, genre patterns and mutation rules
     faust/                 physical models: Faust sources (dsp/), compiled modules (gen/), the AudioWorklet runner
     models/                the model voices: loading, voice allocation, level trims, A/B hook
-    alternates/            candidate voices and drum kits for listening tests (dev-only, compare.html)
+    alternates/            candidate voices, drum kits and generators for listening tests, by round (dev-only, compare.html)
   state/mix.ts             mix model, share-link encoding, saved mixes, Surprise me
   i18n/                    English and Lithuanian strings
   App.tsx, ui/             Preact UI and PWA helpers

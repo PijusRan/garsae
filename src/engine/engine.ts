@@ -11,7 +11,7 @@ import { HANDOVER_GRACE_LOOPS, handoverChance, handoverCooldownBars } from './ev
 import { chance, pick } from './random';
 import { createArp, createBells, createDrone, createPad } from './instruments/pads';
 import { Master, type ModulationSettings } from './master';
-import type { Alternates, Models } from './models/host';
+import { comparedGenerator, type Alternates, type Models } from './models/host';
 import { NoiseBank } from './noise';
 import { Scheduler } from './scheduler';
 import { Tile } from './tile';
@@ -167,7 +167,7 @@ export class Engine {
   private tile(id: TileId): Tile {
     let t = this.tiles.get(id);
     if (!t) {
-      t = new Tile(this.core, TILE_BY_ID[id], FACTORIES[id](this.core));
+      t = new Tile(this.core, TILE_BY_ID[id], comparedGenerator(this.core, id, FACTORIES[id](this.core)));
       this.tiles.set(id, t);
     }
     return t;
@@ -247,6 +247,7 @@ export class Engine {
       chord,
       nextChord: chordInfo(root, this.chords.next.degree),
       chordChanged,
+      loopStarted: stepInBar === 0 && this.chords.wrapped,
       barsLeftInChord: this.chords.barsLeft,
     };
     for (const t of this.tiles.values()) t.step(info);
