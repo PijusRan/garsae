@@ -1,6 +1,6 @@
-// Motorik: a dry, deadened 1970s kit, close-miked in a small room. A felt beater on a pillowed kick, a snare damped
-// with a towel so its wires speak briefly, a tight closed hat, and a low floor tom for the odd fill. No grit: the
-// sound is in the playing, which never changes.
+// Motorik: a 1970s kit, undamped, as a live room hears it. The kick rings round under a harder beater, the hat is
+// loose, the floor tom booms; the snare is played lightly, its wires buzzing on under a soft stick, so the backbeat
+// never cuts through. Chosen in round 4 over the damped kit (kit_motorik_damped.dsp).
 // Slots, in order: kick, snare, hat, tom. Outputs: left, right, echo send.
 import("stdfaust.lib");
 dr = library("garsae_drums.lib");
@@ -12,8 +12,8 @@ tone(k) = hslider("tone%k", 1, 0.25, 4, 0.001);
 decay(k) = hslider("decay%k", 1, 0.05, 4, 0.001);
 
 process =
-  (dr.kick(56 * tone(0), 0.22 * decay(0), 1100, vel(0), gate(0)) : dr.place(0.5, 0)),
-  (dr.snare(200 * tone(1), 0.12 * decay(1), 1.1, 0.7, vel(1), gate(1)) : dr.place(0.5, 0)),
-  (dr.hat(0.9 * tone(2), 0.04 * decay(2), vel(2), gate(2)) : dr.place(0.6, 0)),
-  (dr.tom(92 * tone(3), 0.35 * decay(3), 900, vel(3), gate(3)) : dr.place(0.42, 0))
+  (dr.kick(52 * tone(0), 0.45 * decay(0), 1700, vel(0), gate(0)) : dr.place(0.5, 0)),
+  (dr.snare(190 * tone(1), 0.2 * decay(1), 1.6, 0.85, vel(1), gate(1)) * 0.56 : dr.place(0.5, 0)),
+  (dr.hat(1.0 * tone(2), 0.07 * decay(2), vel(2), gate(2)) : dr.place(0.6, 0)),
+  (dr.tom(88 * tone(3), 0.6 * decay(3), 1100, vel(3), gate(3)) : dr.place(0.42, 0))
   :> _, _, _;

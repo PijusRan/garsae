@@ -31,7 +31,7 @@ const KITS: Record<KitName, { model: FaustModel; slots: Voice[]; trim: number }>
   dub: { model: kitDub, slots: ['kick', 'rim', 'hat', 'tom'], trim: 2.11 },
   ambient: { model: kitAmbient, slots: ['kick', 'shaker', 'tom'], trim: 2.14 },
   triphop: { model: kitTriphop, slots: ['kick', 'snare', 'hat', 'rim'], trim: 1.64 },
-  motorik: { model: kitMotorik, slots: ['kick', 'snare', 'hat', 'tom'], trim: 2 },
+  motorik: { model: kitMotorik, slots: ['kick', 'snare', 'hat', 'tom'], trim: 2.6 },
 };
 
 /**

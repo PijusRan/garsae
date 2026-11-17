@@ -7,7 +7,7 @@
 import kitBossa from '../faust/gen/kit_bossa';
 import kitDnb from '../faust/gen/kit_dnb';
 import kitHands from '../faust/gen/kit_hands';
-import kitMotorikOpen from '../faust/gen/kit_motorik_open';
+import kitMotorikDamped from '../faust/gen/kit_motorik_damped';
 import bassFretless from '../faust/gen/bass_fretless';
 import type { Alternate, Alternates, HitAlternate, ModelVoice, NoteAlternate } from '../models/host';
 import { createFigureEveryBarArp } from './arp';
@@ -82,11 +82,10 @@ export const ROUNDS: Round[] = [
   {
     round: 4,
     title: 'Motorik kit',
+    shipped: true,
     listen:
-      'The new Motorik tile, the same beat on three kits. A is the dry, damped 1970s kit it ships with: a pillowed ' +
-      'kick, a towel on the snare, a tight hat. B takes the damping off, as a live room hears it: a ringing kick, ' +
-      'buzzing snare wires, a looser hat. C is the synth kit. Listen for which you could leave on for an hour, at a ' +
-      'calm tempo (up to 90 bpm it plays at double time) and above 90.',
+      'Shipped: the open kit, a live room\'s undamped 1970s kit, with its snare played lighter than in the test. ' +
+      'B is the dry, damped kit it replaced; C is the synth kit. Kept for reference.',
   },
 ];
 
@@ -122,15 +121,15 @@ export const ALTERNATES: Alternates = {
   fretless: inRound(2, faustVoice(FAUST_BASS, bassFretless, 2, 0.2, 1.93)),
   // Round 3: the writer the arp's rhythm motif replaced.
   arp: inRound(3, { kind: 'generator', label: 'Figure every bar', create: createFigureEveryBarArp }),
-  // Round 4: the Motorik tile's kit.
-  motorik: inRound(4, faustKit('Open kit', kitMotorikOpen, ['kick', 'snare', 'hat', 'tom'], 1.3), trimmedSynthKit('Synth kit', 0.5)),
+  // Round 4: the kits Motorik's open kit was chosen over.
+  motorik: inRound(4, faustKit('Damped kit', kitMotorikDamped, ['kick', 'snare', 'hat', 'tom'], 2), trimmedSynthKit('Synth kit', 0.5)),
 };
 
 export const ALTERNATE_TILES = Object.keys(ALTERNATES) as TileId[];
 
 /** Compiles the Faust alternates for a context; await it before switching tiles on with alternates. */
 export function prepareAlternates(ctx: BaseAudioContext): Promise<void> {
-  return prepareFaust(ctx, [kitBossa, kitDnb, kitHands, kitMotorikOpen, bassFretless]);
+  return prepareFaust(ctx, [kitBossa, kitDnb, kitHands, kitMotorikDamped, bassFretless]);
 }
 
 /** The round a tile's alternates belong to (its newest). */
