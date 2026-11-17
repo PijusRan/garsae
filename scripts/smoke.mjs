@@ -1,12 +1,16 @@
 // Renders every tile offline in headless Chromium and prints audio stats.
-// Usage: npm run smoke [-- --wavs] [-- --compare]   (needs Chromium; set CHROME_PATH if it is not /usr/bin/chromium-browser)
+// Usage: npm run smoke [-- --wavs] [-- --compare] [-- --defaults [tile ...]]   (needs Chromium; set CHROME_PATH if it is not /usr/bin/chromium-browser)
 // --compare renders only the tiles with an alternate voice (src/engine/alternates), against their own voices.
+// --defaults renders each tile (or the ones named) alone at its default volume and prints its balance figure against
+// its target, and what to multiply its `level` in src/tiles.ts by to meet it.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createServer } from 'vite';
 import puppeteer from 'puppeteer-core';
 
 const wantWavs = process.argv.includes('--wavs');
 const wantCompare = process.argv.includes('--compare');
+const wantDefaults = process.argv.includes('--defaults');
+const named = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const server = await createServer({ server: { port: 5199, strictPort: false }, logLevel: 'error' });
 await server.listen();
 const url = server.resolvedUrls.local[0];
@@ -20,20 +24,56 @@ const browser = await puppeteer.launch({
 });
 let failed = false;
 try {
-  const page = await browser.newPage();
-  page.on('pageerror', (e) => {
-    failed = true;
-    console.error('PAGE ERROR', e.message);
-  });
-  await page.goto(`${url}smoke.html`);
-  await page.waitForFunction(() => typeof window.runSmoke === 'function');
-  const result = await page.evaluate((w, c) => window.runSmoke({ wavs: w, compare: c }), wantWavs, wantCompare);
+  const open = async () => {
+    const page = await browser.newPage();
+    page.on('pageerror', (e) => {
+      failed = true;
+      console.error('PAGE ERROR', e.message);
+    });
+    await page.goto(`${url}smoke.html`);
+    await page.waitForFunction(() => typeof window.runSmoke === 'function');
+    return page;
+  };
+  let result;
+  if (wantDefaults) {
+    // Several takes of every tile: shared out over a few pages, which render side by side.
+    const ids = await (await open()).evaluate(() => window.smokeTiles);
+    const wanted = named.length ? ids.filter((id) => named.includes(id)) : ids;
+    const pages = Math.min(4, wanted.length);
+    const parts = await Promise.all(
+      Array.from({ length: pages }, async (_, p) => {
+        const page = await open();
+        return page.evaluate((tiles) => window.runSmoke({ defaults: true, tiles }), wanted.filter((_, i) => i % pages === p));
+      }),
+    );
+    const rows = parts.flatMap((r) => r.defaults).sort((a, b) => ids.indexOf(a.name) - ids.indexOf(b.name));
+    result = { ...parts[0], defaults: rows };
+  } else {
+    const page = await open();
+    result = await page.evaluate((w, c) => window.runSmoke({ wavs: w, compare: c }), wantWavs, wantCompare);
+  }
   console.log(`\nMeter reference (997 Hz, 0 dBFS, one channel): ${result.reference} LUFS, should be about -3.0`);
   if (Math.abs(result.reference + 3.01) > 0.2) {
     failed = true;
     console.error('FAIL the loudness meter is out of calibration');
   }
-  if (wantCompare) {
+  if (wantDefaults) {
+    console.log('\nTiles alone at their default volume. balance is at slider 0.5; levelBy is what to multiply `level` by:');
+    console.table(
+      result.defaults.map(({ name, vol, lufs, loud, aWeighted, truePeakDb, balance, target, levelBy, peakLimited }) => ({
+        name,
+        vol,
+        lufs,
+        loud,
+        aWeighted,
+        truePeakDb,
+        balance,
+        target: target ?? 'by ear',
+        levelBy: levelBy ?? '',
+        note: peakLimited ? 'held by its peaks' : '',
+      })),
+    );
+  } else if (wantCompare) {
     console.log('\nAlternate voices, solo at a low volume, against the tiles\' own voices:');
     console.table(result.compare);
   } else {
@@ -42,7 +82,7 @@ try {
     console.log('\nScenes:');
     console.table(result.scenes);
   }
-  for (const s of [...result.solo, ...result.scenes, ...(result.compare ?? [])]) {
+  for (const s of [...result.solo, ...result.scenes, ...(result.compare ?? []), ...(result.defaults ?? [])]) {
     if (s.nans > 0 || s.clipped > 0) {
       failed = true;
       console.error(`FAIL ${s.name}: ${s.nans} invalid samples, ${s.clipped} clipped samples`);

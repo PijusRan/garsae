@@ -73,10 +73,41 @@ function filtered(x: Float32Array, filters: Biquad[]): Float64Array {
   return out;
 }
 
-/** Gated integrated loudness: 400 ms blocks with 75% overlap, an absolute gate at -70, then a relative one 10 LU down. */
-function integratedLufs(buf: AudioBuffer, from: number, to: number): number {
+/**
+ * IEC 61672 A-weighting as three biquads (bilinear transform), 0 dB at 1 kHz. It follows the ear at quiet listening
+ * levels, where deep bass counts for far less than K-weighting gives it. Accurate below about 5 kHz, which is where
+ * it is used here: to tell how much of a tile's loudness is deep bass.
+ */
+function aWeighting(fs: number): Biquad[] {
+  const [w1, w2, w3, w4] = [20.598997, 107.65265, 737.86223, 12194.217].map((f) => 2 * Math.PI * f);
+  const K = 2 * fs;
+  // Each section's s-domain numerator and denominator, highest power first.
+  const sections = [
+    [[1, 0, 0], [1, 2 * w1, w1 * w1]],
+    [[1, 0, 0], [1, w2 + w3, w2 * w3]],
+    [[0, 0, w4 * w4], [1, 2 * w4, w4 * w4]],
+  ].map(([n, d]) => {
+    const a0 = d[0] * K * K + d[1] * K + d[2];
+    return {
+      b: [(n[0] * K * K + n[1] * K + n[2]) / a0, (2 * n[2] - 2 * n[0] * K * K) / a0, (n[0] * K * K - n[1] * K + n[2]) / a0],
+      a: [(2 * d[2] - 2 * d[0] * K * K) / a0, (d[0] * K * K - d[1] * K + d[2]) / a0],
+    } as Biquad;
+  });
+  // Gain at 1 kHz, from each section's response at z = e^jw.
+  const w = (2 * Math.PI * 1000) / fs;
+  let gain = 1;
+  for (const { b, a } of sections) {
+    const mag = (c0: number, c1: number, c2: number) =>
+      Math.hypot(c0 + c1 * Math.cos(w) + c2 * Math.cos(2 * w), c1 * Math.sin(w) + c2 * Math.sin(2 * w));
+    gain *= mag(b[0], b[1], b[2]) / mag(1, a[0], a[1]);
+  }
+  sections[0].b = sections[0].b.map((v) => v / gain) as Biquad['b'];
+  return sections;
+}
+
+/** Mean square of 400 ms blocks with 75% overlap, summed over both channels: the blocks BS.1770 gates on. */
+function blockEnergies(buf: AudioBuffer, filters: Biquad[], from: number, to: number): number[] {
   const fs = buf.sampleRate;
-  const filters = kWeighting(fs);
   const channels = [0, 1].map((c) => filtered(buf.getChannelData(c), filters));
   const block = Math.round(0.4 * fs);
   const hop = Math.round(0.1 * fs);
@@ -90,13 +121,39 @@ function integratedLufs(buf: AudioBuffer, from: number, to: number): number {
     }
     energies.push(sum);
   }
-  const loudness = (e: number) => (e <= 0 ? -Infinity : -0.691 + 10 * Math.log10(e));
-  const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
-  const absolute = energies.filter((e) => loudness(e) > -70);
-  if (!absolute.length) return -180;
-  const gate = loudness(mean(absolute)) - 10;
-  const kept = absolute.filter((e) => loudness(e) > gate);
-  return Math.round(loudness(mean(kept)) * 10) / 10;
+  return energies;
+}
+
+const K_OFFSET = -0.691;
+const blockDb = (e: number, offset: number) => (e <= 0 ? -Infinity : offset + 10 * Math.log10(e));
+const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
+
+/** The blocks left by BS.1770's gates: an absolute one at -70, then a relative one 10 LU under what passed it. */
+function gated(energies: number[], offset: number): number[] {
+  const absolute = energies.filter((e) => blockDb(e, offset) > -70);
+  if (!absolute.length) return [];
+  const gate = blockDb(mean(absolute), offset) - 10;
+  return absolute.filter((e) => blockDb(e, offset) > gate);
+}
+
+/** Gated integrated loudness (ITU-R BS.1770). */
+function integratedLufs(buf: AudioBuffer, from: number, to: number): number {
+  const kept = gated(blockEnergies(buf, kWeighting(buf.sampleRate), from, to), K_OFFSET);
+  return kept.length ? Math.round(blockDb(mean(kept), K_OFFSET) * 10) / 10 : -180;
+}
+
+interface Reading {
+  /** Gated integrated loudness. */
+  integrated: number;
+  /** Its loud moments: the 90th percentile of the gated blocks. Struck and sparse sounds sit well above their average. */
+  loud: number;
+}
+
+function reading(buf: AudioBuffer, filters: Biquad[], offset: number, from: number, to: number): Reading {
+  const kept = gated(blockEnergies(buf, filters, from, to), offset);
+  if (!kept.length) return { integrated: -180, loud: -180 };
+  const sorted = kept.map((e) => blockDb(e, offset)).sort((a, b) => a - b);
+  return { integrated: blockDb(mean(kept), offset), loud: sorted[Math.round(0.9 * (sorted.length - 1))] };
 }
 
 /** 4x oversampled peak: a windowed-sinc interpolation, run only around the loudest samples. */
@@ -198,22 +255,45 @@ interface Scenario {
   offAt?: { time: number; ids: TileId[] };
   /** Play the tiles' k-th alternate (src/engine/alternates) instead of their own voice. */
   alternate?: number;
+  key?: number;
+  /** Makes the take repeatable: the same notes on every run, over a fixed chord loop (i, bVII, bIII, IV). */
+  seed?: number;
+}
+
+/** A small seeded generator (mulberry32) to stand in for Math.random while a repeatable take is scheduled. */
+function seededRandom(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 async function render(s: Scenario): Promise<AudioBuffer> {
-  const ctx = new OfflineAudioContext(2, SR * s.seconds, SR);
-  const engine = new Engine(ctx, s.alternate ? { alternates: ALTERNATES } : {});
-  // Tiles on physical models only play once those have loaded.
-  await engine.ready;
-  if (s.alternate) {
-    await prepareAlternates(ctx);
-    engine.setCompareChoice(s.alternate);
+  const ctx = new OfflineAudioContext(2, Math.round(SR * s.seconds), SR);
+  const random = Math.random;
+  if (s.seed !== undefined) Math.random = seededRandom(s.seed);
+  try {
+    const engine = new Engine(ctx, s.alternate ? { alternates: ALTERNATES } : {});
+    // Tiles on physical models only play once those have loaded.
+    await engine.ready;
+    if (s.alternate) {
+      await prepareAlternates(ctx);
+      engine.setCompareChoice(s.alternate);
+    }
+    if (s.seed !== undefined) engine.chords.loop = [0, 6, 2, 3].map((degree) => ({ degree, bars: 2 }));
+    engine.setBpm(s.bpm ?? 80);
+    engine.setKey(s.key ?? 9);
+    engine.setEvolution(s.evolution ?? 0.5);
+    for (const [id, v] of Object.entries(s.tiles)) engine.setTile(id as TileId, true, v);
+    // Every note of the take is scheduled here, so the seed can go straight after.
+    engine.renderUntil(s.seconds);
+  } finally {
+    Math.random = random;
   }
-  engine.setBpm(s.bpm ?? 80);
-  engine.setKey(9);
-  engine.setEvolution(s.evolution ?? 0.5);
-  for (const [id, v] of Object.entries(s.tiles)) engine.setTile(id as TileId, true, v);
-  engine.renderUntil(s.seconds);
   return ctx.startRendering();
 }
 
@@ -284,7 +364,97 @@ async function runCompare(wavs: Record<string, string> | null) {
   return rows;
 }
 
-export async function runSmoke(opts: { wavs?: boolean; compare?: boolean } = {}) {
+/**
+ * What tile levels are set against. Tiles should sound about equally loud at the same slider position, and LUFS alone
+ * does not say that: it counts a kick's or a sub's deep bass in full, which the ear at these listening levels and most
+ * speakers do not, and it averages a struck note's attack away. So each tile gets a balance figure: the mean of its
+ * integrated loudness and its loud moments, moved by up to 2 LU for how much of it is deep bass (the gap between its
+ * K- and A-weighted readings, against the gap usual in its category): down when it is carried by its mids, up when it
+ * is nearly all low end. Bass and drums aim 2 LU higher than pads, the low end LUFS counts but the ear hears less of.
+ */
+const BALANCE: Record<'pads' | 'bass' | 'drums', { target: number; usualGap: number }> = {
+  pads: { target: -23, usualGap: 4 },
+  bass: { target: -21, usualGap: 13 },
+  drums: { target: -21, usualGap: 10 },
+};
+/** Tiles kept softer than their category on purpose, in LU. Textures have no target: they are set by ear. */
+const SOFTER: Partial<Record<TileId, number>> = { arp: -3, drone: -3, flute: -6 };
+/** A tile alone at slider 0.5 peaks no higher than this (dBTP), so the limiter is left for mixes. */
+const PEAK_CEILING = -2;
+/** The slider position levels are balanced at. */
+const REFERENCE_VOLUME = 0.5;
+
+const db1 = (x: number) => Math.round(x * 10) / 10;
+
+/**
+ * Each tile alone at its default volume, over repeatable takes (pitched tiles in three keys, drums at three tempos):
+ * its loudness, its balance figure at slider 0.5 against its target, and what to multiply its `level` by to meet it.
+ */
+async function runDefaults(only: string[]) {
+  const rows = [];
+  for (const t of TILES) {
+    if (t.effect || (only.length && !only.includes(t.id))) continue;
+    const takes =
+      t.category === 'drums'
+        ? [60, 75, 90].map((bpm) => ({ bpm, key: 9 }))
+        : t.category === 'texture'
+          ? [{ bpm: 75, key: 9 }]
+          : [9, 1, 5].map((key) => ({ bpm: 75, key }));
+    const k: Reading[] = [];
+    const a: Reading[] = [];
+    let peak = -180;
+    let nans = 0;
+    let clipped = 0;
+    for (const [i, take] of takes.entries()) {
+      // Two bars to settle, then twelve measured.
+      const bar = 240 / take.bpm;
+      const from = 0.1 + 2 * bar;
+      const to = 0.1 + 14 * bar;
+      const buf = await render({ tiles: { [t.id]: t.defaultVolume }, seconds: to + 0.3, evolution: 0.3, seed: 7919 * (i + 1), ...take });
+      // A sparse tile (the bells) can stay silent through a whole take, which says nothing about its level.
+      const kr = reading(buf, kWeighting(SR), K_OFFSET, from, to);
+      if (kr.integrated > -180) {
+        k.push(kr);
+        a.push(reading(buf, aWeighting(SR), 0, from, to));
+      }
+      const st = analyse(t.id, buf, from, to);
+      peak = Math.max(peak, st.truePeakDb);
+      nans += st.nans;
+      clipped += st.clipped;
+    }
+    const lufs = mean(k.map((r) => r.integrated));
+    const loud = mean(k.map((r) => r.loud));
+    const figure = (lufs + loud) / 2;
+    const aFigure = mean(a.map((r) => (r.integrated + r.loud) / 2));
+    const atReference = 40 * Math.log10(REFERENCE_VOLUME / t.defaultVolume);
+    const aim = t.category === 'texture' ? null : BALANCE[t.category as keyof typeof BALANCE];
+    const tilt = aim ? Math.min(2, Math.max(-2, 0.5 * (figure - aFigure - aim.usualGap))) : 0;
+    const balance = figure - tilt + atReference;
+    const target = aim ? aim.target + (SOFTER[t.id] ?? 0) : null;
+    // Up to the target, unless its peaks reach the ceiling first.
+    const gain = target === null ? null : Math.min(target - balance, PEAK_CEILING - (peak + atReference));
+    rows.push({
+      name: t.id,
+      vol: t.defaultVolume,
+      lufs: db1(lufs),
+      loud: db1(loud),
+      aWeighted: db1(aFigure),
+      truePeakDb: db1(peak),
+      balance: db1(balance),
+      target,
+      levelBy: gain === null ? null : Math.round(10 ** (gain / 20) * 1000) / 1000,
+      peakLimited: gain !== null && gain < target! - balance - 0.05,
+      nans,
+      clipped,
+    });
+  }
+  return rows;
+}
+
+export async function runSmoke(opts: { wavs?: boolean; compare?: boolean; defaults?: boolean; tiles?: string[] } = {}) {
+  if (opts.defaults) {
+    return { solo: [], scenes: [], defaults: await runDefaults(opts.tiles ?? []), wavs: {}, reference: await meterReference() };
+  }
   if (opts.compare) {
     const wavs: Record<string, string> = {};
     return { solo: [], scenes: [], compare: await runCompare(opts.wavs ? wavs : null), wavs, reference: await meterReference() };
@@ -334,6 +504,9 @@ export async function runSmoke(opts: { wavs?: boolean; compare?: boolean } = {})
 declare global {
   interface Window {
     runSmoke: typeof runSmoke;
+    /** The sound tiles, in catalogue order. */
+    smokeTiles: string[];
   }
 }
 window.runSmoke = runSmoke;
+window.smokeTiles = TILES.filter((t) => !t.effect).map((t) => t.id);
