@@ -32,7 +32,7 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 export const rollBpm = (): number => randInt(RANDOM_BPM_MIN, RANDOM_BPM_MAX);
 export const rollKey = (): number => randInt(0, 11);
 
-function allTiles(on: Partial<Record<TileId, number>> = {}): Record<TileId, TileSetting> {
+export function allTiles(on: Partial<Record<TileId, number>> = {}): Record<TileId, TileSetting> {
   const out = {} as Record<TileId, TileSetting>;
   for (const t of TILES) {
     const v = on[t.id];

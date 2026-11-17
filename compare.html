@@ -170,7 +170,9 @@
         Dev-only. A is what a tile ships with; B, C… are candidates from <code>src/engine/alternates</code>, at the same
         loudness. Voice and kit candidates play the same notes as A; generator candidates write their own. Tiles are
         grouped by listening round: the newest is open and marked, earlier ones are folded below it.
-        <kbd>Space</kbd> steps through the voices, <kbd>A</kbd>, <kbd>B</kbd>, <kbd>C</kbd>… pick one, <kbd>P</kbd> plays or stops.
+        A round can test Surprise me instead: each letter is then a way of rolling whole mixes, and plays the mix it
+        rolled last. <kbd>Space</kbd> steps through the voices, <kbd>A</kbd>, <kbd>B</kbd>, <kbd>C</kbd>… pick one,
+        <kbd>P</kbd> plays or stops, <kbd>R</kbd> rolls new mixes.
       </p>
 
       <h2>Sounds</h2>
@@ -182,6 +184,7 @@
       <h2>Listen</h2>
       <div class="row">
         <button id="play">Play</button>
+        <button id="roll" hidden>Roll again</button>
         <label><input type="checkbox" id="blind" /> Blind (hide which is which)</label>
         <button id="reveal" hidden>Reveal</button>
         <span id="reveal-out"></span>
