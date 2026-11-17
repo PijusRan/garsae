@@ -8,7 +8,7 @@ export const TILE_IDS = [
   // bass
   'sub', 'walk', 'pulse', 'glide', 'fm', 'rolling', 'reese', 'fretless', 'b808', 'muted',
   // drums (one tile per genre)
-  'lofi', 'techno', 'dub', 'ambient', 'breaks', 'hands', 'house', 'triphop', 'dnb', 'bossa',
+  'lofi', 'techno', 'dub', 'ambient', 'breaks', 'hands', 'motorik', 'triphop', 'dnb', 'bossa',
   // texture (room sounds and noise colours)
   'crackle', 'wind', 'hum',
   'brown', 'pink', 'green',
@@ -69,7 +69,7 @@ export const TILES: TileMeta[] = [
   { id: 'ambient', category: 'drums', name: 'Ambient pulse', hint: 'A soft heartbeat', defaultVolume: 0.5, level: 0.925, reverb: 0.35, family: 'calm' },
   { id: 'breaks', category: 'drums', name: 'Breakbeat', hint: 'Fast, tight breaks', defaultVolume: 0.5, level: 0.374, reverb: 0.06 },
   { id: 'hands', category: 'drums', name: 'Hand drums', hint: 'Congas and a soft shaker', defaultVolume: 0.5, level: 0.984, reverb: 0.2, family: 'calm' },
-  { id: 'house', category: 'drums', name: 'Deep house', hint: 'Warm, steady, shuffled', defaultVolume: 0.5, level: 0.643, reverb: 0.08, family: 'driving' },
+  { id: 'motorik', category: 'drums', name: 'Motorik', hint: 'Steady, hypnotic eighths', defaultVolume: 0.5, level: 0.902, reverb: 0.08, family: 'driving' },
   { id: 'triphop', category: 'drums', name: 'Trip hop', hint: 'Slow, heavy, dusty', defaultVolume: 0.5, level: 0.556, reverb: 0.15, family: 'calm' },
   { id: 'dnb', category: 'drums', name: 'Liquid DnB', hint: 'Fast, light two-step', defaultVolume: 0.5, level: 0.726, reverb: 0.08, family: 'driving' },
   { id: 'bossa', category: 'drums', name: 'Bossa nova', hint: 'Clave and a soft pulse', defaultVolume: 0.5, level: 1.02, reverb: 0.12, family: 'calm' },

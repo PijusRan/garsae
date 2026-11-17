@@ -75,7 +75,7 @@ export function encodeMix(m: MixState): string {
   return q.toString().replace(/%2C/g, ',');
 }
 
-const RENAMED: Record<string, TileId> = { brushes: 'hands' };
+const RENAMED: Record<string, TileId> = { brushes: 'hands', house: 'techno' };
 
 /** Parses a share string. Unknown or broken parts are ignored; returns null if nothing usable. */
 export function decodeMix(input: string): MixState | null {
@@ -221,7 +221,7 @@ const pickOne = <T,>(xs: readonly T[]): T => xs[Math.floor(Math.random() * xs.le
  * - always one harmonic bed, at most 6 tiles in total. The bed is warm pad, drone, choir, strings, or a
  *   melodic instrument over a bass (the bass gives it a floor), each a fifth of the time, so no tile dominates
  * - at most one extra melodic layer and at most one bass
- * - at most one drum genre; busy genres (breakbeat, techno, house, drum and bass) are rarer and kept quiet
+ * - at most one drum genre; busy genres (breakbeat, techno, motorik, drum and bass) are rarer and kept quiet
  * - at most one atmosphere and at most one noise colour, both low in the mix
  * - effect tiles (AM, wobble) are never picked
  * - Evolution stays in the calm 0.15-0.5 range; BPM and key stay random (60-90)
@@ -242,8 +242,8 @@ export function surpriseMix(): MixState {
   }
   if (bed !== 'tune' && Math.random() < 0.55) on[pickOne(basses)] = between(0.35, 0.55);
   if (Math.random() < 0.75) {
-    const drum = pickOne<TileId>(['lofi', 'lofi', 'dub', 'ambient', 'ambient', 'hands', 'hands', 'bossa', 'triphop', 'house', 'techno', 'breaks', 'dnb']);
-    const busy = drum === 'breaks' || drum === 'techno' || drum === 'dnb' || drum === 'house';
+    const drum = pickOne<TileId>(['lofi', 'lofi', 'dub', 'ambient', 'ambient', 'hands', 'hands', 'bossa', 'triphop', 'motorik', 'techno', 'breaks', 'dnb']);
+    const busy = drum === 'breaks' || drum === 'techno' || drum === 'dnb' || drum === 'motorik';
     on[drum] = busy ? between(0.3, 0.42) : between(0.35, 0.55);
   }
   if (Math.random() < 0.5) on[pickOne<TileId>(['crackle', 'wind', 'hum'])] = between(0.2, 0.4);

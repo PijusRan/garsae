@@ -33,7 +33,7 @@ export const lt: Strings = {
     ambient: { name: 'Ambient pulsas', hint: 'Širdies plakimas' },
     breaks: { name: 'Breakbeat', hint: 'Greiti, tikslūs breakai' },
     hands: { name: 'Rankiniai būgnai', hint: 'Kongos ir švelnus šeikeris' },
-    house: { name: 'Deep house', hint: 'Šiltas, tolygus, pakrypęs' },
+    motorik: { name: 'Motorik', hint: 'Tolygūs, hipnotiški aštuntiniai' },
     triphop: { name: 'Trip hop', hint: 'Lėtas, sunkus, dulkėtas' },
     dnb: { name: 'Liquid DnB', hint: 'Greitas, lengvas ritmas' },
     bossa: { name: 'Bosa nova', hint: 'Klavė ir švelnus pulsas' },

@@ -2,7 +2,7 @@
 import { drumMutationChance, drumMutationInterval, drumMutationSize } from '../evolution';
 import { glide } from '../params';
 import { chance, pick, rand } from '../random';
-import type { Core, Instrument, StepInfo } from '../types';
+import type { Core, Instrument } from '../types';
 import { makeTracks, mutateOnce, parsePattern, type Track, type TrackDef } from './patterns';
 import { saturationCurve } from '../synth';
 import { playHit, type Kit, type Voice } from './voices';
@@ -27,6 +27,8 @@ interface GenreDef {
   chain(ctx: BaseAudioContext): Chain;
   /** The genre plays on this Faust kit (faust/dsp/kit_*.dsp) instead of the synth kit. */
   faust?: KitName;
+  /** At calm tempos (up to 90 bpm) the pattern runs at double time, two of its bars in each of ours. */
+  double?: boolean;
 }
 
 /** A drum bus: cleaned-up lows, a fast gentle compressor for punch, soft saturation for glue, a roll-off on top. */
@@ -43,7 +45,7 @@ function drumBus(
   return { input, output };
 }
 
-const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'hands' | 'house' | 'triphop' | 'dnb' | 'bossa', GenreDef> = {
+const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'hands' | 'motorik' | 'triphop' | 'dnb' | 'bossa', GenreDef> = {
   // Lo-fi hip hop: lazy boom-bap, heavy swing, dusty and darkened.
   lofi: {
     faust: 'lofi',
@@ -66,7 +68,7 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'hands' | 'house' |
     },
   },
 
-  // Minimal techno / house: four on the floor, offbeat hats, sparse percussion.
+  // Minimal techno: four on the floor, offbeat hats, sparse percussion.
   techno: {
     faust: 'techno',
     swing: 0.04,
@@ -161,19 +163,22 @@ const GENRES: Record<'lofi' | 'techno' | 'dub' | 'ambient' | 'hands' | 'house' |
     chain: (ctx) => drumBus(ctx, { highpass: 40, lowpass: 9000, drive: 1.15, threshold: -24, ratio: 2, release: 0.15, gain: 1 }),
   },
 
-  // Deep house: a rounder kick than techno, a clap laid on top of a soft shuffle.
-  house: {
-    swing: 0.13,
+  // Motorik: the krautrock beat, played as if it could go on forever. Kick on 1, the "and" of 2 and 3, snare on 2 and
+  // 4, even eighths on a closed hat; straight, with only a drummer's looseness. Double time at calm tempos, where it
+  // lives (120-180 bpm). Nothing turns over: a floor tom marks the odd phrase end, and that is all.
+  motorik: {
+    faust: 'motorik',
+    double: true,
+    swing: 0,
     humanize: 0.003,
     tracks: [
-      { voice: 'kick', pattern: 'X...X...X...X...', core: true, opts: { tone: 0.92, decay: 1.05 } },
-      { voice: 'clap', pattern: '....x.......x...', core: true, gain: 0.5, opts: { decay: 1.3 } },
-      { voice: 'openhat', pattern: '..o...o...o...o.', gain: 0.75, opts: { decay: 0.8 } },
-      { voice: 'shaker', pattern: 'g.ogg.ogg.ogg.og', gain: 0.8 },
-      { voice: 'rim', pattern: '...g.....g....g.', gain: 0.4 },
+      { voice: 'kick', pattern: 'X.....x.X.......', core: true },
+      { voice: 'snare', pattern: '....X.......X...', core: true, gain: 0.8 },
+      { voice: 'hat', pattern: 'x.o.x.o.x.o.x.o.', gain: 0.7 },
+      { voice: 'snare', pattern: '................', gain: 0.4 },
     ],
-    fills: [{ voice: 'shaker', pattern: 'o.oo' }],
-    chain: (ctx) => drumBus(ctx, { highpass: 32, lowpass: 13000, drive: 1.3, threshold: -18, ratio: 3, release: 0.12, gain: 0.85 }),
+    fills: [{ voice: 'tom', pattern: '..oo' }],
+    chain: (ctx) => drumBus(ctx, { highpass: 38, lowpass: 9500, drive: 1.2, threshold: -22, ratio: 2.5, release: 0.12, gain: 0.9 }),
   },
 
   // Trip hop: a slow, heavy break with a big dark snare, sat low in a dusty room.
@@ -299,33 +304,43 @@ function createPatternGenre(id: TileId, def: GenreDef) {
     const fills = def.fills.map((f) => ({ ...f, steps: parsePattern(f.pattern) }));
     let fillThisBar = false;
 
-    function onBar(s: StepInfo) {
-      const e = s.evolution;
-      if (s.bar % drumMutationInterval(e) === 0 && chance(drumMutationChance(e))) {
+    /** `bar` counts the pattern's own bars, which run twice as fast as ours at double time. */
+    function onBar(bar: number, e: number) {
+      if (bar % drumMutationInterval(e) === 0 && chance(drumMutationChance(e))) {
         const n = drumMutationSize(e);
         for (let i = 0; i < n; i++) mutateOnce(tracks);
       }
       // A small fill on the last bar of a 4-bar phrase.
-      fillThisBar = s.bar % 4 === 3 && chance(0.45 * drumMutationChance(e));
+      fillThisBar = bar % 4 === 3 && chance(0.45 * drumMutationChance(e));
+    }
+
+    /** One step of the pattern, `pos` in its bar, starting at `time` and lasting `dur`. */
+    function play(pos: number, time: number, dur: number) {
+      const t = time + swingOffset(pos, dur, def.swing);
+      for (const tr of tracks) {
+        const vel = tr.cur[pos];
+        if (vel <= 0) continue;
+        const at = Math.max(time, t + rand(-def.humanize, def.humanize));
+        kit.hit(tr.def.voice, at, vel * (tr.def.gain ?? 1) * rand(0.92, 1.05), tr.def.opts, tr.def.echo);
+      }
+      if (fillThisBar && pos >= 12) {
+        for (const f of fills) {
+          const vel = f.steps[pos - 12];
+          if (vel > 0) kit.hit(f.voice, t, vel * 0.8, f.opts);
+        }
+      }
     }
 
     return {
       output: chain.output,
       setTempo: chain.setTempo,
       step(s) {
-        if (s.stepInBar === 0) onBar(s);
-        const t = s.time + swingOffset(s.stepInBar, s.stepDur, def.swing);
-        for (const tr of tracks) {
-          const vel = tr.cur[s.stepInBar];
-          if (vel <= 0) continue;
-          const at = Math.max(s.time, t + rand(-def.humanize, def.humanize));
-          kit.hit(tr.def.voice, at, vel * (tr.def.gain ?? 1) * rand(0.92, 1.05), tr.def.opts, tr.def.echo);
-        }
-        if (fillThisBar && s.stepInBar >= 12) {
-          for (const f of fills) {
-            const vel = f.steps[s.stepInBar - 12];
-            if (vel > 0) kit.hit(f.voice, t, vel * 0.8, f.opts);
-          }
+        const per = def.double && s.bpm <= 90 ? 2 : 1;
+        for (let k = 0; k < per; k++) {
+          const at = s.stepInBar * per + k;
+          const pos = at % 16;
+          if (pos === 0) onBar(s.bar * per + Math.floor(at / 16), s.evolution);
+          play(pos, s.time + (k * s.stepDur) / per, s.stepDur / per);
         }
       },
     };
@@ -337,7 +352,7 @@ export const createTechno = createPatternGenre('techno', GENRES.techno);
 export const createDub = createPatternGenre('dub', GENRES.dub);
 export const createAmbientPulse = createPatternGenre('ambient', GENRES.ambient);
 export const createHandDrums = createPatternGenre('hands', GENRES.hands);
-export const createHouse = createPatternGenre('house', GENRES.house);
+export const createMotorik = createPatternGenre('motorik', GENRES.motorik);
 export const createTripHop = createPatternGenre('triphop', GENRES.triphop);
 export const createDnb = createPatternGenre('dnb', GENRES.dnb);
 export const createBossa = createPatternGenre('bossa', GENRES.bossa);

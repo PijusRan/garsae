@@ -7,7 +7,6 @@
 import kitBossa from '../faust/gen/kit_bossa';
 import kitDnb from '../faust/gen/kit_dnb';
 import kitHands from '../faust/gen/kit_hands';
-import kitHouse from '../faust/gen/kit_house';
 import bassFretless from '../faust/gen/bass_fretless';
 import type { Alternate, Alternates, HitAlternate, ModelVoice, NoteAlternate } from '../models/host';
 import { createFigureEveryBarArp } from './arp';
@@ -56,7 +55,7 @@ export const ROUNDS: Round[] = [
     shipped: true,
     listen:
       'Lo-fi, techno, dub, ambient, trip hop, muted and 808 shipped on Faust; B is the synth they replaced. ' +
-      'Hand drums, deep house, liquid DnB, bossa nova and fretless were not chosen; B is the Faust candidate.',
+      'Hand drums, liquid DnB, bossa nova and fretless were not chosen; B is the Faust candidate.',
   },
   {
     round: 3,
@@ -95,7 +94,6 @@ export const ALTERNATES: Alternates = {
   b808: inRound(2, trimmed(OLD_SYNTH, 1, synth808)),
   // Round 2 candidates that were not chosen, kept for another listen.
   hands: inRound(2, faustKit(FAUST_KIT, kitHands, ['conga', 'conga', 'congaslap', 'tom', 'shaker'], 1.11)),
-  house: inRound(2, faustKit(FAUST_KIT, kitHouse, ['kick', 'clap', 'openhat', 'shaker', 'rim'], 5.15)),
   dnb: inRound(2, faustKit(FAUST_KIT, kitDnb, ['kick', 'snare', 'hat', 'shaker', 'openhat'], 6.5)),
   bossa: inRound(2, faustKit(FAUST_KIT, kitBossa, ['kick', 'rim', 'shaker', 'hat'], 1.88)),
   fretless: inRound(2, faustVoice(FAUST_BASS, bassFretless, 2, 0.2, 1.93)),
@@ -107,7 +105,7 @@ export const ALTERNATE_TILES = Object.keys(ALTERNATES) as TileId[];
 
 /** Compiles the Faust alternates for a context; await it before switching tiles on with alternates. */
 export function prepareAlternates(ctx: BaseAudioContext): Promise<void> {
-  return prepareFaust(ctx, [kitBossa, kitDnb, kitHands, kitHouse, bassFretless]);
+  return prepareFaust(ctx, [kitBossa, kitDnb, kitHands, bassFretless]);
 }
 
 /** The round a tile's alternates belong to (its newest). */

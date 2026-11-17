@@ -9,6 +9,7 @@ import walk from '../faust/gen/walk';
 import kitAmbient from '../faust/gen/kit_ambient';
 import kitDub from '../faust/gen/kit_dub';
 import kitLofi from '../faust/gen/kit_lofi';
+import kitMotorik from '../faust/gen/kit_motorik';
 import kitTechno from '../faust/gen/kit_techno';
 import kitTriphop from '../faust/gen/kit_triphop';
 import bass808 from '../faust/gen/bass_808';
@@ -30,6 +31,7 @@ const KITS: Record<KitName, { model: FaustModel; slots: Voice[]; trim: number }>
   dub: { model: kitDub, slots: ['kick', 'rim', 'hat', 'tom'], trim: 2.11 },
   ambient: { model: kitAmbient, slots: ['kick', 'shaker', 'tom'], trim: 2.14 },
   triphop: { model: kitTriphop, slots: ['kick', 'snare', 'hat', 'rim'], trim: 1.64 },
+  motorik: { model: kitMotorik, slots: ['kick', 'snare', 'hat', 'tom'], trim: 2 },
 };
 
 /**
