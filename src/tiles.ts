@@ -74,13 +74,13 @@ export const TILES: TileMeta[] = [
   { id: 'dnb', category: 'drums', name: 'Liquid DnB', hint: 'Fast, light two-step', defaultVolume: 0.5, level: 0.726, reverb: 0.08, family: 'driving' },
   { id: 'bossa', category: 'drums', name: 'Bossa nova', hint: 'Clave and a soft pulse', defaultVolume: 0.5, level: 1.02, reverb: 0.12, family: 'calm' },
 
-  { id: 'crackle', category: 'texture', name: 'Vinyl crackle', hint: 'Dust and pops', defaultVolume: 0.4, level: 1.95, reverb: 0, steady: true },
-  { id: 'wind', category: 'texture', name: 'Wind', hint: 'Moving air', defaultVolume: 0.4, level: 0.721, reverb: 0.1 },
-  { id: 'hum', category: 'texture', name: 'Room hum', hint: 'Distant machine', defaultVolume: 0.35, level: 0.316, reverb: 0, steady: true },
+  { id: 'crackle', category: 'texture', name: 'Vinyl crackle', hint: 'Dust and pops', defaultVolume: 0.5, level: 4.47, reverb: 0, steady: true },
+  { id: 'wind', category: 'texture', name: 'Wind', hint: 'Moving air', defaultVolume: 0.5, level: 0.678, reverb: 0.1 },
+  { id: 'hum', category: 'texture', name: 'Room hum', hint: 'Distant machine', defaultVolume: 0.5, level: 0.321, reverb: 0, steady: true },
 
-  { id: 'brown', category: 'texture', name: 'Brown noise', hint: 'Deep rumble', defaultVolume: 0.35, level: 0.328, reverb: 0, steady: true },
-  { id: 'pink', category: 'texture', name: 'Pink noise', hint: 'Even, soft hiss', defaultVolume: 0.3, level: 0.304, reverb: 0, steady: true },
-  { id: 'green', category: 'texture', name: 'Green noise', hint: 'Mid-range, natural', defaultVolume: 0.3, level: 0.313, reverb: 0, steady: true },
+  { id: 'brown', category: 'texture', name: 'Brown noise', hint: 'Deep rumble', defaultVolume: 0.5, level: 0.288, reverb: 0, steady: true },
+  { id: 'pink', category: 'texture', name: 'Pink noise', hint: 'Even, soft hiss', defaultVolume: 0.5, level: 0.262, reverb: 0, steady: true },
+  { id: 'green', category: 'texture', name: 'Green noise', hint: 'Mid-range, natural', defaultVolume: 0.5, level: 0.233, reverb: 0, steady: true },
   { id: 'am', category: 'effects', name: 'Amplitude mod', hint: 'Gentle pulsing on mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true, steady: true },
   { id: 'wobble', category: 'effects', name: 'Tape wobble', hint: 'Warps the whole mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true, steady: true },
 ];

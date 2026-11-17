@@ -3,7 +3,7 @@
 // reports loudness, peaks, clipping and invalid samples.
 import { ALTERNATES, ALTERNATE_TILES, prepareAlternates, slotLabels } from './engine/alternates';
 import { Engine } from './engine/engine';
-import { TILES, type TileId } from './tiles';
+import { TILES, type Category, type TileId } from './tiles';
 
 const SR = 44100;
 
@@ -371,14 +371,16 @@ async function runCompare(wavs: Record<string, string> | null) {
  * integrated loudness and its loud moments, moved by up to 2 LU for how much of it is deep bass (the gap between its
  * K- and A-weighted readings, against the gap usual in its category): down when it is carried by its mids, up when it
  * is nearly all low end. Bass and drums aim 2 LU higher than pads, the low end LUFS counts but the ear hears less of.
+ * Textures are a bed under the music: 3 LU under pads, and steady, so nothing in them stands out to carry them.
  */
-const BALANCE: Record<'pads' | 'bass' | 'drums', { target: number; usualGap: number }> = {
+const BALANCE: Record<Exclude<Category, 'effects'>, { target: number; usualGap: number }> = {
   pads: { target: -23, usualGap: 4 },
   bass: { target: -21, usualGap: 13 },
   drums: { target: -21, usualGap: 10 },
+  texture: { target: -26, usualGap: 4 },
 };
-/** Tiles kept softer than their category on purpose, in LU. Textures have no target: they are set by ear. */
-const SOFTER: Partial<Record<TileId, number>> = { arp: -3, drone: -3, flute: -6 };
+/** Tiles kept softer than their category on purpose, in LU. */
+const SOFTER: Partial<Record<TileId, number>> = { arp: -3, drone: -3, flute: -6, crackle: -3 };
 /** A tile alone at slider 0.5 peaks no higher than this (dBTP), so the limiter is left for mixes. */
 const PEAK_CEILING = -2;
 /** The slider position levels are balanced at. */
@@ -387,7 +389,7 @@ const REFERENCE_VOLUME = 0.5;
 const db1 = (x: number) => Math.round(x * 10) / 10;
 
 /**
- * Each tile alone at its default volume, over repeatable takes (pitched tiles in three keys, drums at three tempos):
+ * Each tile alone at its default volume, over repeatable takes (three keys, or for drums three tempos):
  * its loudness, its balance figure at slider 0.5 against its target, and what to multiply its `level` by to meet it.
  */
 async function runDefaults(only: string[]) {
@@ -395,11 +397,7 @@ async function runDefaults(only: string[]) {
   for (const t of TILES) {
     if (t.effect || (only.length && !only.includes(t.id))) continue;
     const takes =
-      t.category === 'drums'
-        ? [60, 75, 90].map((bpm) => ({ bpm, key: 9 }))
-        : t.category === 'texture'
-          ? [{ bpm: 75, key: 9 }]
-          : [9, 1, 5].map((key) => ({ bpm: 75, key }));
+      t.category === 'drums' ? [60, 75, 90].map((bpm) => ({ bpm, key: 9 })) : [9, 1, 5].map((key) => ({ bpm: 75, key }));
     const k: Reading[] = [];
     const a: Reading[] = [];
     let peak = -180;
@@ -427,12 +425,12 @@ async function runDefaults(only: string[]) {
     const figure = (lufs + loud) / 2;
     const aFigure = mean(a.map((r) => (r.integrated + r.loud) / 2));
     const atReference = 40 * Math.log10(REFERENCE_VOLUME / t.defaultVolume);
-    const aim = t.category === 'texture' ? null : BALANCE[t.category as keyof typeof BALANCE];
-    const tilt = aim ? Math.min(2, Math.max(-2, 0.5 * (figure - aFigure - aim.usualGap))) : 0;
+    const aim = BALANCE[t.category as keyof typeof BALANCE];
+    const tilt = Math.min(2, Math.max(-2, 0.5 * (figure - aFigure - aim.usualGap)));
     const balance = figure - tilt + atReference;
-    const target = aim ? aim.target + (SOFTER[t.id] ?? 0) : null;
+    const target = aim.target + (SOFTER[t.id] ?? 0);
     // Up to the target, unless its peaks reach the ceiling first.
-    const gain = target === null ? null : Math.min(target - balance, PEAK_CEILING - (peak + atReference));
+    const gain = Math.min(target - balance, PEAK_CEILING - (peak + atReference));
     rows.push({
       name: t.id,
       vol: t.defaultVolume,
@@ -442,8 +440,8 @@ async function runDefaults(only: string[]) {
       truePeakDb: db1(peak),
       balance: db1(balance),
       target,
-      levelBy: gain === null ? null : Math.round(10 ** (gain / 20) * 1000) / 1000,
-      peakLimited: gain !== null && gain < target! - balance - 0.05,
+      levelBy: Math.round(10 ** (gain / 20) * 1000) / 1000,
+      peakLimited: gain < target - balance - 0.05,
       nans,
       clipped,
     });

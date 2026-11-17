@@ -68,8 +68,8 @@ try {
         aWeighted,
         truePeakDb,
         balance,
-        target: target ?? 'by ear',
-        levelBy: levelBy ?? '',
+        target,
+        levelBy,
         note: peakLimited ? 'held by its peaks' : '',
       })),
     );
