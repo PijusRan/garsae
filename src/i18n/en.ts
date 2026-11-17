@@ -111,6 +111,7 @@ export const en = {
   replaceName: (name: string) => `Replace ${name} with the current mix`,
   delete: 'Delete',
   deleteName: (name: string) => `Delete ${name}`,
+  restoreStarters: 'Bring back deleted starters',
 
   shareTitleSheet: 'Share this mix',
   shareNote: 'Anyone with this link hears the same tiles and settings, played fresh.',

@@ -7,6 +7,7 @@ import {
   decodeMix,
   defaultMix,
   encodeMix,
+  loadHiddenStarters,
   loadLast,
   loadSavedMixes,
   loadVolume,
@@ -16,12 +17,13 @@ import {
   rollKey,
   saveMix,
   saveVolume,
+  setHiddenStarters,
   suggestName,
   surpriseMix,
   type MixState,
   type SavedMix,
 } from './state/mix';
-import { PRESETS, presetMix, type Preset } from './state/presets';
+import { PRESETS, presetMix, type Preset, type PresetId } from './state/presets';
 import { CATEGORIES, TILES, TILE_IDS, type Category, type TileId } from './tiles';
 import { useT } from './i18n';
 import type { Strings } from './i18n/en';
@@ -106,6 +108,7 @@ export function App() {
   const [starting, setStarting] = useState(false);
   const [chord, setChord] = useState('');
   const [saved, setSaved] = useState<SavedMix[]>(loadSavedMixes);
+  const [hiddenStarters, setHidden] = useState<PresetId[]>(loadHiddenStarters);
   const [sheet, setSheet] = useState<'mixes' | 'about' | 'share' | null>(null);
   const [welcome, setWelcome] = useState<'open' | 'leaving' | null>(() => (getBoot().firstVisit ? 'open' : null));
   const [previewKey, setPreviewKey] = useState<number | null>(() => (getBoot().firstVisit ? PRESETS[0].welcomeKey : null));
@@ -476,11 +479,12 @@ export function App() {
 
   const detail = t.detail(NOTE_NAMES[key], bpm);
 
+  const starters = PRESETS.filter((p) => !hiddenStarters.includes(p.id));
   const startersRow = (
     <div className="panel-row" role="group" aria-label={t.starterMixes}>
       <h2 className="label">{t.starters}</h2>
       <ul className="name-list">
-        {PRESETS.map((p) => (
+        {starters.map((p) => (
           <li key={p.id}>
             <button type="button" className="name btn starter" title={t.presets[p.id].hint} onClick={() => loadPreset(p)}>
               {t.presets[p.id].name}
@@ -647,7 +651,7 @@ export function App() {
 
       <div className="page">
         <h1 className="sr-only">Garsæ</h1>
-        {activeCount === 0 && startersRow}
+        {activeCount === 0 && starters.length > 0 && startersRow}
 
         <div className="tab-strip" role="group" aria-label={t.sound}>
           {CATEGORIES.map((cat) => (
@@ -714,6 +718,19 @@ export function App() {
               startWith(decoded);
             }
             setSheet(null);
+          }}
+          hidden={hiddenStarters}
+          onHide={(list, message, undo) => {
+            setHidden(setHiddenStarters(list));
+            say(
+              message,
+              undo
+                ? () => {
+                    setHidden(setHiddenStarters(undo));
+                    say(t.restored);
+                  }
+                : undefined,
+            );
           }}
           onPreset={(p) => {
             loadPreset(p);

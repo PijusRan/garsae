@@ -156,6 +156,7 @@ export const lt: Strings = {
   replaceName: (name) => `Pakeisti ${name} dabartiniu miksu`,
   delete: 'Ištrinti',
   deleteName: (name) => `Ištrinti ${name}`,
+  restoreStarters: 'Grąžinti ištrintus paruoštus miksus',
 
   shareTitleSheet: 'Bendrinti šį miksą',
   shareNote: 'Kiekvienas, turintis šią nuorodą, išgirs tuos pačius garsus ir nustatymus, sugrotus iš naujo.',

@@ -1,6 +1,7 @@
 // Mix state: what the user chose. Saved mixes and share links store settings only,
 // never a random seed, so the music is different on every play.
 import { TILES, TILE_BY_ID, TILE_IDS, isTileId, type TileId } from '../tiles';
+import type { PresetId } from './presets';
 
 export interface TileSetting {
   on: boolean;
@@ -119,6 +120,7 @@ export interface SavedMix {
 const MIXES_KEY = 'garsae.mixes';
 const LAST_KEY = 'garsae.last';
 const VOLUME_KEY = 'garsae.volume';
+const HIDDEN_STARTERS_KEY = 'garsae.hiddenStarters';
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -186,6 +188,14 @@ export function suggestName(mix: MixState, tileName: (id: TileId) => string, unt
 export function restoreMixes(list: SavedMix[]): SavedMix[] {
   write(MIXES_KEY, list);
   return list;
+}
+
+/** Starter mixes the user deleted. They stay hidden in this browser until brought back. */
+export const loadHiddenStarters = (): PresetId[] => read<PresetId[]>(HIDDEN_STARTERS_KEY, []);
+
+export function setHiddenStarters(ids: PresetId[]): PresetId[] {
+  write(HIDDEN_STARTERS_KEY, ids);
+  return ids;
 }
 
 export const loadVolume = (): number => {

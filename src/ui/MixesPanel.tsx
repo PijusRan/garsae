@@ -12,7 +12,7 @@ import {
 } from '../state/mix';
 import { useT } from '../i18n';
 import type { Strings } from '../i18n/en';
-import { PRESETS, type Preset } from '../state/presets';
+import { PRESETS, type Preset, type PresetId } from '../state/presets';
 import { TILES } from '../tiles';
 import { CloseIcon, EditIcon, ReplaceIcon } from './icons';
 import { Sheet } from './Sheet';
@@ -24,6 +24,10 @@ interface Props {
   onChange: (list: SavedMix[], message: string, undo?: SavedMix[]) => void;
   onLoad: (m: SavedMix) => void;
   onPreset: (p: Preset) => void;
+  /** Starters the user deleted. */
+  hidden: PresetId[];
+  /** `undo` as for `onChange`. */
+  onHide: (hidden: PresetId[], message: string, undo?: PresetId[]) => void;
   onClose: () => void;
 }
 
@@ -32,7 +36,7 @@ function tileNames(encoded: string, strings: Strings): string {
   return m ? TILES.filter((t) => m.tiles[t.id].on).map((t) => strings.tiles[t.id].name).join(', ') : '';
 }
 
-export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: Props) {
+export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, hidden, onHide, onClose }: Props) {
   const [name, setName] = useState('');
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -153,7 +157,7 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
 
       <h3 className="sheet-sub">{t.starters}</h3>
       <ul className="mix-list">
-        {PRESETS.map((p) => (
+        {PRESETS.filter((p) => !hidden.includes(p.id)).map((p) => (
           <li key={p.id}>
             <button type="button" className={`mix-load${p.mix === current ? ' current' : ''}`} onClick={() => onPreset(p)}>
               <span className="mix-main">
@@ -162,9 +166,23 @@ export function MixesPanel({ mix, saved, onChange, onLoad, onPreset, onClose }: 
               </span>
               {p.mix === current && <span className="mix-meta">{t.current}</span>}
             </button>
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label={t.deleteName(t.presets[p.id].name)}
+              title={t.delete}
+              onClick={() => onHide([...hidden, p.id], t.deletedName(t.presets[p.id].name), hidden)}
+            >
+              <CloseIcon size={18} />
+            </button>
           </li>
         ))}
       </ul>
+      {hidden.length > 0 && (
+        <button type="button" className="text-link restore-starters" onClick={() => onHide([], t.restored)}>
+          {t.restoreStarters}
+        </button>
+      )}
     </Sheet>
   );
 }

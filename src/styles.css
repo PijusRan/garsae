@@ -1343,6 +1343,10 @@ input[type='range']:focus-visible {
   border-bottom: none;
 }
 
+.restore-starters {
+  margin-top: 4px;
+}
+
 .mix-load {
   flex: 1;
   min-width: 0;
@@ -1446,7 +1450,8 @@ input[type='range']:focus-visible {
   position: fixed;
   left: 50%;
   bottom: max(24px, env(safe-area-inset-bottom));
-  z-index: 30;
+  /* Above an open sheet, so Undo stays in reach after deleting from it. */
+  z-index: 45;
   display: flex;
   align-items: center;
   gap: 14px;
