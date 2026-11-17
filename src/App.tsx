@@ -605,15 +605,6 @@ export function App() {
             </div>
           </div>
 
-          {/* Wide screens show this in the free space at the foot of the sidebar, so it never covers a tile. */}
-          <div className={`toast glass${toast ? ' show' : ''}`} role="status" aria-live="polite">
-            <span>{toast?.msg}</span>
-            {toast?.undo && (
-              <button type="button" className="toast-undo" onClick={() => toast.undo?.()}>
-                {t.undo}
-              </button>
-            )}
-          </div>
         </div>
 
         <section className="mix-strip" aria-label={t.mix}>
@@ -644,6 +635,15 @@ export function App() {
         </section>
       </aside>
       {islandOpen && <div className="island-scrim" onClick={() => setIslandOpen(false)} />}
+      {/* Outside the sidebar, whose glass would hold a fixed box inside it. Wide screens show it in the bottom-right corner. */}
+      <div className={`toast glass${toast ? ' show' : ''}${islandOpen ? ' island-open' : ''}`} role="status" aria-live="polite">
+        <span>{toast?.msg}</span>
+        {toast?.undo && (
+          <button type="button" className="toast-undo" onClick={() => toast.undo?.()}>
+            {t.undo}
+          </button>
+        )}
+      </div>
 
       <div className="page">
         <h1 className="sr-only">Garsæ</h1>

@@ -1498,7 +1498,8 @@ input[type='range']:focus-visible {
 .welcoming .transport,
 .welcoming .mix-strip,
 .welcoming .sound,
-.welcoming .page {
+.welcoming .page,
+.welcoming .toast {
   opacity: 0;
   pointer-events: none;
   transition: none;
@@ -1877,28 +1878,20 @@ input[type='range']:focus-visible {
     order: 0;
     padding: 14px;
   }
-  /* In the sidebar's free space, below everything else. Solid, since it already sits on the sidebar's glass. */
-  .sidebar .toast {
-    position: sticky;
+  /* In the bottom-right corner, clear of the sidebar. */
+  .toast {
     left: auto;
-    bottom: 0;
-    order: 7;
-    flex: none;
-    justify-content: space-between;
+    right: max(24px, env(safe-area-inset-right));
+    max-width: 360px;
     gap: 10px;
-    margin-top: auto;
-    padding: 8px 4px 8px 12px;
+    padding: 8px 4px 8px 14px;
     line-height: 1.35;
-    background: oklch(0.24 0.004 60);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    box-shadow: none;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
-  .sidebar .toast.show {
+  .toast.show {
     transform: none;
   }
-  .sidebar .toast-undo {
+  .toast-undo {
     flex: none;
     height: 32px;
     margin: 0;
@@ -2200,7 +2193,7 @@ input[type='range']:focus-visible {
     bottom: calc(max(10px, env(safe-area-inset-bottom)) + 80px);
   }
   /* The open island fills the bottom, so the toast drops in at the top instead. */
-  .island.open ~ .toast {
+  .toast.island-open {
     top: max(10px, env(safe-area-inset-top));
     bottom: auto;
   }
