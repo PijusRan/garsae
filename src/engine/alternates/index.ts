@@ -16,8 +16,9 @@ import type { TileId } from '../../tiles';
 import { faustKit, faustVoice, prepareFaust } from './faust';
 import { synthKit } from '../drums/genres';
 import { synth808, synthBells, synthChoir, synthFlute, synthMuted, synthPiano, synthStrings, synthWalk } from './synth';
-import { rollBpm, rollKey, surpriseMix } from '../../state/mix';
+import { rollBpm, rollKey } from '../../state/mix';
 import { createSurprise, type SurpriseRoll } from '../../state/surprise';
+import { oldSurpriseMix } from './surprise';
 
 /** A voice whose output is scaled by `trim`, so it is compared at the tile's own loudness. */
 function trimmed(label: string, trim: number, create: (core: Core, dest: AudioNode) => ModelVoice): NoteAlternate {
@@ -92,11 +93,11 @@ export const ROUNDS: Round[] = [
   {
     round: 5,
     title: 'Surprise me, by style',
+    shipped: true,
     listen:
-      'Whole mixes, not one tile. A is Surprise me as it is: every part picked on its own, tempo 60-90 whatever the ' +
-      'drums. B picks a style first (lo-fi, ambient, dub, bossa, trip hop, organic, motorik, liquid, minimal) and ' +
-      'fills it from that style, sets the tempo from the drums, never rolls fewer than three sounds, and steers clear ' +
-      'of its last roll. Press R a few times on each: listen for which mixes sound meant, and which still surprise.',
+      'Shipped. A picks a style first and fills it from that style, with the tempo from its drums, at least three ' +
+      'sounds and no repeat of its last roll. B is the Surprise me it replaced, every part picked on its own at any ' +
+      'tempo from 60 to 90. Kept for reference; R rolls new mixes.',
   },
 ];
 
@@ -147,14 +148,15 @@ export interface MixAlternate {
 }
 
 /** Surprise me as the app has it, the A every mix candidate is compared against. */
-export const MIX_CURRENT: Omit<MixAlternate, 'round'> = {
-  label: 'Current',
-  create: () => () => ({ mix: surpriseMix(), bpm: rollBpm(), key: rollKey(), style: 'Any' }),
-};
+export const MIX_CURRENT: Omit<MixAlternate, 'round'> = { label: 'Current', create: createSurprise };
 
 export const MIX_ALTERNATES: MixAlternate[] = [
-  // Round 5: a style first, then parts from that style.
-  { round: 5, label: 'By style', create: createSurprise },
+  // Round 5: the Surprise me the styles replaced, each part picked on its own.
+  {
+    round: 5,
+    label: 'Parts on their own',
+    create: () => () => ({ mix: oldSurpriseMix(), bpm: rollBpm(), key: rollKey(), style: 'Any' }),
+  },
 ];
 
 /** Compiles the Faust alternates for a context; await it before switching tiles on with alternates. */

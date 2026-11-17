@@ -19,11 +19,11 @@ import {
   saveVolume,
   setHiddenStarters,
   suggestName,
-  surpriseMix,
   type MixState,
   type SavedMix,
 } from './state/mix';
 import { PRESETS, presetMix, type Preset, type PresetId } from './state/presets';
+import { createSurprise } from './state/surprise';
 import { CATEGORIES, TILES, TILE_IDS, type Category, type TileId } from './tiles';
 import { useT } from './i18n';
 import type { Strings } from './i18n/en';
@@ -52,6 +52,9 @@ function applyMix(engine: Engine, mix: MixState, prev: MixState | null, bpm: num
     if (!p || p.evolution !== s.evolution) engine.setTileEvolution(id, s.evolution);
   }
 }
+
+/** Surprise me, with its memory of what it rolled, so each roll moves on to another style. */
+const rollSurprise = createSurprise();
 
 /** How the app opened. Worked out once, because reading a share link also clears it from the URL. */
 let boot: { mix: MixState; fromLink: boolean; firstVisit: boolean } | null = null;
@@ -380,8 +383,8 @@ export function App() {
   };
 
   const surprise = () => {
-    const next = surpriseMix();
-    const nextRolled = { bpm: rollBpm(), key: rollKey() };
+    const { mix: next, bpm, key } = rollSurprise();
+    const nextRolled = { bpm, key };
     replaceMix(next, t.surpriseMix);
     setRolled(nextRolled);
     startWith(next, nextRolled);

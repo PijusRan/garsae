@@ -1,4 +1,4 @@
-// Surprise me, by style: a candidate in compare round 5 against surpriseMix() in mix.ts. A roll picks a style first
+// Surprise me, by style (chosen in compare round 5). A roll picks a style first
 // (lo-fi, ambient, dub, ...), then fills it from that style's own weighted lists, so the parts belong together. The
 // tempo comes from the drum style that was picked. Styles come round in a shuffled bag, so every style is heard before
 // any comes back, and a roll steers clear of the last one's style, sounds and key.
