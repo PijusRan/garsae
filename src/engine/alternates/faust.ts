@@ -34,7 +34,8 @@ export function faustKit(label: string, model: FaustModel, slots: Voice[], trim:
 
 /**
  * A Faust voice for a melodic tile: notes held from t for their hold (the model's gate), `size` voices taken in turn,
- * each ringing on for `tail` after its note. `extra` adds controls per note.
+ * each ringing on for `tail` after its note (`legato`: a note on the same voice carries on without a new attack).
+ * `extra` adds controls per note.
  */
 export function faustVoice(
   label: string,
@@ -43,6 +44,7 @@ export function faustVoice(
   tail: number,
   trim: number,
   extra: (midi: number) => Record<string, number> = () => ({}),
+  legato = false,
 ): NoteAlternate {
   return {
     kind: 'notes',
@@ -56,9 +58,9 @@ export function faustVoice(
         output,
         note(t, midi, hold, vel) {
           const until = t + Math.max(hold, 0.02);
-          const v = pool.take(t, midi, until, tail);
+          const v = pool.take(t, midi, until, tail, legato);
           // "len" is the hold, for models that shape their decay by it (the 808); the others have no such control.
-          fx.hold(v.voice, t, until, { freq: midiToFreq(midi), vel: clamp(vel, 0, 1), len: hold, ...extra(midi) }, false);
+          fx.hold(v.voice, t, until, { freq: midiToFreq(midi), vel: clamp(vel, 0, 1), len: hold, ...extra(midi) }, legato);
         },
       };
     },

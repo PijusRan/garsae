@@ -7,7 +7,7 @@ import { chance, clamp, pick, rand, randInt } from '../random';
 import { createChorus } from '../synth';
 import { chordInPentatonic, midiToFreq, notesInRange, pentatonicNotes, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
-import { tileVoice, type Vowel } from '../models/host';
+import { tileVoice, type ModelVoice, type Vowel } from '../models/host';
 
 /** The chord's tones as a close voicing from `lo` upwards, with an optional 9th on top. */
 function voicing(s: StepInfo, lo: number, ninth: boolean): number[] {
@@ -322,7 +322,16 @@ export function createVibes(core: Core): Instrument {
  * a late vibrato, the tape a slow pitch sag. Low and dark, like an alto flute on a worn tape, with a quiet echo a
  * dotted quarter behind. Short phrases of long notes, then bars of rest.
  */
-export function createTapeFlute(core: Core): Instrument {
+/** One flute phrase: notes at steps of the bar, each held for some beats. */
+export type FlutePhrase = { step: number; midi: number; beats: number }[];
+
+/** Writes the flute's phrases, and what voice plays them. The defaults are the tile's own; listening tests swap them. */
+export interface FluteOptions {
+  voice?: (core: Core, dest: AudioNode) => ModelVoice;
+  phrase?: (s: StepInfo, last: number) => FlutePhrase;
+}
+
+export function createTapeFlute(core: Core, options: FluteOptions = {}): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const hp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 200, Q: 0.6 });
@@ -335,11 +344,16 @@ export function createTapeFlute(core: Core): Instrument {
   const wet = new GainNode(ctx, { gain: 0.2 });
   lp.connect(delay).connect(loopFilter).connect(feedback).connect(delay);
   loopFilter.connect(wet).connect(out);
-  const flute = tileVoice(core, 'flute', hp);
-  let phrase: { step: number; midi: number; beats: number }[] = [];
+  const flute = options.voice ? options.voice(core, hp) : tileVoice(core, 'flute', hp);
+  let phrase: FlutePhrase = [];
   let last = 69;
 
   function makePhrase(s: StepInfo) {
+    if (options.phrase) {
+      phrase = options.phrase(s, last);
+      last = phrase[phrase.length - 1]?.midi ?? last;
+      return;
+    }
     const pool = pentatonicNotes(s.root, 60, 77);
     let idx = pool.findIndex((m) => m >= last);
     if (idx < 0) idx = pool.length - 1;

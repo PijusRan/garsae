@@ -9,9 +9,12 @@ import kitDnb from '../faust/gen/kit_dnb';
 import kitHands from '../faust/gen/kit_hands';
 import kitMotorikDamped from '../faust/gen/kit_motorik_damped';
 import bassFretless from '../faust/gen/bass_fretless';
-import type { Alternate, Alternates, HitAlternate, ModelVoice, NoteAlternate } from '../models/host';
+import strings from '../faust/gen/strings';
+import type { Alternate, Alternates, GeneratorAlternate, HitAlternate, ModelVoice, NoteAlternate } from '../models/host';
 import { createFigureEveryBarArp } from './arp';
-import type { Core } from '../types';
+import { fluteWarm, warmFluteAlternate } from './flute';
+import { softDrone, softPad } from './pads';
+import type { Core, Instrument } from '../types';
 import type { TileId } from '../../tiles';
 import { faustKit, faustVoice, prepareFaust } from './faust';
 import { synthKit } from '../drums/genres';
@@ -29,6 +32,20 @@ function trimmed(label: string, trim: number, create: (core: Core, dest: AudioNo
       const level = new GainNode(core.ctx, { gain: trim });
       level.connect(dest);
       return create(core, level);
+    },
+  };
+}
+
+/** A generator whose output is scaled by `trim`, so it is compared at the tile's own loudness. */
+function trimmedGenerator(label: string, trim: number, create: (core: Core) => Instrument): GeneratorAlternate {
+  return {
+    kind: 'generator',
+    label,
+    create(core) {
+      const inst = create(core);
+      const level = new GainNode(core.ctx, { gain: trim });
+      inst.output?.connect(level);
+      return { ...inst, output: level };
     },
   };
 }
@@ -99,6 +116,15 @@ export const ROUNDS: Round[] = [
       'sounds and no repeat of its last roll. B is the Surprise me it replaced, every part picked on its own at any ' +
       'tempo from 60 to 90. Kept for reference; R rolls new mixes.',
   },
+  {
+    round: 6,
+    title: 'Softer pads, quieter strings, warm flute',
+    listen:
+      'Warm pad and Drone were called harsh: B has the same notes on a softer tone, at the same loudness; listen for ' +
+      'any edge or buzz. String ensemble was too loud at its default: B is 4 dB quieter; judge the level only. ' +
+      'Tape flute had odd melodies and an unnatural sound: B is a warmer alto flute playing calmer phrases, low, in ' +
+      'steps, ending on the chord; the old synth flute in C is from round 1.',
+  },
 ];
 
 export const CURRENT_ROUND = ROUNDS[ROUNDS.length - 1].round;
@@ -112,8 +138,15 @@ const FAUST_BASS = 'Faust model';
 
 export const ALTERNATES: Alternates = {
   // The synth voices the physical models replaced.
-  flute: inRound(1, trimmed(OLD_SYNTH, 0.65, synthFlute)),
-  strings: inRound(1, trimmed(OLD_SYNTH, 0.97, synthStrings)),
+  // Round 6 candidates come first, so they are B on the compare page; the round 1 synth voices follow.
+  flute: [...inRound(6, warmFluteAlternate(0.207)), ...inRound(1, trimmed(OLD_SYNTH, 0.65, synthFlute))],
+  strings: [
+    ...inRound(6, faustVoice('Quieter', strings, 6, 1.2, 0.2, () => ({}), true)),
+    ...inRound(1, trimmed(OLD_SYNTH, 0.97, synthStrings)),
+  ],
+  // Round 6: the pad and drone's own notes on softer tones.
+  pad: inRound(6, trimmedGenerator('Softer pad', 0.944, softPad)),
+  drone: inRound(6, trimmedGenerator('Softer drone', 0.955, softDrone)),
   choir: inRound(1, trimmed(OLD_SYNTH, 1.31, synthChoir)),
   piano: inRound(1, trimmed(OLD_SYNTH, 1.3, synthPiano)),
   bells: inRound(1, trimmed(OLD_SYNTH, 1.1, synthBells)),
@@ -161,7 +194,7 @@ export const MIX_ALTERNATES: MixAlternate[] = [
 
 /** Compiles the Faust alternates for a context; await it before switching tiles on with alternates. */
 export function prepareAlternates(ctx: BaseAudioContext): Promise<void> {
-  return prepareFaust(ctx, [kitBossa, kitDnb, kitHands, kitMotorikDamped, bassFretless]);
+  return prepareFaust(ctx, [kitBossa, kitDnb, kitHands, kitMotorikDamped, bassFretless, strings, fluteWarm]);
 }
 
 /** The round a tile's alternates belong to (its newest). */

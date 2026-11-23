@@ -33,11 +33,26 @@ const PAD_UNISON = [
   { detune: 12, pan: 0.45 },
 ];
 
-export function createPad(core: Core): Instrument {
+/** What the pad's tone is made of; the defaults are the shipped pad. Listening tests try softer ones (alternates/pads.ts). */
+export interface PadTone {
+  wave: OscillatorType;
+  /** Each note's lowpass opens to this many times its pitch, up to `ceiling` Hz, and settles to 4 times. */
+  open: number;
+  ceiling: number;
+  /** The shared filter's centre and how far its slow movement swings it. */
+  filter: number;
+  swing: number;
+  chorus: number;
+  attack: number;
+}
+
+const SHIPPED_PAD: PadTone = { wave: 'sawtooth', open: 14, ceiling: 11000, filter: 4200, swing: 1600, chorus: 0.8, attack: 1.8 };
+
+export function createPad(core: Core, tone: PadTone = SHIPPED_PAD): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const { filter, setEvolution } = movingFilter(core, 4200, 1600, 0.045, 0.5);
-  const chorus = createChorus(ctx, { wet: 0.8 });
+  const { filter, setEvolution } = movingFilter(core, tone.filter, tone.swing, 0.045, 0.5);
+  const chorus = createChorus(ctx, { wet: tone.chorus });
   const drift = createDrift(ctx, 6);
   filter.connect(chorus.input);
   chorus.output.connect(out);
@@ -48,20 +63,20 @@ export function createPad(core: Core): Instrument {
     const f = midiToFreq(midi);
     const g = new GainNode(ctx, { gain: 0 });
     const lp = new BiquadFilterNode(ctx, { type: 'lowpass', Q: 0.6, frequency: f * 3 });
-    lp.frequency.setTargetAtTime(Math.min(f * 14, 11000), t, 0.9);
+    lp.frequency.setTargetAtTime(Math.min(f * tone.open, tone.ceiling), t, 0.9);
     lp.frequency.setTargetAtTime(f * 4, t + hold, 1.2);
     lp.connect(g).connect(filter);
     const oscs: OscillatorNode[] = [];
     const nodes: AudioNode[] = [g, lp];
     for (const u of PAD_UNISON) {
-      const osc = new OscillatorNode(ctx, { type: 'sawtooth', frequency: f, detune: u.detune + rand(-3, 3) });
+      const osc = new OscillatorNode(ctx, { type: tone.wave, frequency: f, detune: u.detune + rand(-3, 3) });
       const p = new StereoPannerNode(ctx, { pan: clamp(pan + u.pan, -0.9, 0.9) });
       osc.connect(p).connect(lp);
       drift.connect(osc.detune);
       oscs.push(osc);
       nodes.push(p);
     }
-    const end = envelope(g.gain, t, hold, { peak, attack: 1.8, release: 3.2 });
+    const end = envelope(g.gain, t, hold, { peak, attack: tone.attack, release: 3.2 });
     // Oscillators always start at the same phase. A random start stops every chord attacking identically.
     for (const o of oscs) o.start(t + rand(0, 1 / f));
     cleanupAt(oscs, end, nodes, () => {
@@ -389,7 +404,8 @@ export function createArp(core: Core, writer: ArpWriter = motifWriter()): Instru
  * fades on its own slow cycle (14-32 s, about a breath's pace), so the colour shifts while
  * the root underneath never moves.
  */
-const DRONE_VOICES: { ratio: number; gain: number; pan: number; breath: number }[] = [
+type DroneVoice = { ratio: number; gain: number; pan: number; breath: number };
+const DRONE_VOICES: DroneVoice[] = [
   { ratio: 0.5, gain: 0.07, pan: 0, breath: 0 },
   { ratio: 1, gain: 0.16, pan: 0, breath: 0 },
   { ratio: 1.5, gain: 0.08, pan: -0.3, breath: 0.043 },
@@ -405,12 +421,21 @@ const DRONE_HARMONICS = [0, 1, 0.3, 0.1, 0.04, 0.015];
  * no pitch drift, no chorus wobble and nothing in the sub-bass rumble. All of those read as
  * tension. What moves is only the slow breathing of the upper voices.
  */
-export function createDrone(core: Core): Instrument {
+/** What the drone is made of; the defaults are the shipped drone. Listening tests try softer ones (alternates/pads.ts). */
+export interface DroneTone {
+  voices: DroneVoice[];
+  harmonics: number[];
+  cutoff: number;
+}
+
+const SHIPPED_DRONE: DroneTone = { voices: DRONE_VOICES, harmonics: DRONE_HARMONICS, cutoff: 2200 };
+
+export function createDrone(core: Core, tone: DroneTone = SHIPPED_DRONE): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
-  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2200, Q: 0.5 });
+  const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: tone.cutoff, Q: 0.5 });
   lp.connect(out);
-  const wave = ctx.createPeriodicWave(new Float32Array(DRONE_HARMONICS.length), Float32Array.from(DRONE_HARMONICS));
+  const wave = ctx.createPeriodicWave(new Float32Array(tone.harmonics.length), Float32Array.from(tone.harmonics));
   let voices: { osc: OscillatorNode; ratio: number; depth?: GainNode; breath: number; gain: number }[] = [];
   let sources: AudioScheduledSourceNode[] = [];
   let nodes: AudioNode[] = [];
@@ -428,7 +453,7 @@ export function createDrone(core: Core): Instrument {
     },
     activate(t) {
       const f0 = rootFreq(core.root);
-      for (const v of DRONE_VOICES) {
+      for (const v of tone.voices) {
         const osc = new OscillatorNode(ctx, { frequency: f0 * v.ratio });
         // The lowest voice is a plain sine: warmth without a rumble.
         if (v.ratio >= 1) osc.setPeriodicWave(wave);
