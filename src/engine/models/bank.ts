@@ -36,12 +36,13 @@ const KITS: Record<KitName, { model: FaustModel; slots: Voice[]; trim: number }>
 /**
  * Output trims. They were set so each model plays as loud as the synth voice it replaced (integrated loudness of
  * long solo renders), keeping the tiles' calibrated levels in tiles.ts valid; the strings and choir then came down a
- * little, as they were asked to be softer. The kits' trims (KITS) were matched the same way.
+ * little, as they were asked to be softer. The kits' trims (KITS) were matched the same way. The piano is the more
+ * realistic model of round 7, a little quieter than it was compared at, so it sits back in the mix.
  */
 const TRIM: Record<ModelName, number> = {
   strings: 0.2,
   choir: 1.5,
-  piano: 0.46,
+  piano: 0.8,
   bells: 0.37,
   walk: 1.95,
   muted: 9.1,

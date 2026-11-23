@@ -10,6 +10,7 @@ import kitHands from '../faust/gen/kit_hands';
 import kitMotorikDamped from '../faust/gen/kit_motorik_damped';
 import bassFretless from '../faust/gen/bass_fretless';
 import strings from '../faust/gen/strings';
+import pianoOld from '../faust/gen/piano_old';
 import type { Alternate, Alternates, GeneratorAlternate, HitAlternate, ModelVoice, NoteAlternate } from '../models/host';
 import { createFigureEveryBarArp } from './arp';
 import { fluteWarm, warmFluteAlternate } from './flute';
@@ -126,6 +127,15 @@ export const ROUNDS: Round[] = [
       'Tape flute. B is what each replaced (the saw pad, the brighter drone, the earlier strings level, the ' +
       'waveguide flute); the warm additive flute in C of the flute was not chosen. Kept for reference.',
   },
+  {
+    round: 7,
+    title: 'Felt piano, more realistic',
+    shipped: true,
+    listen:
+      'Shipped, a little quieter than it was tested: the more realistic felt piano, with three strings on the lowest ' +
+      'partials, inharmonicity rising to the treble, the hammer a seventh along the string, a felt contact noise and ' +
+      'a soundboard body. B is the earlier Faust piano it replaced; C is the old synth voice. Kept for reference.',
+  },
 ];
 
 export const CURRENT_ROUND = ROUNDS[ROUNDS.length - 1].round;
@@ -151,7 +161,8 @@ export const ALTERNATES: Alternates = {
   drone: inRound(6, trimmedGenerator('Bright drone', 1.047, brightDrone)),
   // The synth voices the physical models replaced.
   choir: inRound(1, trimmed(OLD_SYNTH, 1.31, synthChoir)),
-  piano: inRound(1, trimmed(OLD_SYNTH, 1.3, synthPiano)),
+  // Round 7: the Faust piano the more realistic one replaced.
+  piano: [...inRound(7, faustVoice('Earlier felt piano', pianoOld, 8, 0.6, 0.46)), ...inRound(1, trimmed(OLD_SYNTH, 1.3, synthPiano))],
   bells: inRound(1, trimmed(OLD_SYNTH, 1.1, synthBells)),
   walk: inRound(1, trimmed(OLD_SYNTH, 1.19, synthWalk)),
   // What the genres and basses chosen in round 2 replaced.
@@ -197,7 +208,7 @@ export const MIX_ALTERNATES: MixAlternate[] = [
 
 /** Compiles the Faust alternates for a context; await it before switching tiles on with alternates. */
 export function prepareAlternates(ctx: BaseAudioContext): Promise<void> {
-  return prepareFaust(ctx, [kitBossa, kitDnb, kitHands, kitMotorikDamped, bassFretless, strings, flute, fluteWarm]);
+  return prepareFaust(ctx, [kitBossa, kitDnb, kitHands, kitMotorikDamped, bassFretless, strings, flute, fluteWarm, pianoOld]);
 }
 
 /** The round a tile's alternates belong to (its newest). */
