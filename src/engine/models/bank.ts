@@ -2,7 +2,6 @@
 // draw before the models' WebAssembly has arrived.
 import bells from '../faust/gen/bells';
 import choir from '../faust/gen/choir';
-import flute from '../faust/gen/flute';
 import piano from '../faust/gen/piano';
 import strings from '../faust/gen/strings';
 import walk from '../faust/gen/walk';
@@ -22,7 +21,7 @@ import { clamp } from '../random';
 import { midiToFreq } from '../theory';
 import type { KitName, ModelHost, ModelName, ModelVoice } from './host';
 
-const MODELS: Record<ModelName, FaustModel> = { flute, strings, choir, piano, bells, walk, muted: bassMuted, b808: bass808 };
+const MODELS: Record<ModelName, FaustModel> = { strings, choir, piano, bells, walk, muted: bassMuted, b808: bass808 };
 
 /** The genres that play on Faust kits: the model, its voices in slot order, and a trim. */
 const KITS: Record<KitName, { model: FaustModel; slots: Voice[]; trim: number }> = {
@@ -36,12 +35,11 @@ const KITS: Record<KitName, { model: FaustModel; slots: Voice[]; trim: number }>
 
 /**
  * Output trims. They were set so each model plays as loud as the synth voice it replaced (integrated loudness of
- * long solo renders), keeping the tiles' calibrated levels in tiles.ts valid; the flute and choir then came down a
+ * long solo renders), keeping the tiles' calibrated levels in tiles.ts valid; the strings and choir then came down a
  * little, as they were asked to be softer. The kits' trims (KITS) were matched the same way.
  */
 const TRIM: Record<ModelName, number> = {
-  flute: 0.29,
-  strings: 0.32,
+  strings: 0.2,
   choir: 1.5,
   piano: 0.46,
   bells: 0.37,
@@ -102,7 +100,6 @@ function held(
 const VOWELS = { oo: 4, oh: 3, ah: 3.2 };
 
 const MAKERS: Record<ModelName, (ctx: BaseAudioContext, c: Compiled) => ModelVoice> = {
-  flute: (ctx, c) => held(ctx, 'flute', c, 2, 0.4, false).voice,
   // Bowed sections move to the next chord legato: the bow keeps going, the fingers change.
   strings: (ctx, c) => held(ctx, 'strings', c, 6, 1.2, true).voice,
   choir: (ctx, c) => {

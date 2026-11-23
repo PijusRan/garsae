@@ -1,4 +1,4 @@
-// Faust voices (models running in an AudioWorklet, see ../faust): physical models for the tape flute, string
+// Faust voices (models running in an AudioWorklet, see ../faust): physical models for the string
 // ensemble, choir, felt piano, glass bells and the walking, muted and 808 basses, and drum kits for the lo-fi, techno,
 // dub, ambient pulse, trip hop and motorik genres. The tile's generator decides every note and hit; the model plays it.
 // The models load once per engine, in the background (models/bank.ts). A voice asked for before they have loaded
@@ -13,7 +13,7 @@ import type { Core, Instrument } from '../types';
 
 export type { DrumKit };
 
-export type ModelName = 'flute' | 'strings' | 'choir' | 'piano' | 'bells' | 'walk' | 'muted' | 'b808';
+export type ModelName = 'strings' | 'choir' | 'piano' | 'bells' | 'walk' | 'muted' | 'b808';
 /** The genres that play on Faust kits. */
 export type KitName = 'lofi' | 'techno' | 'dub' | 'ambient' | 'triphop' | 'motorik';
 export type Vowel = 'oo' | 'oh' | 'ah';

@@ -13,12 +13,13 @@ import strings from '../faust/gen/strings';
 import type { Alternate, Alternates, GeneratorAlternate, HitAlternate, ModelVoice, NoteAlternate } from '../models/host';
 import { createFigureEveryBarArp } from './arp';
 import { fluteWarm, warmFluteAlternate } from './flute';
-import { softDrone, softPad } from './pads';
+import { brightDrone, sawPad } from './pads';
 import type { Core, Instrument } from '../types';
 import type { TileId } from '../../tiles';
 import { faustKit, faustVoice, prepareFaust } from './faust';
 import { synthKit } from '../drums/genres';
-import { synth808, synthBells, synthChoir, synthFlute, synthMuted, synthPiano, synthStrings, synthWalk } from './synth';
+import flute from '../faust/gen/flute';
+import { synth808, synthBells, synthChoir, synthMuted, synthPiano, synthStrings, synthWalk } from './synth';
 import { rollBpm, rollKey } from '../../state/mix';
 import { createSurprise, type SurpriseRoll } from '../../state/surprise';
 import { oldSurpriseMix } from './surprise';
@@ -118,12 +119,12 @@ export const ROUNDS: Round[] = [
   },
   {
     round: 6,
-    title: 'Softer pads, quieter strings, warm flute',
+    title: 'Softer pads, quieter strings, flute',
+    shipped: true,
     listen:
-      'Warm pad and Drone were called harsh: B has the same notes on a softer tone, at the same loudness; listen for ' +
-      'any edge or buzz. String ensemble was too loud at its default: B is 4 dB quieter; judge the level only. ' +
-      'Tape flute had odd melodies and an unnatural sound: B is a warmer alto flute playing calmer phrases, low, in ' +
-      'steps, ending on the chord; the old synth flute in C is from round 1.',
+      'Shipped: the softer Warm pad and Drone, String ensemble 4 dB quieter, and the synth flute (round 1) back on the ' +
+      'Tape flute. B is what each replaced (the saw pad, the brighter drone, the earlier strings level, the ' +
+      'waveguide flute); the warm additive flute in C of the flute was not chosen. Kept for reference.',
   },
 ];
 
@@ -138,15 +139,17 @@ const FAUST_BASS = 'Faust model';
 
 export const ALTERNATES: Alternates = {
   // The synth voices the physical models replaced.
-  // Round 6 candidates come first, so they are B on the compare page; the round 1 synth voices follow.
-  flute: [...inRound(6, warmFluteAlternate(0.207)), ...inRound(1, trimmed(OLD_SYNTH, 0.65, synthFlute))],
-  strings: [
-    ...inRound(6, faustVoice('Quieter', strings, 6, 1.2, 0.2, () => ({}), true)),
-    ...inRound(1, trimmed(OLD_SYNTH, 0.97, synthStrings)),
+  // Round 6: what the softer pad and drone, quieter strings and synth flute replaced, and the warm flute not chosen.
+  flute: [
+    ...inRound(6, faustVoice('Waveguide flute', flute, 2, 0.4, 0.29), warmFluteAlternate(0.207)),
   ],
-  // Round 6: the pad and drone's own notes on softer tones.
-  pad: inRound(6, trimmedGenerator('Softer pad', 0.944, softPad)),
-  drone: inRound(6, trimmedGenerator('Softer drone', 0.955, softDrone)),
+  strings: [
+    ...inRound(6, faustVoice('Earlier level', strings, 6, 1.2, 0.32, () => ({}), true)),
+    ...inRound(1, trimmed(OLD_SYNTH, 0.61, synthStrings)),
+  ],
+  pad: inRound(6, trimmedGenerator('Saw pad', 1.059, sawPad)),
+  drone: inRound(6, trimmedGenerator('Bright drone', 1.047, brightDrone)),
+  // The synth voices the physical models replaced.
   choir: inRound(1, trimmed(OLD_SYNTH, 1.31, synthChoir)),
   piano: inRound(1, trimmed(OLD_SYNTH, 1.3, synthPiano)),
   bells: inRound(1, trimmed(OLD_SYNTH, 1.1, synthBells)),
@@ -194,7 +197,7 @@ export const MIX_ALTERNATES: MixAlternate[] = [
 
 /** Compiles the Faust alternates for a context; await it before switching tiles on with alternates. */
 export function prepareAlternates(ctx: BaseAudioContext): Promise<void> {
-  return prepareFaust(ctx, [kitBossa, kitDnb, kitHands, kitMotorikDamped, bassFretless, strings, fluteWarm]);
+  return prepareFaust(ctx, [kitBossa, kitDnb, kitHands, kitMotorikDamped, bassFretless, strings, flute, fluteWarm]);
 }
 
 /** The round a tile's alternates belong to (its newest). */

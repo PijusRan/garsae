@@ -33,7 +33,7 @@ const PAD_UNISON = [
   { detune: 12, pan: 0.45 },
 ];
 
-/** What the pad's tone is made of; the defaults are the shipped pad. Listening tests try softer ones (alternates/pads.ts). */
+/** What the pad's tone is made of; the default is the soft pad, the old saw pad is for listening tests (alternates/pads.ts). */
 export interface PadTone {
   wave: OscillatorType;
   /** Each note's lowpass opens to this many times its pitch, up to `ceiling` Hz, and settles to 4 times. */
@@ -46,9 +46,13 @@ export interface PadTone {
   attack: number;
 }
 
-const SHIPPED_PAD: PadTone = { wave: 'sawtooth', open: 14, ceiling: 11000, filter: 4200, swing: 1600, chorus: 0.8, attack: 1.8 };
+/** Triangles through a dark filter that never opens past the mids: the pad was called harsh on saws. */
+const SOFT_PAD: PadTone = { wave: 'triangle', open: 5, ceiling: 3200, filter: 1900, swing: 700, chorus: 0.6, attack: 2.4 };
 
-export function createPad(core: Core, tone: PadTone = SHIPPED_PAD): Instrument {
+/** The pad as it was: three saws, bright and open. Kept for the compare page. */
+export const SAW_PAD: PadTone = { wave: 'sawtooth', open: 14, ceiling: 11000, filter: 4200, swing: 1600, chorus: 0.8, attack: 1.8 };
+
+export function createPad(core: Core, tone: PadTone = SOFT_PAD): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const { filter, setEvolution } = movingFilter(core, tone.filter, tone.swing, 0.045, 0.5);
@@ -421,16 +425,29 @@ const DRONE_HARMONICS = [0, 1, 0.3, 0.1, 0.04, 0.015];
  * no pitch drift, no chorus wobble and nothing in the sub-bass rumble. All of those read as
  * tension. What moves is only the slow breathing of the upper voices.
  */
-/** What the drone is made of; the defaults are the shipped drone. Listening tests try softer ones (alternates/pads.ts). */
+/** What the drone is made of; the default is the soft drone, the old one is for listening tests (alternates/pads.ts). */
 export interface DroneTone {
   voices: DroneVoice[];
   harmonics: number[];
   cutoff: number;
 }
 
-const SHIPPED_DRONE: DroneTone = { voices: DRONE_VOICES, harmonics: DRONE_HARMONICS, cutoff: 2200 };
+/** The drone as it was: a brighter filter, more harmonics and a third-harmonic voice. Kept for the compare page. */
+export const BRIGHT_DRONE: DroneTone = { voices: DRONE_VOICES, harmonics: DRONE_HARMONICS, cutoff: 2200 };
 
-export function createDrone(core: Core, tone: DroneTone = SHIPPED_DRONE): Instrument {
+/** The drone with its top taken off: it was called harsh. */
+const SOFT_DRONE: DroneTone = {
+  voices: [
+    { ratio: 0.5, gain: 0.07, pan: 0, breath: 0 },
+    { ratio: 1, gain: 0.16, pan: 0, breath: 0 },
+    { ratio: 1.5, gain: 0.07, pan: -0.3, breath: 0.043 },
+    { ratio: 2, gain: 0.06, pan: 0.3, breath: 0.061 },
+  ],
+  harmonics: [0, 1, 0.12, 0.02],
+  cutoff: 900,
+};
+
+export function createDrone(core: Core, tone: DroneTone = SOFT_DRONE): Instrument {
   const { ctx } = core;
   const out = new GainNode(ctx, { gain: 1 });
   const lp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: tone.cutoff, Q: 0.5 });

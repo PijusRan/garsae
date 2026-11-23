@@ -1,13 +1,14 @@
 // Keys, voices and solo instruments in the pads category, each with its own generator:
 // electric piano, choir, felt piano, string ensemble, vibraphone and tape flute.
-// The choir, felt piano, strings and flute play on physical models (models/host.ts).
+// The choir, felt piano and strings play on physical models (models/host.ts); the flute is a synth voice.
 import { noteDensity } from '../evolution';
 import { cleanupAt, envelope, glide, percussive } from '../params';
 import { chance, clamp, pick, rand, randInt } from '../random';
 import { createChorus } from '../synth';
 import { chordInPentatonic, midiToFreq, notesInRange, pentatonicNotes, placeInRange } from '../theory';
 import type { Core, Instrument, StepInfo } from '../types';
-import { tileVoice, type ModelVoice, type Vowel } from '../models/host';
+import { compared, tileVoice, type ModelVoice, type Vowel } from '../models/host';
+import { synthFlute } from './flute';
 
 /** The chord's tones as a close voicing from `lo` upwards, with an optional 9th on top. */
 function voicing(s: StepInfo, lo: number, ninth: boolean): number[] {
@@ -318,10 +319,13 @@ export function createVibes(core: Core): Instrument {
 // ---------------------------------------------------------------- tape flute
 
 /**
- * A flute on a tape-replay keyboard, played softly on a jet-driven waveguide flute (models/host.ts): the breath carries
- * a late vibrato, the tape a slow pitch sag. Low and dark, like an alto flute on a worn tape, with a quiet echo a
+ * A flute on a tape-replay keyboard, played softly (instruments/flute.ts): a near-sine with a late vibrato and a slow
+ * tape sag. Low and dark, like an alto flute on a worn tape, with a quiet echo a
  * dotted quarter behind. Short phrases of long notes, then bars of rest.
  */
+/** The flute voice's gain, to sit at the loudness the tile was balanced at. */
+const FLUTE_LEVEL = 0.62;
+
 /** One flute phrase: notes at steps of the bar, each held for some beats. */
 export type FlutePhrase = { step: number; midi: number; beats: number }[];
 
@@ -344,7 +348,13 @@ export function createTapeFlute(core: Core, options: FluteOptions = {}): Instrum
   const wet = new GainNode(ctx, { gain: 0.2 });
   lp.connect(delay).connect(loopFilter).connect(feedback).connect(delay);
   loopFilter.connect(wet).connect(out);
-  const flute = options.voice ? options.voice(core, hp) : tileVoice(core, 'flute', hp);
+  const flute = options.voice
+    ? options.voice(core, hp)
+    : compared(core, 'flute', hp, (dest) => {
+        const level = new GainNode(ctx, { gain: FLUTE_LEVEL });
+        level.connect(dest);
+        return synthFlute(core, level);
+      });
   let phrase: FlutePhrase = [];
   let last = 69;
 

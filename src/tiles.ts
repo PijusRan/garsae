@@ -41,10 +41,10 @@ export interface TileMeta {
 export type Family = 'sustained' | 'melodic' | 'deep' | 'moving' | 'calm' | 'driving';
 
 export const TILES: TileMeta[] = [
-  { id: 'pad', category: 'pads', name: 'Warm pad', hint: 'Drifting chords', defaultVolume: 0.5, level: 0.947, reverb: 0.45, family: 'sustained' },
+  { id: 'pad', category: 'pads', name: 'Warm pad', hint: 'Drifting chords', defaultVolume: 0.5, level: 0.894, reverb: 0.45, family: 'sustained' },
   { id: 'bells', category: 'pads', name: 'Glass bells', hint: 'Sparse notes', defaultVolume: 0.5, level: 3.46, reverb: 0.7, family: 'melodic' },
   { id: 'arp', category: 'pads', name: 'Soft arpeggio', hint: 'Soft mallet phrases', defaultVolume: 0.5, level: 4.18, reverb: 0.4, family: 'melodic' },
-  { id: 'drone', category: 'pads', name: 'Drone', hint: 'Steady root and fifth', defaultVolume: 0.5, level: 0.515, reverb: 0.3, family: 'sustained' },
+  { id: 'drone', category: 'pads', name: 'Drone', hint: 'Steady root and fifth', defaultVolume: 0.5, level: 0.492, reverb: 0.3, family: 'sustained' },
   { id: 'epiano', category: 'pads', name: 'Electric piano', hint: 'Mellow chord comping', defaultVolume: 0.5, level: 1.82, reverb: 0.3, family: 'melodic' },
   { id: 'choir', category: 'pads', name: 'Choir', hint: 'Soft, wordless voices', defaultVolume: 0.5, level: 2.4, reverb: 0.55, family: 'sustained' },
   { id: 'piano', category: 'pads', name: 'Felt piano', hint: 'Quiet hammers, sparse notes', defaultVolume: 0.5, level: 1.37, reverb: 0.4, family: 'melodic' },
