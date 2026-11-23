@@ -283,9 +283,10 @@ export function synthKit(core: Core, main: AudioNode, echo: AudioNode | null): D
 function genreKit(core: Core, id: TileId, own: (main: AudioNode, echo: AudioNode | null) => DrumKit, input: AudioNode, echo: AudioNode | null): DrumKit {
   const alts = alternatesOf(core, id, 'hits');
   if (!alts.length) return own(input, echo);
-  const main = compareGains(core, alts.length + 1, input);
-  const sends = echo ? compareGains(core, alts.length + 1, echo) : null;
-  const all = [own(main[0], sends?.[0] ?? null), ...alts.map((a, i) => a.create(core, main[i + 1], sends?.[i + 1] ?? null))];
+  const slots = [0, ...alts.map((a) => a.slot)];
+  const main = compareGains(core, slots, input);
+  const sends = echo ? compareGains(core, slots, echo) : null;
+  const all = [own(main[0], sends?.[0] ?? null), ...alts.map((a, i) => a.alt.create(core, main[i + 1], sends?.[i + 1] ?? null))];
   return { hit: (...args) => all.forEach((k) => k.hit(...args)) };
 }
 

@@ -100,25 +100,32 @@ export function modelVoice(core: Core, name: ModelName, dest: AudioNode): ModelV
 }
 
 /**
- * Listening tests: one gain per voice of a tile (its own first, then its alternates), all into `dest`, with only the
- * chosen one open. They follow the compare choice as it changes.
+ * Listening tests: one gain per voice (its own, slot 0, then alternates at their slots in the tile's list), all into
+ * `dest`, with only the chosen one open. They follow the compare choice as it changes.
  */
-export function compareGains(core: Core, count: number, dest: AudioNode): GainNode[] {
+export function compareGains(core: Core, slots: number[], dest: AudioNode): GainNode[] {
   const { ctx } = core;
-  const gains = Array.from({ length: count }, () => new GainNode(ctx, { gain: 0 }));
+  const gains = slots.map(() => new GainNode(ctx, { gain: 0 }));
   for (const g of gains) g.connect(dest);
   const follow = (at = ctx.currentTime) => {
-    const choice = core.compare && core.compare.choice < count ? core.compare.choice : 0;
-    gains.forEach((g, i) => g.gain.setTargetAtTime(i === choice ? 1 : 0, at, 0.008));
+    // A choice none of these voices has (a tile with fewer alternates, or of another kind) plays the tile's own.
+    const choice = core.compare && slots.includes(core.compare.choice) ? core.compare.choice : 0;
+    gains.forEach((g, i) => g.gain.setTargetAtTime(slots[i] === choice ? 1 : 0, at, 0.008));
   };
   follow(0);
   core.compare?.listeners.add(() => follow());
   return gains;
 }
 
-/** A tile's alternates of one kind (none outside listening tests). */
-export function alternatesOf<K extends Alternate['kind']>(core: Core, id: TileId, kind: K): Extract<Alternate, { kind: K }>[] {
-  return (core.compare?.alternates[id] ?? []).filter((a): a is Extract<Alternate, { kind: K }> => a.kind === kind);
+/** A tile's alternates of one kind (none outside listening tests), each with its slot: its place in the tile's whole list, from 1. */
+export function alternatesOf<K extends Alternate['kind']>(
+  core: Core,
+  id: TileId,
+  kind: K,
+): { alt: Extract<Alternate, { kind: K }>; slot: number }[] {
+  return (core.compare?.alternates[id] ?? [])
+    .map((alt, i) => ({ alt, slot: i + 1 }))
+    .filter((x): x is { alt: Extract<Alternate, { kind: K }>; slot: number } => x.alt.kind === kind);
 }
 
 /** A genre's Faust kit, playing into `main` and `echo`; hits before the kits have loaded are dropped. */
@@ -137,8 +144,8 @@ export function modelKit(core: Core, name: KitName, main: AudioNode, echo: Audio
 export function compared(core: Core, id: TileId, dest: AudioNode, own: (dest: AudioNode) => ModelVoice): ModelVoice {
   const alts = alternatesOf(core, id, 'notes');
   if (!alts.length) return own(dest);
-  const gains = compareGains(core, alts.length + 1, dest);
-  const voices = [own(gains[0]), ...alts.map((a, i) => a.create(core, gains[i + 1]))];
+  const gains = compareGains(core, [0, ...alts.map((a) => a.slot)], dest);
+  const voices = [own(gains[0]), ...alts.map((a, i) => a.alt.create(core, gains[i + 1]))];
   return {
     output: dest,
     note: (t, midi, hold, vel) => voices.forEach((v) => v.note(t, midi, hold, vel)),
@@ -153,9 +160,9 @@ export function compared(core: Core, id: TileId, dest: AudioNode, own: (dest: Au
 export function comparedGenerator(core: Core, id: TileId, own: Instrument): Instrument {
   const alts = alternatesOf(core, id, 'generator');
   if (!alts.length) return own;
-  const all = [own, ...alts.map((a) => a.create(core))];
+  const all = [own, ...alts.map((a) => a.alt.create(core))];
   const output = new GainNode(core.ctx, { gain: 1 });
-  const gains = compareGains(core, all.length, output);
+  const gains = compareGains(core, [0, ...alts.map((a) => a.slot)], output);
   all.forEach((inst, i) => inst.output?.connect(gains[i]));
   return {
     output,
