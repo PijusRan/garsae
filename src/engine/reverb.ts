@@ -22,10 +22,11 @@ const REFLECTIONS = [
   [0.071, 0.35],
 ];
 
-export function createImpulse(ctx: BaseAudioContext, seconds = 3): AudioBuffer {
+/** `size` stretches the room: its decay times, first bounces and pre-delay (2 is a hall about twice as long). */
+export function createImpulse(ctx: BaseAudioContext, seconds = 3, size = 1): AudioBuffer {
   const sr = ctx.sampleRate;
   const length = Math.floor(sr * seconds);
-  const preDelay = Math.floor(sr * 0.018);
+  const preDelay = Math.floor(sr * 0.018 * size);
   const buf = ctx.createBuffer(2, length, sr);
   for (let c = 0; c < 2; c++) {
     const data = buf.getChannelData(c);
@@ -36,7 +37,7 @@ export function createImpulse(ctx: BaseAudioContext, seconds = 3): AudioBuffer {
       let low = 0;
       let lowBelow = 0;
       const below = previous ? 1 - Math.exp((-2 * Math.PI * previous) / sr) : 0;
-      const fall = Math.exp(-6.91 / (t60 * sr));
+      const fall = Math.exp(-6.91 / (t60 * size * sr));
       let env = 1;
       for (let i = preDelay; i < length; i++) {
         const w = Math.random() * 2 - 1;
@@ -48,7 +49,7 @@ export function createImpulse(ctx: BaseAudioContext, seconds = 3): AudioBuffer {
       previous = hz;
     }
     // The tail builds up over the first few tens of milliseconds, as a room's does.
-    const onset = sr * 0.05;
+    const onset = sr * 0.05 * size;
     for (let i = preDelay; i < length; i++) {
       const x = (i - preDelay) / onset;
       if (x >= 1) break;
@@ -64,7 +65,7 @@ export function createImpulse(ctx: BaseAudioContext, seconds = 3): AudioBuffer {
     for (let i = 0; i < length; i++) data[i] *= scale;
     for (const [time, level] of REFLECTIONS) {
       // Each side hears the same bounce a little earlier or later, and sometimes inverted.
-      const at = preDelay + Math.floor(sr * time * (c === 0 ? 1 : 1.13));
+      const at = preDelay + Math.floor(sr * time * size * (c === 0 ? 1 : 1.13));
       const sign = (Math.floor(time * 1000) + c) % 2 === 0 ? 1 : -1;
       data[at] += sign * level * 0.012;
       data[at + 1] += sign * level * 0.008;

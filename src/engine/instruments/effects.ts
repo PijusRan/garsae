@@ -20,3 +20,12 @@ export function createWobble(core: Core): Instrument {
     },
   };
 }
+
+/** Spatial effects: each turns its level into one master parameter. */
+function masterParam(set: (core: Core, level: number) => void) {
+  return (core: Core): Instrument => ({ setLevel: (level) => set(core, level) });
+}
+
+export const createWidth = masterParam((core, level) => core.master.setWidth(level));
+export const createOrbit = masterParam((core, level) => core.master.setOrbit(level));
+export const createHall = masterParam((core, level) => core.master.setHall(level));

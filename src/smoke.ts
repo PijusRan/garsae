@@ -486,6 +486,8 @@ export async function runSmoke(opts: { wavs?: boolean; compare?: boolean; defaul
   });
   await add('breakbeat evolution 1', { tiles: { breaks: 0.3, pad: 0.6 }, seconds: 30, evolution: 1, bpm: 88 });
   await add('am + wobble on pad', { tiles: { pad: 0.7, am: 0.6, wobble: 0.6 }, seconds: 16 });
+  await add('pad alone, for the effects', { tiles: { pad: 0.7 }, seconds: 16 });
+  await add('width + orbit + hall on pad', { tiles: { pad: 0.7, width: 0.8, orbit: 0.8, hall: 0.8 }, seconds: 16 });
 
   // Fade-out: turn every sound off at 8 s; the tail after 14 s should be silent apart from the reverb.
   const fade = await renderWithSwitchOff({

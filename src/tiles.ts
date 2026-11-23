@@ -13,7 +13,7 @@ export const TILE_IDS = [
   'crackle', 'wind', 'hum',
   'brown', 'pink', 'green',
   // effects (shape the whole mix)
-  'am', 'wobble',
+  'am', 'wobble', 'width', 'orbit', 'hall',
 ] as const;
 
 export type TileId = (typeof TILE_IDS)[number];
@@ -83,6 +83,9 @@ export const TILES: TileMeta[] = [
   { id: 'green', category: 'texture', name: 'Green noise', hint: 'Mid-range, natural', defaultVolume: 0.5, level: 0.233, reverb: 0, steady: true },
   { id: 'am', category: 'effects', name: 'Amplitude mod', hint: 'Gentle pulsing on mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true, steady: true },
   { id: 'wobble', category: 'effects', name: 'Tape wobble', hint: 'Warps the whole mix', defaultVolume: 0.4, level: 1, reverb: 0, effect: true, steady: true },
+  { id: 'width', category: 'effects', name: 'Stereo width', hint: 'Spreads the mix wider', defaultVolume: 0.5, level: 1, reverb: 0, effect: true, steady: true },
+  { id: 'orbit', category: 'effects', name: 'Orbit', hint: 'Mix drifts slowly around you', defaultVolume: 0.4, level: 1, reverb: 0, effect: true, steady: true },
+  { id: 'hall', category: 'effects', name: 'Large hall', hint: 'Mix plays in a big, far room', defaultVolume: 0.4, level: 1, reverb: 0, effect: true, steady: true },
 ];
 
 export const TILE_BY_ID: Record<TileId, TileMeta> = Object.fromEntries(

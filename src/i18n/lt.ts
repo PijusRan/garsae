@@ -48,6 +48,9 @@ export const lt: Strings = {
 
     am: { name: 'Amplitudės mod.', hint: 'Mikso pulsavimas' },
     wobble: { name: 'Juostos virpesys', hint: 'Iškreipia visą miksą' },
+    width: { name: 'Stereo plotis', hint: 'Praplečia miksą' },
+    orbit: { name: 'Orbita', hint: 'Miksas lėtai sukasi aplink jus' },
+    hall: { name: 'Didelė salė', hint: 'Miksas skamba didelėje, tolimoje salėje' },
   },
   presets: {
     deep: { name: 'Gilus susikaupimas', hint: 'Šilti akordai virš žemo dundesio' },

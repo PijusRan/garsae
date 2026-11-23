@@ -6,7 +6,7 @@ import { createAmbientPulse, createBossa, createBreakbeat, createDnb, createDub,
 import { create808, createFmBass, createFretless, createGlide, createMuted, createPulse, createReese, createRolling, createSub, createWalk } from './instruments/bass';
 import { createChoir, createEPiano, createFeltPiano, createStrings, createTapeFlute, createVibes } from './instruments/keys';
 import { createCrackle, createHum, createNoise, createWind } from './instruments/atmosphere';
-import { createAmplitudeMod, createWobble } from './instruments/effects';
+import { createAmplitudeMod, createHall, createOrbit, createWidth, createWobble } from './instruments/effects';
 import { HANDOVER_GRACE_LOOPS, handoverChance, handoverCooldownBars } from './evolution';
 import { chance, pick } from './random';
 import { createArp, createBells, createDrone, createPad } from './instruments/pads';
@@ -57,6 +57,9 @@ const FACTORIES: Record<TileId, InstrumentFactory> = {
   green: createNoise('green'),
   am: createAmplitudeMod,
   wobble: createWobble,
+  width: createWidth,
+  orbit: createOrbit,
+  hall: createHall,
 };
 
 export interface EngineStatus {

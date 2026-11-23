@@ -1,9 +1,10 @@
 // Master chain:
-//   tile buses -> mix -> wobble (modulated delay) -> amplitude modulation -> output fade
-//     -> subsonic filter -> mono bass -> tone -> glue -> makeup -> limiter -> soft clip -> volume -> speakers
+//   tile buses -> mix -> wobble (modulated delay) -> amplitude modulation -> width (mid/side) -> orbit (slow pan)
+//     -> output fade -> subsonic filter -> mono bass -> tone -> glue -> makeup -> limiter -> soft clip -> volume -> speakers
 //   reverb sends -> convolver -> mix
+//   after the amplitude modulation, a send -> hall (a large, dark convolver) -> width
 // Aims for about -17 LUFS on a typical mix with peaks under -1 dBTP, however much is switched on (see `npm run smoke`).
-// Wobble and amplitude modulation are parameters, so a later "focus profile"
+// Wobble, amplitude modulation, width, orbit and hall are parameters, so a later "focus profile"
 // can drive them as a preset layer without a rewrite.
 import { glide, volumeToGain } from './params';
 import { createImpulse } from './reverb';
@@ -81,6 +82,11 @@ export class Master {
   private wobble: DelayNode;
   private wowDepth: GainNode;
   private flutterDepth: GainNode;
+  private side: GainNode;
+  private orbitDepth: GainNode;
+  private hallSend: GainNode;
+  private hallDry: GainNode;
+  private widthTrim: GainNode;
   private sources: OscillatorNode[] = [];
 
   constructor(private ctx: BaseAudioContext) {
@@ -106,6 +112,46 @@ export class Master {
     this.amDepth = new GainNode(ctx, { gain: 0 });
     this.amLfo.connect(this.amDepth).connect(this.amGain.gain);
 
+    // Width: mid/side. Side is L - R; raising it spreads the mix without moving its centre. The side is high-passed,
+    // so the bass stays in the middle, and the mid is left alone, so a mono speaker hears no change.
+    const width = new GainNode(ctx, { channelCount: 2, channelCountMode: 'explicit', channelInterpretation: 'speakers' });
+    const wSplit = new ChannelSplitterNode(ctx, { numberOfOutputs: 2 });
+    const wMerge = new ChannelMergerNode(ctx, { numberOfInputs: 2 });
+    const sideIn = new GainNode(ctx, { gain: 0.5 });
+    const sideInvert = new GainNode(ctx, { gain: -0.5 });
+    const sideHp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 250, Q: 0.6 });
+    this.side = new GainNode(ctx, { gain: 0 });
+    const sideOut = new GainNode(ctx, { gain: -1 });
+    width.connect(wSplit);
+    // Straight through on each side, plus extra side: L += S, R -= S.
+    wSplit.connect(wMerge, 0, 0);
+    wSplit.connect(wMerge, 1, 1);
+    wSplit.connect(sideIn, 0);
+    wSplit.connect(sideInvert, 1);
+    sideIn.connect(sideHp);
+    sideInvert.connect(sideHp);
+    sideHp.connect(this.side);
+    this.side.connect(wMerge, 0, 0);
+    this.side.connect(sideOut).connect(wMerge, 0, 1);
+    // The extra side adds level; this takes it back off, so widening changes the image, not the loudness.
+    this.widthTrim = new GainNode(ctx, { gain: 1 });
+    wMerge.connect(this.widthTrim);
+
+    // Orbit: the whole mix drifts slowly from side to side and back, about once every twenty seconds.
+    const orbit = new StereoPannerNode(ctx, { pan: 0 });
+    const orbitLfo = new OscillatorNode(ctx, { frequency: 0.05 });
+    this.orbitDepth = new GainNode(ctx, { gain: 0 });
+    orbitLfo.connect(this.orbitDepth).connect(orbit.pan);
+
+    // Hall: a room twice the size of the tiles' own reverb, darker, so the mix sounds far away. The dry mix comes down
+    // as the hall comes up, so it moves the mix back instead of making it louder.
+    this.hallDry = new GainNode(ctx, { gain: 1 });
+    this.hallSend = new GainNode(ctx, { gain: 0 });
+    const hallHp = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 200 });
+    const hallLp = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 5000, Q: 0.5 });
+    const hall = new ConvolverNode(ctx, { buffer: createImpulse(ctx, 6, 2.2) });
+    this.hallSend.connect(hallHp).connect(hallLp).connect(hall).connect(width);
+
     this.output = new GainNode(ctx, { gain: 0 });
     // Rumble nobody hears only uses up headroom.
     const subsonic = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 24, Q: 0.7 });
@@ -128,7 +174,9 @@ export class Master {
     const clip = new WaveShaperNode(ctx, { curve: softClipCurve(), oversample: '4x' });
     const clipOut = new GainNode(ctx, { gain: 2 });
 
-    this.mix.connect(this.wobble).connect(this.amGain).connect(this.output).connect(subsonic).connect(mono.input);
+    this.mix.connect(this.wobble).connect(this.amGain).connect(this.hallDry).connect(width);
+    this.amGain.connect(this.hallSend);
+    this.widthTrim.connect(orbit).connect(this.output).connect(subsonic).connect(mono.input);
     mono.output.connect(mud).connect(air).connect(glue).connect(makeup).connect(this.limiter);
     this.limiter.connect(clipIn).connect(clip).connect(clipOut);
     this.volume = new GainNode(ctx, { gain: 1 });
@@ -137,7 +185,7 @@ export class Master {
     this.analyser = new AnalyserNode(ctx, { fftSize: 1024, smoothingTimeConstant: 0.85 });
     clipOut.connect(this.analyser);
 
-    this.sources = [wow, flutter, this.amLfo];
+    this.sources = [wow, flutter, this.amLfo, orbitLfo];
     for (const s of this.sources) s.start();
   }
 
@@ -164,5 +212,24 @@ export class Master {
     const a = Math.min(1, Math.max(0, amount));
     glide(this.ctx, this.wowDepth.gain, a * 0.0035, 0.6);
     glide(this.ctx, this.flutterDepth.gain, a * 0.00012, 0.6);
+  }
+
+  /** Stereo width, 0-1: 0 leaves the mix as it is, 1 doubles its sides. */
+  setWidth(amount: number): void {
+    const a = Math.min(1, Math.max(0, amount));
+    glide(this.ctx, this.side.gain, a, 0.6);
+    glide(this.ctx, this.widthTrim.gain, 1 / (1 + 0.2 * a), 0.6);
+  }
+
+  /** Orbit, 0-1: how far the slow pan swings, at most most of the way to each side. */
+  setOrbit(amount: number): void {
+    glide(this.ctx, this.orbitDepth.gain, Math.min(1, Math.max(0, amount)) * 0.7, 0.8);
+  }
+
+  /** Hall, 0-1: how far the mix moves from the dry room into the large hall. */
+  setHall(amount: number): void {
+    const a = Math.min(1, Math.max(0, amount));
+    glide(this.ctx, this.hallSend.gain, a * 0.3, 0.8);
+    glide(this.ctx, this.hallDry.gain, 1 - a * 0.25, 0.8);
   }
 }
